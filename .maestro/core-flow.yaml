@@ -1,0 +1,36 @@
+appId: com.tawreed.doctor
+name: Tawreed Doctor core purchase flow
+---
+- launchApp:
+    clearState: true
+- assertVisible: "تسجيل الدخول"
+- tapOn: "البريد الإلكتروني"
+- inputText: ${TEST_EMAIL}
+- tapOn: "كلمة المرور"
+- inputText: ${TEST_PASSWORD}
+- tapOn: "تسجيل الدخول"
+- assertVisible: "مرحباً بك في توريد"
+- tapOn: "المنتجات"
+- assertVisible: "المنتجات"
+- tapOn:
+    text: "عرض .*"
+    index: 0
+- tapOn: "إضافة إلى السلة"
+- tapOn: "السلة"
+- assertVisible: "ملخص الطلب"
+- tapOn: "متابعة لإتمام الطلب"
+- assertVisible: "١. عنوان التوصيل"
+- tapOn: "العنوان الافتراضي"
+- inputText: ${TEST_DELIVERY_ADDRESS}
+- tapOn: "اسم المستلم"
+- inputText: ${TEST_RECIPIENT_NAME}
+- tapOn: "رقم الهاتف"
+- inputText: ${TEST_RECIPIENT_PHONE}
+- tapOn: "تأكيد الطلب"
+- assertVisible: "تم استلام طلبك"
+- tapOn: "عرض طلباتي"
+- assertVisible: "طلباتي"
+- tapOn:
+    text: "عرض تفاصيل الطلب"
+    index: 0
+- assertVisible: "تتبع الطلب"

@@ -1,0 +1,25 @@
+node_modules/
+.pnpm-store/
+.expo/
+.vercel/
+.git-nested-backups/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+supabase/.branches/
+supabase/.temp/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.orig
+.DS_Store
+Thumbs.db
+
+# Empty duplicate repository created during initial GitHub linking.
+/Tawreed/

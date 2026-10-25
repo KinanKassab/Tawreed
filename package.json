@@ -1,0 +1,38 @@
+{
+  "name": "tawreed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tawreed/doctor start",
+    "dev:web": "pnpm --filter @tawreed/doctor web",
+    "dev:android": "pnpm --filter @tawreed/doctor android",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:web": "playwright test",
+    "build:web": "pnpm --filter @tawreed/doctor build:web",
+    "expo:doctor": "expo-doctor apps/doctor",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:migration:new": "supabase migration new",
+    "supabase:types": "node ./scripts/generate-supabase-types.mjs",
+    "test:db": "supabase test db",
+    "test:catalog": "node ./scripts/verify-local-catalog.mjs",
+    "e2e:android": "maestro test .maestro"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.10.0",
+    "expo-doctor": "1.21.5",
+    "supabase": "2.122.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}
