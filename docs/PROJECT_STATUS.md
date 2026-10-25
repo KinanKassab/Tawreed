@@ -10,7 +10,9 @@ An internal Operations expansion is now in product definition. Its approved firs
 
 ## Completed and verified
 
-- Verified that the existing local Git repository is linked to `https://github.com/KinanKassab/Tawreed.git` as `origin`; the remote repository is currently empty and no project files have been pushed.
+- Pushed the complete flattened monorepo to `https://github.com/KinanKassab/Tawreed` on `main` and created the dedicated Vercel project `tawreed-doctor` without replacing the existing Astro-based `tawreed` production project.
+- Deployed the Doctor Web export to `https://tawreed-doctor.vercel.app`; Vercel reports the production deployment ready and the public response is HTTP 200 with the expected Arabic RTL shell.
+- Verified that the existing local Git repository is linked to `https://github.com/KinanKassab/Tawreed.git` as `origin` and tracks the pushed `main` branch.
 - Audited every supplied HTML, CSS, JavaScript, SVG, and PNG reference file without modifying the source.
 - Created the pnpm monorepo, Expo SDK 58 universal app, shared packages, strict TypeScript, ESLint, pinned lockfile, and equivalent Codex/Claude rules.
 - Implemented Arabic RTL, user-approved Segoe UI typography with native system fallbacks, responsive Web/mobile navigation, shared states, and the supplied store visual language. Mobile uses matching vector icons, a right-aligned Tawreed logo, back navigation on internal pages, and a persistent four-item bottom bar across authenticated routes.
@@ -31,6 +33,7 @@ An internal Operations expansion is now in product definition. Its approved firs
 
 ## Release blockers
 
+- Add hosted `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values to the `tawreed-doctor` Vercel project and redeploy. Until then, the deployed client correctly shows its Arabic service-unavailable state instead of attempting to use local Supabase values.
 - Resolve and verify safe email/phone identity linking before enabling independent WhatsApp signup. The current client deliberately uses `shouldCreateUser: false`.
 - Provide approved authentication frames and Tawreed app-icon/splash artwork for final visual approval.
 - Supply hosted Supabase/Twilio/EAS/Vercel projects and secrets, then run the unexecuted release checks.
@@ -38,7 +41,7 @@ An internal Operations expansion is now in product definition. Its approved firs
 
 ## Last successful validation
 
-On 2026-10-25: the database reset/seed and type generation succeeded; `pnpm test:db` passed 19/19, including Doctor denial and service-role access for protected sourcing metadata; `pnpm test:catalog` verified 12 categories/196 complete products plus Arabic/English/SKU search through authenticated RLS with zero invented prices; `pnpm typecheck`, `pnpm lint`, `pnpm test` (23/23), `pnpm peers check`, `pnpm test:web` (8/8, including the account-setup popup), `pnpm expo:doctor` (20/20), and `pnpm build:web` passed. Disposable local accounts additionally verified immediate post-registration entry plus mobile header placement, back navigation, and persistent bottom navigation at 390×844, 375×812, and 812×375 with reduced motion; the accounts were removed afterward.
+On 2026-10-25: `pnpm typecheck`, `pnpm lint`, `pnpm test` (23/23), `pnpm expo:doctor` (20/20), and `pnpm build:web` passed immediately before the GitHub/Vercel release. The production Vercel response returned HTTP 200 with Arabic RTL metadata and no runtime error logs. Docker was stopped during this release session, so `pnpm test:db` and `pnpm test:catalog` could not connect; `pnpm test:web` passed its four routing/layout cases and its four Supabase-dependent login-popup cases failed with the expected network-unavailable state. The preceding successful local-Supabase run remains 19/19 pgTAP checks, complete authenticated catalog verification, and 8/8 Web tests.
 
 ## Completion claim
 

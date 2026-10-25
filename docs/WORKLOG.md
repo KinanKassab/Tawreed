@@ -78,3 +78,13 @@
 - Verified that the existing local repository uses `https://github.com/KinanKassab/Tawreed.git` as the `origin` fetch and push URL.
 - Confirmed that the GitHub repository is reachable and currently has no branches or commits.
 - Preserved all local files as untracked work; no commit or push was performed.
+
+## 2026-10-25 — GitHub push and Vercel production deployment
+
+- Flattened the accidental nested Git repositories so the main repository contains the complete Doctor application rather than Git links; preserved the Doctor template history under the ignored `.git-nested-backups/` directory.
+- Verified that real `.env` files, Vercel local metadata, and credential patterns were excluded from the upload.
+- Created and pushed the initial `main` commit to `https://github.com/KinanKassab/Tawreed`.
+- Preserved the existing Astro-based Vercel `tawreed` production site and created a separate `tawreed-doctor` project for the Expo application.
+- Deployed the pushed commit to `https://tawreed-doctor.vercel.app`; Vercel reported `READY`, the response returned HTTP 200 with Arabic RTL metadata, and the runtime error scan was clean.
+- Confirmed in a browser that the deployed app currently reaches its intentional Arabic service-unavailable state because hosted Supabase public environment values are not configured.
+- Passed strict typecheck, lint, 23/23 Vitest tests, Expo Doctor 20/20, and the production Web export. Database/catalog tests were blocked because Docker was stopped; Web E2E passed 4/8, with the four Supabase-dependent cases receiving the expected network-unavailable state.

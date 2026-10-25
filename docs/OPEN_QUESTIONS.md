@@ -30,7 +30,7 @@
 - Reason: local Supabase is configured and verified, but hosted project identifiers/credentials are not present.
 - Impact: live auth, WhatsApp delivery, hosted database verification, APK cloud build, and deployment.
 - Affected features: release validation.
-- Final answer: local Supabase resolved on 2026-10-25; hosted Supabase/Twilio/EAS/Vercel configuration remains pending.
+- Final answer: local Supabase resolved on 2026-10-25. The dedicated Vercel project `tawreed-doctor` is deployed at `https://tawreed-doctor.vercel.app`, but its hosted Supabase public values remain pending; Twilio and EAS configuration also remain pending.
 
 ## OQ-004 — Privileged Operations approval boundaries
 
