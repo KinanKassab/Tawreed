@@ -127,3 +127,11 @@
 - Decision: treat `deleted.txt` markers in the owner-curated image folders as catalog deactivation (`products.active = false`), not physical row deletion. Normalize selected product photos to 1200×1200 WebP without cropping the product and publish them through the provider-neutral media model.
 - Reason: preserve order/catalog referential integrity while reflecting the owner's approved visible assortment and photography.
 - Consequence: 102 products remain recoverable but hidden from Doctor catalog policies; 95 selected images cover 93 of the 94 active products, and future replacements can use new immutable object keys.
+
+## ADR-017 — Separate production projects for Doctor and Operations
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: deploy Doctor and Operations as separate Vercel projects from the same monorepo. Doctor retains `tawreed.app`; Operations builds only from `apps/operations` and receives the same public Supabase URL/publishable key, never a secret key.
+- Reason: the internal console needs an independent release boundary without replacing the existing Doctor site or the older `tawreed` project.
+- Consequence: each surface can be deployed or rolled back independently, while authorization remains entirely server-controlled by Supabase staff membership and RLS.

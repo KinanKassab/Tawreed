@@ -153,3 +153,13 @@
 - Preserved all unrelated working-tree changes and did not modify the read-only visual reference folder.
 - Corrected inconsistent apparent product scale after owner review: detected the real non-white content bounds of every image, retained a safety margin, resized the subject proportionally to a 1000-pixel maximum extent, and re-centered it on the 1200×1200 white canvas.
 - Published content-hashed scale-v2 replacements and atomically relinked the 93 products. Verified 95/95 public images, 95/95 media links, and 93 primary flags; prior objects remain unlinked for safe rollback.
+
+## 2026-10-26 — Hosted Operations release
+
+- Applied the reviewed product-management migration and a forward-only Operations hardening/bootstrap migration to the hosted Tawreed Supabase project.
+- Added one active main warehouse, confirmed the protected product-cost table and low-stock field, and aligned local migration filenames with the versions recorded by the hosted migration service.
+- Created the confirmed hosted `owner@tawreed.app` user with active `owner` staff membership through a server-only bootstrap helper; no privileged key or password was committed.
+- Verified hosted password authentication plus Owner context/product access through the publishable-key REST/RLS boundary.
+- Passed 24/24 unit/contract tests, strict typecheck, lint, and both production Web exports. The local database reset could not run because Docker Desktop was stopped.
+- Pushed commit `66dcabc` to GitHub. Vercel rebuilt the Doctor production project from that commit and a separate `tawreed-operations` project was linked to the same repository with root `apps/operations` and public Supabase client values only.
+- Preserved unrelated backups, generated review outputs, Arabic notes, and the existing unstaged root `.env.example` deletion outside the release commit.

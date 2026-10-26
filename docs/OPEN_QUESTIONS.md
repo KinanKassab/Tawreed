@@ -25,12 +25,12 @@
 ## OQ-003 — External service configuration
 
 - Status: open
-- Blocking: no for local implementation; yes for hosted verification/release
-- Question: which Supabase project, Twilio Verify service, EAS project, and Vercel project should receive the production configuration?
-- Reason: local Supabase is configured and verified, but hosted project identifiers/credentials are not present.
-- Impact: live auth, WhatsApp delivery, hosted database verification, APK cloud build, and deployment.
+- Blocking: no for released Web; yes for WhatsApp and Android release verification
+- Question: which Twilio Verify service and EAS project should receive the remaining production configuration?
+- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified, while Twilio and EAS identifiers/credentials are still absent.
+- Impact: WhatsApp delivery, APK cloud build, and Android release validation.
 - Affected features: release validation.
-- Final answer: local Supabase resolved on 2026-10-25. The dedicated Vercel project `tawreed-doctor` is deployed at `https://tawreed-doctor.vercel.app`, but its hosted Supabase public values remain pending; Twilio and EAS configuration also remain pending.
+- Final answer: Supabase and Vercel were resolved on 2026-10-26; Doctor and Operations have separate production projects using public client values only. Twilio and EAS configuration remain pending.
 
 ## OQ-004 — Privileged Operations approval boundaries
 

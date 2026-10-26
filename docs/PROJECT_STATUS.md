@@ -36,20 +36,21 @@ The internal Operations expansion now has a working first implementation under `
 - Curated the owner-selected product photography from the read-only Design & Assets reference into 95 normalized 1200×1200 WebP files for 93 products, uploaded all files to the hosted public `product-media` bucket, and linked them through `media_assets`/`product_media`.
 - Re-normalized all 95 published images by detected subject bounds so the product itself—not only the canvas—uses a consistent maximum 1000-pixel extent inside the 1200×1200 frame. The transformation preserves aspect ratio and safety padding; all replacement URLs and links passed hosted verification.
 - Applied the image-folder instructions to the hosted catalog: verified 19 bilingual name corrections and reversibly deactivated 102 products instead of deleting records. Hosted verification passed for all 95 public image URLs and all 95 media links.
+- Applied the hosted product-management and Operations hardening migrations, provisioned the single active main warehouse, and created the confirmed hosted `owner@tawreed.app` identity with active `owner` staff membership.
+- Pushed commit `66dcabc` to `main`, redeployed the Doctor Web app from that commit, and created a separate Git-linked `tawreed-operations` Vercel project with public Supabase client configuration only.
 
 ## Implemented but not executable in this machine
 
 - Android launch, Maestro flow, and APK validation require Android SDK/ADB, Maestro, and an emulator/device or EAS credentials; those are unavailable.
-- Live Supabase Auth, hosted RLS, Twilio WhatsApp delivery, and Vercel deployment require project configuration/credentials.
+- Twilio WhatsApp delivery and EAS Android cloud build still require their external configuration/credentials.
 
 ## Release blockers
 
-- Redeploy the `tawreed-doctor` Vercel project after the hosted `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values added by the owner. Expo public values are embedded at build time.
 - The hosted Supabase database now contains 12 categories and 196 products named from the supplied pricing workbook, with 0 product prices by design. Missing prices must not prevent catalog display, only ordering.
 - The hosted catalog currently exposes 94 active products; 102 owner-marked products are retained but inactive. Ninety-three active products have curated photography and one active product remains without a selected image.
 - Resolve and verify safe email/phone identity linking before enabling independent WhatsApp signup. The current client deliberately uses `shouldCreateUser: false`.
 - Provide approved authentication frames and Tawreed app-icon/splash artwork for final visual approval.
-- Supply hosted Supabase/Twilio/EAS/Vercel projects and secrets, then run the unexecuted release checks.
+- Configure Twilio and EAS, then run the remaining WhatsApp and Android release checks.
 - Implement the Admin staff-management UI and secure invitation/revocation flow; local staff bootstrap currently uses the local-only helper.
 - Implement batch receiving and FEFO allocation before claiming expiry-aware fulfillment.
 - Implement substitution proposals and recorded Doctor approval before enabling substitutions operationally.
@@ -57,8 +58,8 @@ The internal Operations expansion now has a working first implementation under `
 
 ## Last successful validation
 
-On 2026-10-26, a hosted media/catalog verification confirmed 196 total products, 94 active products, 102 inactive products, 19 exact bilingual name edits, 95 media rows/links, 93 primary images, and 95/95 publicly retrievable WebP objects with zero errors. The previous full local suite remains the 2026-10-25 run: `pnpm typecheck`, `pnpm lint`, `pnpm test` (24/24), `pnpm test:db` (57/57), `pnpm test:catalog`, `pnpm test:web` (8/8), `pnpm test:operations-web` (12/12), Expo Doctor (20/20 for both apps), both Web builds, and Supabase advisors. Android E2E/APK and hosted Operations integration were not run.
+On 2026-10-26, `pnpm test` (24/24), strict typecheck, lint, and both production Web exports passed. The hosted database accepted `product_management` and `operations_hardening_and_bootstrap`; verification confirmed one confirmed active Owner, one active warehouse, the low-stock column, and the protected cost table. A publishable-key password sign-in then read the Owner context and a product through the live RLS/API boundary. Docker was stopped, so the local reset/pgTAP rerun could not start; the prior complete local run remains 57/57 pgTAP, catalog verification, Doctor Web E2E 8/8, Operations Web E2E 12/12, and Expo Doctor 20/20 for both apps. Android E2E/APK remain unrun.
 
 ## Completion claim
 
-The implementation is a working local production foundation, not a released build. Do not mark the product complete until hosted auth/integration checks, Android E2E, APK startup, hosted deployment, verified commercial catalog data, and final visual QA are executed successfully.
+The Doctor and Operations Web foundations are released against hosted Supabase, but the overall product is not complete. Do not claim final completion until commercial prices/inventory are verified, Android E2E/APK startup passes, Twilio is validated, staff administration and remaining fulfillment work are implemented, and final visual QA is approved.

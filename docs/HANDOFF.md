@@ -2,15 +2,15 @@
 
 ## Current state
 
-The universal Doctor app, shared packages, Supabase schema/RLS/RPC/seed, generated database types, and automated test harnesses are implemented. Local database, code quality, and Web checks pass. The UI uses Segoe UI with native system fallbacks; failed sign-in opens a safe account-setup popup; successful local registration enters the app immediately; and authenticated mobile pages share one persistent bottom bar plus internal-page back navigation. No production credentials were added, and the visual reference in `../Design & Assets` remains untouched.
+The universal Doctor app, shared packages, hosted Supabase schema/RLS/RPC, Operations Web app, generated database types, and automated test harnesses are implemented. Code quality and both Web exports pass. The UI uses Segoe UI with native system fallbacks; failed sign-in opens a safe account-setup popup; successful registration enters the app immediately when a session is available; and authenticated mobile pages share one persistent bottom bar plus internal-page back navigation. No privileged credential was committed, and the visual reference in `../Design & Assets` remains untouched.
 
 The existing `Code` folder is linked to `https://github.com/KinanKassab/Tawreed.git`; `main` is pushed and tracks `origin/main`. Nested Git metadata discovered during the initial push was preserved locally under the ignored `.git-nested-backups/` folder, and the full Doctor application is committed as ordinary monorepo source.
 
-The Doctor Web app has a dedicated Vercel project, `tawreed-doctor`, with production URL `https://tawreed-doctor.vercel.app`. It builds successfully from GitHub and returns HTTP 200. The project has no hosted Supabase environment values yet, so browser verification reaches the intentional Arabic service-unavailable state. The older Astro-based Vercel project named `tawreed` and its production domains were not replaced.
+The Doctor Web app has a dedicated Vercel project, `tawreed-doctor`, with production URLs `https://tawreed.app` and `https://tawreed-doctor.vercel.app`. Its public hosted Supabase values are configured and commit `66dcabc` deployed successfully. The older Astro-based Vercel project named `tawreed` was not replaced. Operations has a separate Git-linked Vercel project, `tawreed-operations`, rooted at `apps/operations` and configured with public Supabase client values only.
 
 The first internal Operations Web implementation exists in `apps/operations`. Staff membership is server-controlled in `public.staff_accounts` with cumulative ranks (`operations_manager < admin < owner`); Doctor accounts receive no Operations context or internal rows. The UI covers dashboard metrics, orders, full product management, one-warehouse inventory adjustments, and exchange rates. Product management includes name/description, selling price, protected cost and automatic profit, exact stock, low-stock threshold, availability, standardized image crop/upload, and Doctor-style draft preview. Financial, inventory, product, media, staff, and order mutations append audit events. Confirming an order reserves its complete quantity; dispatch deducts it; cancellation releases it; and resolving a reserved problem does not reserve twice.
 
-A local Owner account exists for `owner@tawreed.app`; its temporary credential was provided to the user and is not stored in the repository. Hosted Owner provisioning remains pending.
+A confirmed hosted Owner account exists for `owner@tawreed.app`, has active `owner` staff membership, and passed a publishable-key sign-in/RLS smoke test. Its temporary credential was provided to the user and is not stored in the repository.
 
 The hosted catalog now reflects the owner-curated `Design & Assets/images` instructions. It retains 196 records, of which 94 are active and 102 are reversibly inactive. Ninety-five normalized 1200×1200 WebP files cover 93 active products and are publicly served from the `product-media` bucket through 95 `media_assets`/`product_media` links. Their scale-v2 normalization sizes the detected product content itself to a consistent maximum 1000-pixel extent with preserved aspect ratio and safety padding. Nineteen bilingual name corrections are live. The untouched source selections and the generated review/manifest package are available under `outputs/product-media-ready`.
 
@@ -36,6 +36,8 @@ Supabase database advisors passed with no findings
 
 On 2026-10-26, hosted catalog/media verification also passed: 196 total products, 94 active, 102 inactive, 19 name corrections, 95 media links, 93 primary images, and 95/95 public Storage responses. This was a focused hosted-data verification, not a rerun of the full local application suite.
 
+Later on 2026-10-26, `pnpm test` (24/24), strict typecheck, lint, and both Web exports passed. Hosted migrations, Owner membership, the one-warehouse bootstrap, protected product costs, and low-stock fields were verified. Docker was stopped, so the local reset/pgTAP rerun was unavailable; use the preceding 57/57 database run as the latest local pgTAP evidence.
+
 `supabase db lint --local` still reports the pre-existing `requested_items` temporary-table resolution false positive inside `create_doctor_order`; the checkout function is exercised by the passing pgTAP suite.
 
 ## Exact continuation point
@@ -47,8 +49,7 @@ On 2026-10-26, hosted catalog/media verification also passed: 196 total products
 4. Implement substitution proposals with product/quantity/price delta and recorded Doctor approval (WhatsApp initially), then recalculate authoritative totals server-side.
 5. Add detailed order-item inspection and explicit Doctor-facing messages to the Operations order workflow.
 6. Obtain approved Operations frames and complete visual QA; OQ-006 remains open.
-7. Configure hosted Supabase and a dedicated Operations deployment with public client values only, apply reviewed migrations, create the first Owner through a protected bootstrap, and repeat the security/E2E suite against hosted infrastructure.
-8. Continue Doctor release work: hosted auth/Twilio, approved artwork/auth frames, EAS APK, Android Maestro, and final deployed verification.
+7. Continue Doctor release work: Twilio, approved artwork/auth frames, EAS APK, Android Maestro, and final deployed verification.
 
 ## Files to inspect first
 
