@@ -11,7 +11,7 @@ select has_function('public', 'create_doctor_order', 'transactional order functi
 select ok(has_function_privilege('authenticated', 'public.create_doctor_order(uuid,public.currency_code,text,text,text,text,jsonb)', 'EXECUTE'), 'authenticated can execute checkout RPC');
 select ok(not has_table_privilege('authenticated', 'public.vendors', 'SELECT'), 'Doctor cannot read vendors');
 select ok(not has_table_privilege('authenticated', 'public.purchase_orders', 'SELECT'), 'Doctor cannot read purchase orders');
-select ok(not has_table_privilege('authenticated', 'public.inventory_balances', 'SELECT'), 'Doctor cannot read inventory balances');
+select ok(has_table_privilege('authenticated', 'public.inventory_balances', 'SELECT'), 'operations client can reach inventory only through RLS');
 select ok(not has_table_privilege('authenticated', 'public.product_sourcing_suggestions', 'SELECT'), 'Doctor cannot read sourcing suggestions');
 select ok(has_table_privilege('service_role', 'public.product_sourcing_suggestions', 'SELECT'), 'service role can read internal sourcing suggestions');
 select ok(has_table_privilege('authenticated', 'public.products', 'SELECT'), 'Doctor can read products through RLS');

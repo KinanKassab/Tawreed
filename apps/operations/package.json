@@ -1,0 +1,46 @@
+{
+  "name": "@tawreed/operations",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo/vector-icons": "15.1.1",
+    "@hookform/resolvers": "6.0.0",
+    "@supabase/supabase-js": "2.118.0",
+    "@tanstack/react-query": "5.104.5",
+    "@tawreed/config": "workspace:*",
+    "@tawreed/data": "workspace:*",
+    "@tawreed/design-tokens": "workspace:*",
+    "@tawreed/domain": "workspace:*",
+    "@tawreed/ui": "workspace:*",
+    "@tawreed/validation": "workspace:*",
+    "expo": "58.0.19",
+    "expo-constants": "58.0.13",
+    "expo-font": "58.0.10",
+    "expo-image-picker": "~58.0.10",
+    "expo-linking": "58.0.14",
+    "expo-router": "58.0.26",
+    "expo-status-bar": "58.0.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-easy-crop": "6.2.4",
+    "react-hook-form": "7.91.0",
+    "react-native": "0.88.0",
+    "react-native-safe-area-context": "5.10.1",
+    "react-native-web": "0.21.4",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-expo": "58.0.4",
+    "typescript": "6.0.3"
+  },
+  "scripts": {
+    "web": "expo start --web",
+    "build:web": "expo export -p web",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint"
+  }
+}

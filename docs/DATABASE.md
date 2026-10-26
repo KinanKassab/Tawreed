@@ -16,6 +16,10 @@ Authenticated Doctors can read active catalog/configuration rows and only their 
 
 `warehouses`, `inventory_balances`, `inventory_batches`, `inventory_movements`, `vendors`, `purchase_orders`, `purchase_order_items`, and `goods_receipts` establish the future central-warehouse/procurement boundary. Doctor roles receive no table grants for this data.
 
+The first internal implementation adds `staff_accounts`, `audit_events`, and `order_inventory_reservations`. Staff ranks are cumulative (`operations_manager < admin < owner`) but authorization is evaluated against server-controlled membership rows rather than user-editable metadata. Operations reads are protected by RLS; Doctor sessions receive zero internal rows even where an authenticated Data API grant is necessary for the shared browser role.
+
+Operations mutations use narrowly granted functions for selling prices, exchange rates, inventory adjustments, complete-order confirmation/reservation, and order progression. Audit triggers capture actor, time, target, and old/new row data. Confirmation reserves all requested quantities atomically from the single active warehouse or marks the order as a problem; cancellation releases active reservations and dispatch deducts the complete reserved quantity. Batch receiving and FEFO allocation are not implemented yet.
+
 ## Transactional checkout
 
 `public.create_doctor_order` is the only Doctor order-creation path. It is a tightly granted `security definer` function with an empty pinned search path. It:
@@ -41,3 +45,9 @@ The supplied Product Master is versioned at `data/catalogs/tawreed_dental_catalo
 The source states that brands, availability, inventory, and prices are unverified. Consequently the seed creates no `product_prices`, assigns zero inventory, and keeps each record non-orderable. Suggested brands are informational sourcing candidates, not a manufacturer claim or Doctor-visible offer. A future Operations flow must verify and populate price/availability/inventory before ordering is enabled.
 
 Future catalog CSV columns remain: `sku`, `name_ar`, `name_en`, `category_slug`, `manufacturer`, `unit_label_ar`, `package_label_ar`, `description_ar`, `specifications_ar`, `availability`, `base_price_minor`, `base_currency`, `media_provider`, `media_object_key`, `media_external_url`, `media_alt_ar`, and `active`. Validate every row, resolve categories/media first, then upsert Product Master by SKU and price records by product/currency. Never import vendor purchase cost into a Doctor-readable table.
+
+## Operations product management
+
+`products.low_stock_threshold` stores the alert boundary independently for each product. Current and historical purchase costs live in `product_costs`, which has explicit authenticated grants plus staff-only RLS; Doctor policies return no cost rows. Selling prices continue to use `product_prices` so Doctor reads and checkout use the same authoritative active price.
+
+`operations_update_product` validates staff rank and all numeric/text bounds, locks the product and single warehouse balance, refuses stock below reserved quantity, updates Doctor-visible product fields, versions selling price and purchase cost, records exact-stock movements, and binds an optional normalized primary image in one database transaction. The browser uploads a unique Storage object first and deletes it if the database call fails. The public `product-media` bucket permits public delivery but restricts insert/delete operations to authenticated Operations staff under RLS. Product image records remain provider-neutral in `media_assets` and `product_media`; the normalized size is 1200×1200 pixels.

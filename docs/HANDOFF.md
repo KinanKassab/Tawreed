@@ -8,6 +8,12 @@ The existing `Code` folder is linked to `https://github.com/KinanKassab/Tawreed.
 
 The Doctor Web app has a dedicated Vercel project, `tawreed-doctor`, with production URL `https://tawreed-doctor.vercel.app`. It builds successfully from GitHub and returns HTTP 200. The project has no hosted Supabase environment values yet, so browser verification reaches the intentional Arabic service-unavailable state. The older Astro-based Vercel project named `tawreed` and its production domains were not replaced.
 
+The first internal Operations Web implementation exists in `apps/operations`. Staff membership is server-controlled in `public.staff_accounts` with cumulative ranks (`operations_manager < admin < owner`); Doctor accounts receive no Operations context or internal rows. The UI covers dashboard metrics, orders, full product management, one-warehouse inventory adjustments, and exchange rates. Product management includes name/description, selling price, protected cost and automatic profit, exact stock, low-stock threshold, availability, standardized image crop/upload, and Doctor-style draft preview. Financial, inventory, product, media, staff, and order mutations append audit events. Confirming an order reserves its complete quantity; dispatch deducts it; cancellation releases it; and resolving a reserved problem does not reserve twice.
+
+A local Owner account exists for `owner@tawreed.app`; its temporary credential was provided to the user and is not stored in the repository. Hosted Owner provisioning remains pending.
+
+The hosted catalog now reflects the owner-curated `Design & Assets/images` instructions. It retains 196 records, of which 94 are active and 102 are reversibly inactive. Ninety-five normalized 1200×1200 WebP files cover 93 active products and are publicly served from the `product-media` bucket through 95 `media_assets`/`product_media` links. Their scale-v2 normalization sizes the detected product content itself to a consistent maximum 1000-pixel extent with preserved aspect ratio and safety padding. Nineteen bilingual name corrections are live. The untouched source selections and the generated review/manifest package are available under `outputs/product-media-ready`.
+
 ## Last verified commands
 
 On 2026-10-25:
@@ -16,24 +22,33 @@ On 2026-10-25:
 pnpm peers check     passed
 pnpm typecheck       passed
 pnpm lint            passed
-pnpm test            23 passed
-pnpm test:db         19 passed
+pnpm test            24 passed
+pnpm test:db         57 passed
 pnpm test:catalog    passed (12 bilingual categories / 196 products / Arabic-English-SKU search / protected sourcing metadata / 0 invented prices)
 pnpm test:web        8 passed
 pnpm expo:doctor     20/20 passed
 pnpm build:web       passed
+pnpm test:operations-web 12 passed (including image crop/upload and product persistence on desktop / Pixel 7 / 375×812 / 812×375 reduced motion)
+pnpm build:operations passed
+Operations Expo Doctor 20/20 passed
+Supabase database advisors passed with no findings
 ```
+
+On 2026-10-26, hosted catalog/media verification also passed: 196 total products, 94 active, 102 inactive, 19 name corrections, 95 media links, 93 primary images, and 95/95 public Storage responses. This was a focused hosted-data verification, not a rerun of the full local application suite.
+
+`supabase db lint --local` still reports the pre-existing `requested_items` temporary-table resolution false positive inside `create_doctor_order`; the checkout function is exercised by the passing pgTAP suite.
 
 ## Exact continuation point
 
-1. Configure hosted Supabase, add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the `tawreed-doctor` Vercel project for production/preview, redeploy, and repeat Playwright against the deployed URL.
-2. Design the server-controlled cumulative Owner > Admin > Operations Manager capability matrix and immutable audit model; keep capabilities individually modeled for later separation. Operations may directly change selling prices and exchange rates.
-3. Define the internal Web application boundary without weakening Doctor isolation; the approved MVP covers orders, catalog/pricing, and one-warehouse inventory only.
-4. Create a local Doctor after the latest database reset and visually inspect the paginated 196-product dental catalog. Existing local accounts were removed by the reset.
-5. Add verified prices, inventory/availability, and approved product media before enabling purchasing; current imported catalog records are intentionally browse-only.
-6. Configure Twilio and validate auth redirects and WhatsApp delivery without enabling independent phone signup.
-7. Supply approved app artwork/auth frames; run Web/Android screenshot comparison and record deviations in `docs/DESIGN_AUDIT.md`.
-8. Link EAS, build the preview APK, install it, and run `.maestro/core-flow.yaml`.
+0. Verify an authenticated Doctor sees the 94-product hosted assortment and its curated primary images in production. One remaining active SKU has no owner-selected image.
+1. Preserve `outputs/product-media-ready/manifest.json` as the exact mapping of approved files, 19 name corrections, and 102 inactive SKUs. The older Internet candidate package remains rights-review material only and must not be imported automatically.
+2. Implement Admin-managed staff invitations, rank changes, revocation, final-Owner protection, and a staff audit view. The local bootstrap helper is not a hosted provisioning flow.
+3. Implement goods receipt into inventory batches and FEFO allocation/dispatch, with expiry validation and tests.
+4. Implement substitution proposals with product/quantity/price delta and recorded Doctor approval (WhatsApp initially), then recalculate authoritative totals server-side.
+5. Add detailed order-item inspection and explicit Doctor-facing messages to the Operations order workflow.
+6. Obtain approved Operations frames and complete visual QA; OQ-006 remains open.
+7. Configure hosted Supabase and a dedicated Operations deployment with public client values only, apply reviewed migrations, create the first Owner through a protected bootstrap, and repeat the security/E2E suite against hosted infrastructure.
+8. Continue Doctor release work: hosted auth/Twilio, approved artwork/auth frames, EAS APK, Android Maestro, and final deployed verification.
 
 ## Files to inspect first
 
@@ -46,5 +61,8 @@ pnpm build:web       passed
 - Keep failed-login messaging generic so it does not reveal whether an account exists.
 - Keep the protected-shell mobile bottom bar visible on every authenticated route and preserve internal-page back navigation.
 - Never send authoritative price/totals from the client or grant Doctor roles access to operations tables.
+- Keep staff membership server-controlled in `staff_accounts`; never move rank authorization into user-editable metadata.
+- Keep order confirmation atomic and full-order only; do not queue Operations mutations offline.
+- Keep `product_costs` staff-only; never add it to Doctor queries or grants. Keep product images normalized to 1200×1200 and publish them through `media_assets`/`product_media`, not direct image columns.
 - Keep WhatsApp `shouldCreateUser: false` until a verified linking ceremony is approved.
 - Do not queue offline writes or modify the supplied design source.

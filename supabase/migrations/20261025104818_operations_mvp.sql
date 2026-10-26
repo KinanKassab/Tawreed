@@ -81,7 +81,8 @@ begin
   );
   insert into public.audit_events(actor_user_id, action, table_name, record_id, old_data, new_data)
   values ((select auth.uid()), lower(tg_op), tg_table_name, nullif(v_record_id, ''), v_old, v_new);
-  return coalesce(new, old);
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
 end;
 $$;
 revoke all on function private.capture_audit_event() from public, anon, authenticated;
@@ -106,10 +107,8 @@ alter table public.staff_accounts enable row level security;
 alter table public.audit_events enable row level security;
 alter table public.order_inventory_reservations enable row level security;
 
-create policy staff_accounts_read_self on public.staff_accounts for select to authenticated
-using (user_id = (select auth.uid()) and active);
-create policy staff_accounts_read_by_admin on public.staff_accounts for select to authenticated
-using ((select private.has_staff_rank('admin')));
+create policy staff_accounts_read_allowed on public.staff_accounts for select to authenticated
+using ((user_id = (select auth.uid()) and active) or (select private.has_staff_rank('admin')));
 create policy audit_events_read_by_staff on public.audit_events for select to authenticated
 using ((select private.has_staff_rank('operations_manager')));
 create policy order_reservations_read_by_staff on public.order_inventory_reservations for select to authenticated
@@ -120,22 +119,29 @@ create policy order_reservations_update_by_staff on public.order_inventory_reser
 using ((select private.has_staff_rank('operations_manager')))
 with check ((select private.has_staff_rank('operations_manager')));
 
-create policy categories_read_by_staff on public.categories for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
-create policy products_read_by_staff on public.products for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
+drop policy categories_read_active on public.categories;
+create policy categories_read_allowed on public.categories for select to authenticated
+using (active or (select private.has_staff_rank('operations_manager')));
+drop policy products_read_active on public.products;
+create policy products_read_allowed on public.products for select to authenticated
+using (active or (select private.has_staff_rank('operations_manager')));
 create policy products_update_by_staff on public.products for update to authenticated
 using ((select private.has_staff_rank('operations_manager')))
 with check ((select private.has_staff_rank('operations_manager')));
-create policy product_prices_read_by_staff on public.product_prices for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
+drop policy product_prices_read_active on public.product_prices;
+create policy product_prices_read_allowed on public.product_prices for select to authenticated
+using (
+  (active and exists(select 1 from public.products p where p.id = product_prices.product_id and p.active))
+  or (select private.has_staff_rank('operations_manager'))
+);
 create policy product_prices_insert_by_staff on public.product_prices for insert to authenticated
 with check ((select private.has_staff_rank('operations_manager')));
 create policy product_prices_update_by_staff on public.product_prices for update to authenticated
 using ((select private.has_staff_rank('operations_manager')))
 with check ((select private.has_staff_rank('operations_manager')));
-create policy exchange_rates_read_by_staff on public.exchange_rates for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
+drop policy exchange_rates_read_active on public.exchange_rates;
+create policy exchange_rates_read_allowed on public.exchange_rates for select to authenticated
+using (active or (select private.has_staff_rank('operations_manager')));
 create policy exchange_rates_insert_by_staff on public.exchange_rates for insert to authenticated
 with check ((select private.has_staff_rank('operations_manager')));
 create policy exchange_rates_update_by_staff on public.exchange_rates for update to authenticated
@@ -156,21 +162,32 @@ create policy inventory_movements_read_by_staff on public.inventory_movements fo
 using ((select private.has_staff_rank('operations_manager')));
 create policy inventory_movements_insert_by_staff on public.inventory_movements for insert to authenticated
 with check ((select private.has_staff_rank('operations_manager')) and created_by = (select auth.uid()));
-create policy orders_read_by_staff on public.orders for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
+drop policy orders_select_own on public.orders;
+create policy orders_read_allowed on public.orders for select to authenticated
+using ((select auth.uid()) = user_id or (select private.has_staff_rank('operations_manager')));
 create policy orders_update_by_staff on public.orders for update to authenticated
 using ((select private.has_staff_rank('operations_manager')))
 with check ((select private.has_staff_rank('operations_manager')));
-create policy order_items_read_by_staff on public.order_items for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
-create policy order_history_read_by_staff on public.order_status_history for select to authenticated
-using ((select private.has_staff_rank('operations_manager')));
+drop policy order_items_select_own on public.order_items;
+create policy order_items_read_allowed on public.order_items for select to authenticated
+using (
+  exists(select 1 from public.orders o where o.id = order_items.order_id and o.user_id = (select auth.uid()))
+  or (select private.has_staff_rank('operations_manager'))
+);
+drop policy order_history_select_own on public.order_status_history;
+create policy order_history_read_allowed on public.order_status_history for select to authenticated
+using (
+  exists(select 1 from public.orders o where o.id = order_status_history.order_id and o.user_id = (select auth.uid()))
+  or (select private.has_staff_rank('operations_manager'))
+);
 create policy order_history_insert_by_staff on public.order_status_history for insert to authenticated
 with check ((select private.has_staff_rank('operations_manager')));
 
 revoke all on public.staff_accounts, public.audit_events, public.order_inventory_reservations from anon, authenticated;
 grant select on public.staff_accounts, public.audit_events, public.order_inventory_reservations to authenticated;
 grant insert, update on public.order_inventory_reservations to authenticated;
+grant select, insert, update, delete on public.staff_accounts, public.audit_events, public.order_inventory_reservations to service_role;
+grant usage, select on sequence public.audit_events_id_seq to service_role;
 grant select on public.warehouses, public.inventory_balances, public.inventory_batches, public.inventory_movements to authenticated;
 grant insert, update on public.inventory_balances to authenticated;
 grant insert on public.inventory_movements to authenticated;
@@ -278,7 +295,8 @@ begin
   if p_quantity_delta = 0 or char_length(trim(coalesce(p_notes, ''))) < 3 then
     raise exception 'INVALID_INVENTORY_ADJUSTMENT' using errcode = '22023';
   end if;
-  select count(*), min(id) into v_warehouse_count, v_warehouse_id from public.warehouses where active;
+  select count(*) into v_warehouse_count from public.warehouses where active;
+  select id into v_warehouse_id from public.warehouses where active order by code limit 1;
   if v_warehouse_count <> 1 then raise exception 'SINGLE_WAREHOUSE_REQUIRED' using errcode = '55000'; end if;
 
   insert into public.inventory_balances(warehouse_id, product_id, on_hand, reserved)
@@ -323,8 +341,19 @@ begin
   select status into v_status from public.orders where id = p_order_id for update;
   if v_status is null then raise exception 'ORDER_NOT_FOUND' using errcode = 'P0002'; end if;
   if v_status not in ('received', 'problem') then raise exception 'INVALID_ORDER_STATE' using errcode = '22023'; end if;
-  select count(*), min(id) into v_warehouse_count, v_warehouse_id from public.warehouses where active;
+  select count(*) into v_warehouse_count from public.warehouses where active;
+  select id into v_warehouse_id from public.warehouses where active order by code limit 1;
   if v_warehouse_count <> 1 then raise exception 'SINGLE_WAREHOUSE_REQUIRED' using errcode = '55000'; end if;
+
+  if exists (
+    select 1 from public.order_inventory_reservations
+    where order_id = p_order_id and status = 'active'
+  ) then
+    update public.orders set status = 'preparing', updated_at = now() where id = p_order_id;
+    insert into public.order_status_history(order_id, status, doctor_message_ar)
+    values(p_order_id, 'preparing', coalesce(nullif(trim(p_doctor_message_ar), ''), 'تمت معالجة المشكلة واستؤنف تجهيز كامل الطلب.'));
+    return 'preparing'::public.order_status;
+  end if;
 
   if exists (
     select 1
@@ -338,7 +367,7 @@ begin
     update public.orders set status = 'problem', updated_at = now() where id = p_order_id;
     insert into public.order_status_history(order_id, status, doctor_message_ar)
     values(p_order_id, 'problem', coalesce(nullif(trim(p_doctor_message_ar), ''), 'نعمل على التحقق من توفر كامل الطلب وسنتواصل معك قريباً.'));
-    return 'problem';
+    return 'problem'::public.order_status;
   end if;
 
   for v_line in
@@ -357,7 +386,7 @@ begin
   update public.orders set status = 'preparing', updated_at = now() where id = p_order_id;
   insert into public.order_status_history(order_id, status, doctor_message_ar)
   values(p_order_id, 'preparing', coalesce(nullif(trim(p_doctor_message_ar), ''), 'تم تأكيد توفر كامل الطلب وبدأ التجهيز.'));
-  return 'preparing';
+  return 'preparing'::public.order_status;
 end;
 $$;
 revoke all on function public.operations_confirm_order(uuid, text) from public, anon;

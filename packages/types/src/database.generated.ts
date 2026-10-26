@@ -25,6 +25,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"audit_events": {
+                  Row: {
+                    "action": string,"actor_user_id": string | null,"created_at": string,"id": number,"new_data": Json | null,"old_data": Json | null,"record_id": string | null,"table_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor_user_id"?: string | null,"created_at"?: string,"id"?: never,"new_data"?: Json | null,"old_data"?: Json | null,"record_id"?: string | null,"table_name": string
+                  }
+                  Update: {
+                    "action"?: string,"actor_user_id"?: string | null,"created_at"?: string,"id"?: never,"new_data"?: Json | null,"old_data"?: Json | null,"record_id"?: string | null,"table_name"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"categories": {
                   Row: {
                     "active": boolean,"created_at": string,"id": string,"name_ar": string,"name_en": string | null,"slug": string,"sort_order": number,"updated_at": string
@@ -161,14 +175,14 @@ isOneToOne: false
                   ]
                 },"inventory_movements": {
                   Row: {
-                    "batch_id": string | null,"created_at": string,"id": string,"movement_type": Database["public"]['Enums']["inventory_movement_type"],"product_id": string,"quantity_delta": number,"reference_id": string | null,"reference_type": string | null,"warehouse_id": string
+                    "batch_id": string | null,"created_at": string,"created_by": string | null,"id": string,"movement_type": Database["public"]['Enums']["inventory_movement_type"],"notes": string | null,"product_id": string,"quantity_delta": number,"reference_id": string | null,"reference_type": string | null,"warehouse_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "batch_id"?: string | null,"created_at"?: string,"id"?: string,"movement_type": Database["public"]['Enums']["inventory_movement_type"],"product_id": string,"quantity_delta": number,"reference_id"?: string | null,"reference_type"?: string | null,"warehouse_id": string
+                    "batch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"movement_type": Database["public"]['Enums']["inventory_movement_type"],"notes"?: string | null,"product_id": string,"quantity_delta": number,"reference_id"?: string | null,"reference_type"?: string | null,"warehouse_id": string
                   }
                   Update: {
-                    "batch_id"?: string | null,"created_at"?: string,"id"?: string,"movement_type"?: Database["public"]['Enums']["inventory_movement_type"],"product_id"?: string,"quantity_delta"?: number,"reference_id"?: string | null,"reference_type"?: string | null,"warehouse_id"?: string
+                    "batch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"id"?: string,"movement_type"?: Database["public"]['Enums']["inventory_movement_type"],"notes"?: string | null,"product_id"?: string,"quantity_delta"?: number,"reference_id"?: string | null,"reference_type"?: string | null,"warehouse_id"?: string
                   }
                   Relationships: [
                     {
@@ -204,6 +218,38 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"order_inventory_reservations": {
+                  Row: {
+                    "dispatched_at": string | null,"order_id": string,"product_id": string,"quantity": number,"released_at": string | null,"reserved_at": string,"reserved_by": string,"status": Database["public"]['Enums']["order_reservation_status"],"warehouse_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "dispatched_at"?: string | null,"order_id": string,"product_id": string,"quantity": number,"released_at"?: string | null,"reserved_at"?: string,"reserved_by": string,"status"?: Database["public"]['Enums']["order_reservation_status"],"warehouse_id": string
+                  }
+                  Update: {
+                    "dispatched_at"?: string | null,"order_id"?: string,"product_id"?: string,"quantity"?: number,"released_at"?: string | null,"reserved_at"?: string,"reserved_by"?: string,"status"?: Database["public"]['Enums']["order_reservation_status"],"warehouse_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_inventory_reservations_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "order_inventory_reservations_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "order_inventory_reservations_warehouse_id_fkey"
+      columns: ["warehouse_id"]
+isOneToOne: false
+      referencedRelation: "warehouses"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"order_items": {
                   Row: {
@@ -268,6 +314,26 @@ isOneToOne: false
       columns: ["user_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_costs": {
+                  Row: {
+                    "active": boolean,"amount_minor": number,"created_at": string,"currency": Database["public"]['Enums']["currency_code"],"decimal_places": number,"id": string,"product_id": string,"valid_from": string,"valid_to": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"amount_minor": number,"created_at"?: string,"currency": Database["public"]['Enums']["currency_code"],"decimal_places": number,"id"?: string,"product_id": string,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Update: {
+                    "active"?: boolean,"amount_minor"?: number,"created_at"?: string,"currency"?: Database["public"]['Enums']["currency_code"],"decimal_places"?: number,"id"?: string,"product_id"?: string,"valid_from"?: string,"valid_to"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_costs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
       referencedColumns: ["id"]
     }
                   ]
@@ -339,14 +405,14 @@ isOneToOne: true
                   ]
                 },"products": {
                   Row: {
-                    "active": boolean,"availability": Database["public"]['Enums']["product_availability"],"category_id": string,"created_at": string,"description_ar": string | null,"id": string,"manufacturer": string | null,"name_ar": string,"name_en": string | null,"package_label_ar": string | null,"search_text": string | null,"sku": string,"specifications_ar": string | null,"unit_label_ar": string,"updated_at": string
+                    "active": boolean,"availability": Database["public"]['Enums']["product_availability"],"category_id": string,"created_at": string,"description_ar": string | null,"id": string,"low_stock_threshold": number,"manufacturer": string | null,"name_ar": string,"name_en": string | null,"package_label_ar": string | null,"search_text": string | null,"sku": string,"specifications_ar": string | null,"unit_label_ar": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id": string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"manufacturer"?: string | null,"name_ar": string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku": string,"specifications_ar"?: string | null,"unit_label_ar": string,"updated_at"?: string
+                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id": string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar": string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku": string,"specifications_ar"?: string | null,"unit_label_ar": string,"updated_at"?: string
                   }
                   Update: {
-                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id"?: string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"manufacturer"?: string | null,"name_ar"?: string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku"?: string,"specifications_ar"?: string | null,"unit_label_ar"?: string,"updated_at"?: string
+                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id"?: string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar"?: string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku"?: string,"specifications_ar"?: string | null,"unit_label_ar"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -423,6 +489,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"staff_accounts": {
+                  Row: {
+                    "active": boolean,"created_at": string,"invited_by": string | null,"rank": Database["public"]['Enums']["staff_rank"],"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"invited_by"?: string | null,"rank": Database["public"]['Enums']["staff_rank"],"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"invited_by"?: string | null,"rank"?: Database["public"]['Enums']["staff_rank"],"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"support_cases": {
                   Row: {
                     "created_at": string,"id": string,"message": string,"status": string,"subject": string,"updated_at": string,"user_id": string
@@ -481,10 +561,35 @@ isOneToOne: false
 { Args: { "p_delivery_address": string,"p_delivery_notes": string,"p_display_currency": Database["public"]['Enums']["currency_code"],"p_idempotency_key": string,"p_items": Json,"p_recipient_name": string,"p_recipient_phone": string }; Returns: {
               "order_id": string,"order_number": string
             }[]
+                           },
+"operations_adjust_inventory":
+{ Args: { "p_notes": string,"p_product_id": string,"p_quantity_delta": number }; Returns: {
+              "on_hand": number,"reserved": number
+            }[]
+                           },
+"operations_confirm_order":
+{ Args: { "p_doctor_message_ar"?: string,"p_order_id": string }; Returns: Database["public"]['Enums']["order_status"]
+                           },
+"operations_get_my_context":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "rank": Database["public"]['Enums']["staff_rank"],"user_id": string
+            }[]
+                           },
+"operations_set_exchange_rate":
+{ Args: { "p_base_currency": Database["public"]['Enums']["currency_code"],"p_quote_currency": Database["public"]['Enums']["currency_code"],"p_rate": number }; Returns: string
+                           },
+"operations_set_order_status":
+{ Args: { "p_doctor_message_ar"?: string,"p_order_id": string,"p_status": Database["public"]['Enums']["order_status"] }; Returns: Database["public"]['Enums']["order_status"]
+                           },
+"operations_set_product_price":
+{ Args: { "p_amount_minor": number,"p_currency": Database["public"]['Enums']["currency_code"],"p_decimal_places": number,"p_product_id": string }; Returns: string
+                           },
+"operations_update_product":
+{ Args: { "p_availability": Database["public"]['Enums']["product_availability"],"p_cost_minor": number,"p_currency": Database["public"]['Enums']["currency_code"],"p_decimal_places": number,"p_description_ar": string,"p_image_height"?: number,"p_image_mime_type"?: string,"p_image_object_key"?: string,"p_image_width"?: number,"p_inventory_notes": string,"p_low_stock_threshold": number,"p_name_ar": string,"p_on_hand": number,"p_product_id": string,"p_sell_price_minor": number }; Returns: undefined
                            }
           }
           Enums: {
-            "currency_code": "USD"|"NEW_SYP","inventory_movement_type": "receipt"|"allocation"|"release"|"adjustment"|"dispatch"|"return","media_provider": "supabase"|"external"|"cdn","order_status": "received"|"sourcing"|"preparing"|"ready_for_delivery"|"out_for_delivery"|"delivered"|"cancelled"|"problem","product_availability": "available"|"limited"|"unavailable","purchase_order_status": "draft"|"submitted"|"partially_received"|"received"|"cancelled"
+            "currency_code": "USD"|"NEW_SYP","inventory_movement_type": "receipt"|"allocation"|"release"|"adjustment"|"dispatch"|"return","media_provider": "supabase"|"external"|"cdn","order_reservation_status": "active"|"released"|"dispatched","order_status": "received"|"sourcing"|"preparing"|"ready_for_delivery"|"out_for_delivery"|"delivered"|"cancelled"|"problem","product_availability": "available"|"limited"|"unavailable","purchase_order_status": "draft"|"submitted"|"partially_received"|"received"|"cancelled","staff_rank": "operations_manager"|"admin"|"owner"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -600,7 +705,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "currency_code": ["USD", "NEW_SYP"],"inventory_movement_type": ["receipt", "allocation", "release", "adjustment", "dispatch", "return"],"media_provider": ["supabase", "external", "cdn"],"order_status": ["received", "sourcing", "preparing", "ready_for_delivery", "out_for_delivery", "delivered", "cancelled", "problem"],"product_availability": ["available", "limited", "unavailable"],"purchase_order_status": ["draft", "submitted", "partially_received", "received", "cancelled"]
+            "currency_code": ["USD", "NEW_SYP"],"inventory_movement_type": ["receipt", "allocation", "release", "adjustment", "dispatch", "return"],"media_provider": ["supabase", "external", "cdn"],"order_reservation_status": ["active", "released", "dispatched"],"order_status": ["received", "sourcing", "preparing", "ready_for_delivery", "out_for_delivery", "delivered", "cancelled", "problem"],"product_availability": ["available", "limited", "unavailable"],"purchase_order_status": ["draft", "submitted", "partially_received", "received", "cancelled"],"staff_rank": ["operations_manager", "admin", "owner"]
           }
         }
 } as const

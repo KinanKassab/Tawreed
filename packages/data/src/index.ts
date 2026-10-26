@@ -6,10 +6,15 @@ import type {
   Category,
   CurrencyCode,
   DoctorProfile,
+  DoctorOrderStatus,
   MediaAsset,
   OrderDetail,
   OrderSummary,
+  OperationsExchangeRate,
+  OperationsOrder,
+  OperationsProduct,
   Product,
+  StaffRank,
 } from '@tawreed/domain';
 
 export interface AuthRepository {
@@ -64,6 +69,39 @@ export interface MediaRepository {
   resolve(asset: MediaAsset | null): string | null;
 }
 
+export interface OperationsRepository {
+  getMyContext(): Promise<{ userId: string; rank: StaffRank } | null>;
+  listOrders(): Promise<OperationsOrder[]>;
+  listProducts(query?: string): Promise<OperationsProduct[]>;
+  getActiveExchangeRate(): Promise<OperationsExchangeRate | null>;
+  setProductPrice(input: { productId: string; amountMinor: number; currency: CurrencyCode; decimalPlaces: number }): Promise<void>;
+  setExchangeRate(input: { baseCurrency: CurrencyCode; quoteCurrency: CurrencyCode; rate: number }): Promise<void>;
+  adjustInventory(input: { productId: string; quantityDelta: number; notes: string }): Promise<void>;
+  setProductAvailability(productId: string, availability: Product['availability']): Promise<void>;
+  updateProduct(input: {
+    productId: string;
+    nameAr: string;
+    descriptionAr: string;
+    availability: Product['availability'];
+    lowStockThreshold: number;
+    sellingPriceMinor: number | null;
+    costMinor: number | null;
+    currency: CurrencyCode;
+    decimalPlaces: number;
+    onHand: number;
+    inventoryNotes: string;
+    image?: {
+      bytes: ArrayBuffer;
+      mimeType: 'image/webp' | 'image/png' | 'image/jpeg';
+      extension: 'webp' | 'png' | 'jpg';
+      width: number;
+      height: number;
+    };
+  }): Promise<void>;
+  confirmOrder(orderId: string, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
+  setOrderStatus(orderId: string, status: DoctorOrderStatus, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
+}
+
 export interface TawreedDataLayer {
   client: SupabaseClient;
   auth: AuthRepository;
@@ -72,6 +110,7 @@ export interface TawreedDataLayer {
   orders: OrdersRepository;
   support: SupportRepository;
   media: MediaRepository;
+  operations: OperationsRepository;
 }
 
 interface CatalogProductRow {
@@ -188,6 +227,154 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { data, error } = await client.from('products').select(productSelect).eq('id', id).eq('active', true).eq('product_prices.active', true).maybeSingle();
       if (error) throw error;
       return data ? mapProduct(data as unknown as CatalogProductRow) : null;
+    },
+  };
+
+  const operations: OperationsRepository = {
+    async getMyContext() {
+      const { data, error } = await client.rpc('operations_get_my_context');
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as { user_id?: string; rank?: StaffRank } | null;
+      return row?.user_id && row.rank ? { userId: row.user_id, rank: row.rank } : null;
+    },
+    async listOrders() {
+      const { data, error } = await client.from('orders').select(`
+        id, order_number, status, created_at, recipient_name_snapshot, recipient_phone_snapshot,
+        delivery_address_snapshot, total_minor, currency, currency_decimal_places, order_items(quantity)
+      `).order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        orderNumber: row.order_number,
+        status: row.status,
+        createdAt: row.created_at,
+        recipientName: row.recipient_name_snapshot,
+        recipientPhone: row.recipient_phone_snapshot,
+        deliveryAddress: row.delivery_address_snapshot,
+        itemCount: (row.order_items ?? []).reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0),
+        total: { amountMinor: row.total_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
+      })) as OperationsOrder[];
+    },
+    async listProducts(queryText) {
+      let query = client.from('products').select(`
+        id, sku, name_ar, description_ar, availability, active, low_stock_threshold,
+        product_prices(amount_minor, currency, decimal_places, active),
+        product_costs(amount_minor, currency, decimal_places, active),
+        inventory_balances(on_hand, reserved),
+        product_media(is_primary, media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
+      `).order('name_ar').limit(200);
+      if (queryText?.trim()) query = query.ilike('search_text', `%${queryText.trim()}%`);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []).map((row) => {
+        const price = (row.product_prices ?? []).find((candidate: { active: boolean }) => candidate.active);
+        const cost = (row.product_costs ?? []).find((candidate: { active: boolean }) => candidate.active);
+        const balance = row.inventory_balances?.[0];
+        const mediaLink = (row.product_media ?? []).find((candidate: { is_primary: boolean }) => candidate.is_primary) ?? row.product_media?.[0];
+        const mediaValue = mediaLink?.media_assets;
+        const mediaRow = Array.isArray(mediaValue) ? mediaValue[0] : mediaValue;
+        return {
+          id: row.id,
+          sku: row.sku,
+          nameAr: row.name_ar,
+          descriptionAr: row.description_ar,
+          availability: row.availability,
+          active: row.active,
+          price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
+          cost: cost ? { amountMinor: cost.amount_minor, currency: cost.currency, decimalPlaces: cost.decimal_places } : null,
+          media: mediaRow ? {
+            id: mediaRow.id,
+            provider: mediaRow.provider,
+            objectKey: mediaRow.object_key,
+            externalUrl: mediaRow.external_url,
+            altTextAr: mediaRow.alt_text_ar ?? row.name_ar,
+            width: mediaRow.width,
+            height: mediaRow.height,
+          } : null,
+          onHand: balance?.on_hand ?? 0,
+          reserved: balance?.reserved ?? 0,
+          lowStockThreshold: row.low_stock_threshold,
+        };
+      }) as OperationsProduct[];
+    },
+    async getActiveExchangeRate() {
+      const { data, error } = await client.from('exchange_rates').select('id, base_currency, quote_currency, rate, effective_at').eq('active', true).order('effective_at', { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data ? { id: data.id, baseCurrency: data.base_currency, quoteCurrency: data.quote_currency, rate: Number(data.rate), effectiveAt: data.effective_at } as OperationsExchangeRate : null;
+    },
+    async setProductPrice(input) {
+      const { error } = await client.rpc('operations_set_product_price', {
+        p_product_id: input.productId,
+        p_amount_minor: input.amountMinor,
+        p_currency: input.currency,
+        p_decimal_places: input.decimalPlaces,
+      });
+      if (error) throw error;
+    },
+    async setExchangeRate(input) {
+      const { error } = await client.rpc('operations_set_exchange_rate', {
+        p_base_currency: input.baseCurrency,
+        p_quote_currency: input.quoteCurrency,
+        p_rate: input.rate,
+      });
+      if (error) throw error;
+    },
+    async adjustInventory(input) {
+      const { error } = await client.rpc('operations_adjust_inventory', {
+        p_product_id: input.productId,
+        p_quantity_delta: input.quantityDelta,
+        p_notes: input.notes,
+      });
+      if (error) throw error;
+    },
+    async setProductAvailability(productId, availability) {
+      const { data: updated, error } = await client.from('products').update({ availability }).eq('id', productId).select('id').maybeSingle();
+      if (error) throw error;
+      if (!updated) throw new Error('PRODUCT_NOT_FOUND_OR_FORBIDDEN');
+    },
+    async updateProduct(input) {
+      const objectKey = input.image
+        ? `products/${input.productId}/${crypto.randomUUID()}.${input.image.extension}`
+        : null;
+      if (input.image && objectKey) {
+        const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, input.image.bytes, {
+          cacheControl: '31536000',
+          contentType: input.image.mimeType,
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+      }
+      const { error } = await client.rpc('operations_update_product', {
+        p_product_id: input.productId,
+        p_name_ar: input.nameAr,
+        p_description_ar: input.descriptionAr,
+        p_availability: input.availability,
+        p_low_stock_threshold: input.lowStockThreshold,
+        p_sell_price_minor: input.sellingPriceMinor,
+        p_cost_minor: input.costMinor,
+        p_currency: input.currency,
+        p_decimal_places: input.decimalPlaces,
+        p_on_hand: input.onHand,
+        p_inventory_notes: input.inventoryNotes,
+        p_image_object_key: objectKey,
+        p_image_mime_type: input.image?.mimeType ?? null,
+        p_image_width: input.image?.width ?? null,
+        p_image_height: input.image?.height ?? null,
+      });
+      if (error) {
+        if (objectKey) await client.storage.from('product-media').remove([objectKey]);
+        throw error;
+      }
+    },
+    async confirmOrder(orderId, doctorMessageAr) {
+      const { data, error } = await client.rpc('operations_confirm_order', { p_order_id: orderId, p_doctor_message_ar: doctorMessageAr ?? null });
+      if (error) throw error;
+      return data as DoctorOrderStatus;
+    },
+    async setOrderStatus(orderId, status, doctorMessageAr) {
+      const { data, error } = await client.rpc('operations_set_order_status', { p_order_id: orderId, p_status: status, p_doctor_message_ar: doctorMessageAr ?? null });
+      if (error) throw error;
+      return data as DoctorOrderStatus;
     },
   };
 
@@ -323,5 +510,6 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         return { id: inserted.id };
       },
     },
+    operations,
   };
 }

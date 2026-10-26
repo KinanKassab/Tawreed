@@ -111,3 +111,19 @@
 - Decision: Operations Manager may directly change Doctor selling prices and exchange rates without a prior Owner/Admin approval step. Admin and Owner inherit the same capabilities through the cumulative role hierarchy.
 - Reason: the owners will perform Operations work directly during the initial phase and want one operational control surface.
 - Consequence: every price and exchange-rate mutation must be server-authorized and append an immutable audit event containing the actor, timestamp, affected record, and old/new values.
+
+## ADR-015 — Product costs and normalized product media
+
+- Date: 2026-10-25
+- Status: accepted
+- Decision: store purchase-cost history in a staff-only table, keep Doctor-visible selling prices in the existing price history, and normalize newly managed primary product images to 1200×1200 WebP files linked through the existing provider-neutral media tables.
+- Reason: Operations needs margin visibility and consistent product imagery without exposing internal costs or coupling product rows to one media provider.
+- Consequence: Doctor clients never receive `product_costs`; product saves are server-authorized and audited; Storage writes require staff RLS; each new image uses an immutable unique object key to avoid stale CDN results.
+
+## ADR-016 — Curated catalog removals remain reversible
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: treat `deleted.txt` markers in the owner-curated image folders as catalog deactivation (`products.active = false`), not physical row deletion. Normalize selected product photos to 1200×1200 WebP without cropping the product and publish them through the provider-neutral media model.
+- Reason: preserve order/catalog referential integrity while reflecting the owner's approved visible assortment and photography.
+- Consequence: 102 products remain recoverable but hidden from Doctor catalog policies; 95 selected images cover 93 of the 94 active products, and future replacements can use new immutable object keys.

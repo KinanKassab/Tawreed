@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   signUp: vi.fn(),
   rpc: vi.fn(),
   getPublicUrl: vi.fn(),
+  upload: vi.fn(),
+  remove: vi.fn(),
 }));
 
 vi.mock('@supabase/supabase-js', () => ({
@@ -16,7 +18,7 @@ vi.mock('@supabase/supabase-js', () => ({
       stopAutoRefresh: vi.fn(),
     },
     rpc: mocks.rpc,
-    storage: { from: vi.fn(() => ({ getPublicUrl: mocks.getPublicUrl })) },
+    storage: { from: vi.fn(() => ({ getPublicUrl: mocks.getPublicUrl, upload: mocks.upload, remove: mocks.remove })) },
     from: vi.fn(),
   })),
 }));
@@ -103,5 +105,40 @@ describe('Supabase repository adapter contracts', () => {
     expect(data.media.resolve({ ...common, provider: 'external', objectKey: null, externalUrl: 'https://external.example.com/a.png' })).toBe('https://external.example.com/a.png');
     expect(data.media.resolve({ ...common, provider: 'cdn', objectKey: '/catalog/a.png', externalUrl: null })).toBe('https://media.example.com/base/catalog/a.png');
     expect(data.media.resolve({ ...common, provider: 'supabase', objectKey: 'catalog/a.png', externalUrl: null })).toBe('https://storage.example.com/product.png');
+  });
+
+  it('uploads a normalized product image before the atomic product update', async () => {
+    mocks.upload.mockResolvedValue({ error: null });
+    mocks.rpc.mockResolvedValue({ error: null });
+    const data = createTawreedDataLayer(config);
+    const bytes = new ArrayBuffer(16);
+
+    await data.operations.updateProduct({
+      productId: '20000000-0000-0000-0000-000000000001',
+      nameAr: 'منتج اختبار',
+      descriptionAr: 'وصف اختبار',
+      availability: 'available',
+      lowStockThreshold: 4,
+      sellingPriceMinor: 4575,
+      costMinor: 2500,
+      currency: 'USD',
+      decimalPlaces: 2,
+      onHand: 20,
+      inventoryNotes: 'تعديل اختبار',
+      image: { bytes, mimeType: 'image/webp', extension: 'webp', width: 1200, height: 1200 },
+    });
+
+    expect(mocks.upload).toHaveBeenCalledWith(
+      expect.stringMatching(/^products\/20000000-0000-0000-0000-000000000001\/.+[.]webp$/),
+      bytes,
+      { cacheControl: '31536000', contentType: 'image/webp', upsert: false },
+    );
+    expect(mocks.rpc).toHaveBeenCalledWith('operations_update_product', expect.objectContaining({
+      p_product_id: '20000000-0000-0000-0000-000000000001',
+      p_sell_price_minor: 4575,
+      p_cost_minor: 2500,
+      p_image_width: 1200,
+      p_image_height: 1200,
+    }));
   });
 });

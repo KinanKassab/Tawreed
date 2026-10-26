@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Tawreed Operations",
+    "slug": "tawreed-operations",
+    "version": "1.0.0",
+    "scheme": "tawreed-operations",
+    "userInterfaceStyle": "light",
+    "web": { "output": "single" },
+    "plugins": [["expo-router", { "apiRoutes": false }]],
+    "experiments": { "typedRoutes": true }
+  }
+}

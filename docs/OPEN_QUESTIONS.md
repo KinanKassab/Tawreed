@@ -52,3 +52,14 @@
 - Impact: role hierarchy, account recovery, invitations, and audit history.
 - Affected features: internal authentication, staff management, and every privileged internal feature.
 - Final answer: permissions are cumulative by rank for now: Owner includes Admin and Operations Manager; Admin includes Operations Manager. Capabilities will remain individually modeled so they can be separated later. Admin provisions staff accounts, and Owner inherits that authority.
+
+## OQ-006 — Missing Operations visual designs
+
+- Status: open
+- Blocking: no for implementation; yes for claiming approved pixel fidelity
+- Question: will dedicated approved frames be supplied for the internal Owner/Admin/Operations Web application?
+- Reason: the supplied visual reference covers the Doctor storefront, not the internal dashboard.
+- Impact: final visual density, responsive navigation, tables/editors, and approval of the internal visual language.
+- Affected features: the entire Operations Web application.
+- Current implementation: conservative Arabic RTL extension of Tawreed's approved palette, Segoe UI typography, spacing, surfaces, and accessibility behavior.
+- Final answer: pending.

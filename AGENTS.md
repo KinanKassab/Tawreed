@@ -2,7 +2,7 @@
 
 ## Scope
 
-Build only the universal Arabic Doctor application under `apps/doctor` and the shared Supabase backend. The current targets are Android APK and responsive Web; keep iOS compatibility. Do not create supplier or internal admin frontends.
+Build the universal Arabic Doctor application under `apps/doctor`, the responsive internal Owner/Admin/Operations Web application under `apps/operations`, and the shared Supabase backend. Doctor targets are Android APK and responsive Web with iOS compatibility. Do not create a supplier frontend.
 
 ## Source of truth
 

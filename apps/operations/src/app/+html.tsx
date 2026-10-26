@@ -1,0 +1,6 @@
+import { ScrollViewStyleReset } from 'expo-router/html';
+import type { PropsWithChildren } from 'react';
+
+export default function Root({ children }: PropsWithChildren) {
+  return <html lang="ar" dir="rtl"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="theme-color" content="#173F43" /><ScrollViewStyleReset /><style dangerouslySetInnerHTML={{ __html: `body{background:#F7FAF9;font-family:"Segoe UI",Tahoma,Arial,sans-serif}*{box-sizing:border-box}button,input,textarea{font:inherit}*:focus-visible{outline:3px solid #4E9D8D;outline-offset:3px}` }} /></head><body>{children}</body></html>;
+}

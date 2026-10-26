@@ -92,6 +92,43 @@ export interface DoctorProfile {
   defaultAddress: string | null;
 }
 
+export type StaffRank = 'operations_manager' | 'admin' | 'owner';
+
+export interface OperationsOrder {
+  id: string;
+  orderNumber: string;
+  status: DoctorOrderStatus;
+  createdAt: string;
+  recipientName: string;
+  recipientPhone: string;
+  deliveryAddress: string;
+  itemCount: number;
+  total: Money;
+}
+
+export interface OperationsProduct {
+  id: string;
+  sku: string;
+  nameAr: string;
+  descriptionAr: string | null;
+  availability: Availability;
+  active: boolean;
+  price: Money | null;
+  cost: Money | null;
+  media: MediaAsset | null;
+  onHand: number;
+  reserved: number;
+  lowStockThreshold: number;
+}
+
+export interface OperationsExchangeRate {
+  id: string;
+  baseCurrency: CurrencyCode;
+  quoteCurrency: CurrencyCode;
+  rate: number;
+  effectiveAt: string;
+}
+
 export interface AppError {
   kind: 'network' | 'unauthorized' | 'validation' | 'server' | 'unavailable' | 'offline_unsupported' | 'configuration';
   messageAr: string;

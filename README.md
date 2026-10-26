@@ -47,9 +47,12 @@ Then start a target:
 ```powershell
 pnpm dev:web
 pnpm dev:android
+pnpm dev:operations
 ```
 
 The local database seeds the supplied 12-category, 196-product dental catalog. Create a Doctor through the registration screen before exercising authenticated routes. Local confirmation emails are available in the Supabase mail viewer at `http://127.0.0.1:54324`.
+
+The Arabic RTL Operations console lives in `apps/operations`. Copy the same public Supabase URL/key into `apps/operations/.env` from its `.env.example`; never place a secret or service-role key in either app. Its product table manages Doctor-visible names/descriptions/prices/media plus staff-only costs, profit, stock, and low-stock thresholds. New product images are interactively cropped and normalized to 1200×1200 WebP before upload. To provision a local staff account, set `TAWREED_STAFF_EMAIL`, `TAWREED_STAFF_PASSWORD`, and optionally `TAWREED_STAFF_RANK` (`owner`, `admin`, or `operations_manager`), then run `pnpm staff:create:local`. This helper refuses hosted URLs. Launch permissions are cumulative: Owner includes Admin and Operations Manager; Admin includes Operations Manager.
 
 ## Validation
 
@@ -59,12 +62,14 @@ pnpm lint
 pnpm test
 pnpm expo:doctor
 pnpm build:web
+pnpm build:operations
 pnpm test:web
+pnpm test:operations-web
 pnpm test:db
 pnpm test:catalog
 ```
 
-`pnpm test:web` covers configured signed-out routing and the Arabic RTL login layout at mobile and desktop sizes. `pnpm test:db` runs against the migrated local database and verifies grants, RLS presence, catalog seed integrity, internal-table denial, and unauthenticated checkout rejection.
+`pnpm test:web` covers configured signed-out routing and the Arabic RTL Doctor login layout. `pnpm test:operations-web` creates disposable local Owner/Doctor accounts and verifies responsive staff entry, product editing, unsaved preview, real image selection/crop/upload, persisted Storage output, internal navigation, exchange-rate controls, and denial of non-staff accounts. `pnpm test:db` runs against the migrated local database and verifies grants, RLS, Doctor cost isolation, product/media updates, audited financial changes, confirm-then-reserve, complete dispatch, and unauthenticated checkout rejection.
 
 `pnpm test:catalog` creates a temporary confirmed local Doctor, reads the catalog through the authenticated REST/RLS boundary, verifies 12 categories and 196 complete dental products, confirms that no price or stock was invented, and removes the temporary user.
 

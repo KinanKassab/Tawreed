@@ -73,6 +73,29 @@
 - Confirmed cumulative launch permissions: Owner inherits Admin and Operations Manager, while Admin inherits Operations Manager; individual capabilities will remain separable for the later staffing phase.
 - Confirmed that Operations Manager can directly change selling prices and exchange rates without an approval step; required immutable audit history for each old/new financial value change.
 
+## 2026-10-25 — Operations foundation and first Web console
+
+- Added `apps/operations` as a separate Arabic RTL Expo Web application sharing Tawreed repositories, domain models, design tokens, Segoe UI, and publishable Supabase configuration without sharing a client session with the Doctor app.
+- Implemented staff-only login and a cumulative server-side rank model: Owner inherits Admin and Operations Manager; Admin inherits Operations Manager. Doctor accounts are rejected from the internal console.
+- Added dashboard metrics and responsive sections for orders, catalog prices/availability, one-warehouse inventory, and USD/NEW_SYP exchange-rate control.
+- Added audited server-authorized mutations for selling prices, exchange rates, catalog availability, inventory adjustments, and order status changes.
+- Implemented confirm-then-reserve for complete orders, reservation release on cancellation, full stock deduction on dispatch, delivery progression, and safe resume from a reserved problem without double reservation.
+- Added a local-only staff provisioning helper that rejects hosted URLs and never embeds a service-role key in either client.
+- Expanded database/RLS tests to 46 passing checks and added 8 passing Operations Web tests across desktop, Pixel 7, 375×812, and 812×375 reduced-motion viewports.
+- Merged overlapping read policies and verified the local Supabase database advisor reports no security or performance findings. The schema linter still reports the pre-existing false positive for the temporary `requested_items` table inside `create_doctor_order`; the function remains covered by passing database tests.
+- Passed strict typecheck, lint, 23 Vitest tests, authenticated catalog verification, Doctor Web E2E 8/8, Expo Doctor 20/20 for both apps, and production Web exports for Doctor and Operations.
+- Left staff-management UI, batch receiving/FEFO, substitutions with recorded Doctor approval, hosted Operations deployment, and approved Operations visual frames for subsequent work.
+
+## 2026-10-25 — Integrated product management
+
+- Replaced the limited catalog price editor with a responsive Arabic RTL management table showing product image, name, selling price, protected purchase cost, automatic per-unit profit, stock state, low-stock threshold, description, and actions.
+- Added validated edit, cancel, save, and Doctor-style preview flows; draft previews reflect unsaved name, price, description, availability, and cropped image changes.
+- Added device image selection plus interactive square crop, pan, zoom, and high-quality 1200×1200 WebP output. Uploads use unique immutable Storage paths and the existing provider-neutral media records.
+- Added `product_costs` history with staff-only RLS, per-product `low_stock_threshold`, a guarded atomic product-update RPC, exact-stock safety against reservations, movement/audit records, and public product-media Storage policies restricted to staff writes.
+- Verified that Doctor users can read the new published product media and Doctor-visible product fields but cannot read purchase costs.
+- Created the local `owner@tawreed.app` account after the final reset without storing its credential in project files.
+- Passed strict typecheck, lint, 24 unit/contract tests, 57 pgTAP checks, catalog verification, Doctor Web E2E 8/8, Operations Web E2E 12/12 across four viewport profiles, Expo Doctor 20/20 for both apps, both Web exports, and Supabase advisors with no findings.
+
 ## 2026-10-25 — GitHub repository linkage verification
 
 - Verified that the existing local repository uses `https://github.com/KinanKassab/Tawreed.git` as the `origin` fetch and push URL.
@@ -88,3 +111,45 @@
 - Deployed the pushed commit to `https://tawreed-doctor.vercel.app`; Vercel reported `READY`, the response returned HTTP 200 with Arabic RTL metadata, and the runtime error scan was clean.
 - Confirmed in a browser that the deployed app currently reaches its intentional Arabic service-unavailable state because hosted Supabase public environment values are not configured.
 - Passed strict typecheck, lint, 23/23 Vitest tests, Expo Doctor 20/20, and the production Web export. Database/catalog tests were blocked because Docker was stopped; Web E2E passed 4/8, with the four Supabase-dependent cases receiving the expected network-unavailable state.
+
+## 2026-10-25 — Published catalog diagnostic
+
+- Inspected `tawreed_dental_pricing_4_columns.xlsx` read-only: it contains 196 unique product references, categories, and Arabic/English display names; all four pricing columns are empty.
+- Confirmed that names, references, and categories are sufficient to display a pending/unpriced catalog; prices and inventory are only required before ordering.
+- Confirmed the hosted Tawreed Supabase project is linked and its catalog tables exist, while anonymous access is correctly denied. Hosted row counts could not be verified without an authenticated Doctor session or a hosted privileged key/database credential.
+- No application, workbook, database, or deployment data was changed during this diagnostic.
+
+## 2026-10-25 — Hosted catalog import
+
+- Used a locally stored Supabase secret key without exposing or committing it.
+- Imported 12 active categories and 196 active products into the linked hosted Tawreed Supabase project.
+- Took every Arabic/English product display name from `tawreed_dental_pricing_4_columns.xlsx`; retained the reviewed non-commercial description, specification, and unit metadata required by the catalog schema.
+- Verified hosted counts through the protected server API: 12 categories, 196 products, and 0 product prices. No inventory, price, or availability claim was invented.
+- The Vercel production project still requires a redeployment after its public Supabase environment values were added so Expo can include them in the Web build.
+
+## 2026-10-25 — Dental category visuals
+
+- Replaced the generic category dots on the Doctor home screen with twelve category-specific vector visuals from the application's existing Material Community Icons family.
+- Matched the imagery to each dental category's contents, including restorative dentistry, endodontics, consumables/isolation, surgery, prosthodontics, rotary instruments, sterilization, diagnostics, orthodontics, paediatrics, devices, and clinic operations.
+- Added accessible category-button labels and a responsive 2/3/4-column layout for phone, tablet, and desktop.
+- Passed strict typecheck, lint, 23/23 Vitest tests, production Web export, and Doctor Web E2E 8/8.
+- Committed and pushed the isolated change as `8d8fff9`; verified Vercel production now serves the rebuilt category chunk.
+
+## 2026-10-25 — Product image candidate package
+
+- Researched existing Internet product photography for all 196 dental catalog records without generating images.
+- Prepared 539 WebP candidates: 147 products have three options and 49 products have two options; every product has at least two valid, locally opened image files.
+- Numbered image folders and files by stable SKU, and created a machine-readable AI mapping, per-image source register, separate source-organization contact register, Arabic AI README, and category review sheets.
+- Marked every image `permission-required`; the package is for review and rights clearance, not automatic publication.
+- Verified 196 manifest records, 539 source rows, 326 source organizations, zero missing files, and zero invalid image files; exported the complete ZIP under `outputs/`.
+
+## 2026-10-26 — Curated hosted product media
+
+- Read the owner-curated `Design & Assets/images` folder without modifying it and interpreted its selected images, `edited.txt`, and `deleted.txt` markers.
+- Produced a reviewable package under `outputs/product-media-ready`: 95 normalized 1200×1200 WebP images for 93 SKUs, a manifest, and a contact sheet.
+- Created the hosted public `product-media` bucket, uploaded the curated files with content-hashed object keys, and linked them through `media_assets` and `product_media` (93 primary images plus two gallery images).
+- Applied 19 bilingual catalog-name corrections and marked 102 owner-designated products inactive rather than deleting them.
+- Independently verified 196 total / 94 active products, all 19 name edits, 95 media links, 93 primary flags, and successful public retrieval of all 95 WebP files; verification returned zero errors.
+- Preserved all unrelated working-tree changes and did not modify the read-only visual reference folder.
+- Corrected inconsistent apparent product scale after owner review: detected the real non-white content bounds of every image, retained a safety margin, resized the subject proportionally to a 1000-pixel maximum extent, and re-centered it on the 1200×1200 white canvas.
+- Published content-hashed scale-v2 replacements and atomically relinked the 93 products. Verified 95/95 public images, 95/95 media links, and 93 primary flags; prior objects remain unlinked for safe rollback.
