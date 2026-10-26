@@ -28,6 +28,7 @@ interface ProductManagementProps {
   products: OperationsProduct[];
   loading: boolean;
   compact: boolean;
+  phone: boolean;
   search: string;
   onSearch: (value: string) => void;
   onRefresh: () => Promise<unknown>;
@@ -42,12 +43,13 @@ const stockState = (product: Pick<OperationsProduct, 'onHand' | 'reserved' | 'lo
   return { label: 'متوفر', icon: 'check-circle-outline' as const, background: colors.successSurface, color: colors.successText };
 };
 
-export function ProductManagement({ products, loading, compact, search, onSearch, onRefresh, onFeedback }: ProductManagementProps) {
+export function ProductManagement({ products, loading, compact, phone, search, onSearch, onRefresh, onFeedback }: ProductManagementProps) {
   const data = useData();
   const [editing, setEditing] = useState<OperationsProduct | null>(null);
   const [previewing, setPreviewing] = useState<OperationsProduct | null>(null);
   const [draftPreview, setDraftPreview] = useState<ProductForm | null>(null);
   const [image, setImage] = useState<CroppedProductImage | null>(null);
+  const [visibleCount, setVisibleCount] = useState(40);
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: { nameAr: '', sellingPrice: '', cost: '', onHand: '0', lowStockThreshold: '5', descriptionAr: '', inventoryNotes: '', availability: 'unavailable' },
@@ -55,6 +57,7 @@ export function ProductManagement({ products, loading, compact, search, onSearch
   const watchedSelling = useWatch({ control: form.control, name: 'sellingPrice' });
   const watchedCost = useWatch({ control: form.control, name: 'cost' });
   const profit = watchedSelling !== '' && watchedCost !== '' ? Number(watchedSelling) - Number(watchedCost) : null;
+  const visibleProducts = products.slice(0, visibleCount);
 
   const openEditor = (product: OperationsProduct) => {
     if (image?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(image.previewUrl);
@@ -112,7 +115,7 @@ export function ProductManagement({ products, loading, compact, search, onSearch
   if (loading) return <StateView loading title="جاري تحميل المنتجات" message="لحظات قليلة." />;
   return <View style={styles.page}>
     <View style={styles.toolbar}>
-      <View style={styles.search}><Field label="بحث بالاسم أو SKU" placeholder="ابحث ضمن المنتجات" value={search} onChangeText={onSearch} /></View>
+      <View style={styles.search}><Field label="بحث بالاسم أو SKU" placeholder="ابحث ضمن المنتجات" value={search} onChangeText={(value) => { setVisibleCount(40); onSearch(value); }} /></View>
       <View style={styles.legend}>
         <StockLegend color={colors.successText} label="متوفر" />
         <StockLegend color={colors.warningText} label="قرب النفاد" />
@@ -130,14 +133,15 @@ export function ProductManagement({ products, loading, compact, search, onSearch
           <HeaderCell label="الوصف" style={styles.descriptionColumn} />
           <HeaderCell label="الإجراءات" style={styles.actionColumn} />
         </View> : null}
-        {products.map((product) => <ProductTableRow key={product.id} product={product} compact={compact} imageUrl={data?.media.resolve(product.media) ?? null} onEdit={() => openEditor(product)} onPreview={() => setPreviewing(product)} />)}
+        {visibleProducts.map((product) => <ProductTableRow key={product.id} product={product} compact={compact} imageUrl={data?.media.resolve(product.media) ?? null} onEdit={() => openEditor(product)} onPreview={() => setPreviewing(product)} />)}
         {!products.length ? <StateView title="لا توجد نتائج" message="جرّب تغيير عبارة البحث." /> : null}
       </View>
     </ScrollView>
+    {visibleCount < products.length ? <View style={styles.loadMore}><AppText variant="small" color={colors.muted}>يظهر {visibleProducts.length.toLocaleString('ar-SY')} من {products.length.toLocaleString('ar-SY')} منتج</AppText><Button label="عرض المزيد" variant="secondary" onPress={() => setVisibleCount((count) => count + 40)} /></View> : null}
 
     <Modal visible={Boolean(editing)} transparent animationType="fade" onRequestClose={closeEditor}>
-      <View style={styles.overlay}>
-        <Surface style={styles.editorModal} accessibilityViewIsModal>
+      <View style={[styles.overlay, phone && styles.overlayPhone]}>
+        <Surface style={phone ? [styles.editorModal, styles.editorModalPhone] : styles.editorModal} accessibilityViewIsModal>
           <View style={styles.modalHeader}>
             <View><AppText variant="h2">تعديل المنتج</AppText><AppText variant="small" color={colors.muted}>{editing?.sku}</AppText></View>
             <Pressable accessibilityRole="button" accessibilityLabel="إغلاق التعديل" onPress={closeEditor} style={styles.iconButton}><MaterialCommunityIcons name="close" size={24} color={colors.ink} /></Pressable>
@@ -163,17 +167,17 @@ export function ProductManagement({ products, loading, compact, search, onSearch
               <View style={styles.imageColumn}>{editing ? <ProductImageEditor currentImageUrl={currentImage} value={image} onChange={setImage} onError={(message) => onFeedback(message, true)} /> : null}</View>
             </View>
           </ScrollView>
-          <View style={styles.modalActions}>
-            <Button label="إلغاء التعديلات" variant="secondary" onPress={closeEditor} />
-            <Button label="معاينة المنتج" variant="secondary" onPress={showDraftPreview} />
-            <Button label="حفظ التغييرات" onPress={form.handleSubmit((values) => save.mutate(values))} loading={save.isPending} />
+          <View style={[styles.modalActions, phone && styles.modalActionsPhone]}>
+            <Button label="إلغاء التعديلات" variant="secondary" onPress={closeEditor} style={phone ? styles.modalActionPhone : undefined} />
+            <Button label="معاينة المنتج" variant="secondary" onPress={showDraftPreview} style={phone ? styles.modalActionPhone : undefined} />
+            <Button label="حفظ التغييرات" onPress={form.handleSubmit((values) => save.mutate(values))} loading={save.isPending} style={phone ? styles.modalActionPhone : undefined} />
           </View>
         </Surface>
       </View>
     </Modal>
 
-    <ProductPreview product={previewing} imageUrl={previewing && data ? data.media.resolve(previewing.media) : null} onClose={() => setPreviewing(null)} />
-    <DraftProductPreview product={editing} values={draftPreview} imageUrl={image?.previewUrl ?? currentImage} onClose={() => setDraftPreview(null)} />
+    <ProductPreview product={previewing} imageUrl={previewing && data ? data.media.resolve(previewing.media) : null} onClose={() => setPreviewing(null)} phone={phone} />
+    <DraftProductPreview product={editing} values={draftPreview} imageUrl={image?.previewUrl ?? currentImage} onClose={() => setDraftPreview(null)} phone={phone} />
   </View>;
 }
 
@@ -184,7 +188,7 @@ function ProductTableRow({ product, compact, imageUrl, onEdit, onPreview }: { pr
     <View style={styles.mobileTitle}>{imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><MaterialCommunityIcons name="image-outline" size={24} color={colors.muted} /></View>}<View style={styles.productName}><AppText style={styles.semibold}>{product.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{product.sku}</AppText></View><StockBadge {...stock} /></View>
     <View style={styles.mobileMetrics}><Metric label="البيع" value={product.price ? formatMoney(product.price) : '—'} /><Metric label="التكلفة" value={product.cost ? formatMoney(product.cost) : '—'} /><Metric label="الربح" value={profit === null ? '—' : `${(profit / 100).toFixed(2)} USD`} /><Metric label="المتاح / التنبيه" value={`${product.onHand - product.reserved} / ${product.lowStockThreshold}`} /></View>
     <AppText variant="small" color={colors.muted} numberOfLines={2}>{product.descriptionAr || 'لا يوجد وصف بعد.'}</AppText>
-    <View style={styles.rowActions}><Button label="تعديل" onPress={onEdit} /><Button label="معاينة المنتج" variant="secondary" onPress={onPreview} /></View>
+    <View style={styles.rowActions}><Button label="تعديل" onPress={onEdit} style={styles.cardAction} /><Button label="معاينة المنتج" variant="secondary" onPress={onPreview} style={styles.cardAction} /></View>
   </Surface>;
   return <View style={styles.dataRow}>
     <View style={[styles.cell, styles.productColumn, styles.productCell]}>{imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><MaterialCommunityIcons name="image-outline" size={24} color={colors.muted} /></View>}<View style={styles.productName}><AppText variant="small" style={styles.semibold} numberOfLines={2}>{product.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{product.sku}</AppText></View></View>
@@ -197,19 +201,19 @@ function ProductTableRow({ product, compact, imageUrl, onEdit, onPreview }: { pr
   </View>;
 }
 
-function ProductPreview({ product, imageUrl, onClose }: { product: OperationsProduct | null; imageUrl: string | null; onClose: () => void }) {
+function ProductPreview({ product, imageUrl, onClose, phone }: { product: OperationsProduct | null; imageUrl: string | null; onClose: () => void; phone: boolean }) {
   if (!product) return null;
-  return <PreviewModal visible imageUrl={imageUrl} name={product.nameAr} price={product.price ? formatMoney(product.price) : 'السعر غير متوفر'} description={product.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={product.availability} onClose={onClose} />;
+  return <PreviewModal visible imageUrl={imageUrl} name={product.nameAr} price={product.price ? formatMoney(product.price) : 'السعر غير متوفر'} description={product.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={product.availability} onClose={onClose} phone={phone} />;
 }
 
-function DraftProductPreview({ product, values, imageUrl, onClose }: { product: OperationsProduct | null; values: ProductForm | null; imageUrl: string | null; onClose: () => void }) {
+function DraftProductPreview({ product, values, imageUrl, onClose, phone }: { product: OperationsProduct | null; values: ProductForm | null; imageUrl: string | null; onClose: () => void; phone: boolean }) {
   if (!product || !values) return null;
   const price = values.sellingPrice === '' ? 'السعر غير متوفر' : `${Number(values.sellingPrice).toFixed(2)} USD`;
-  return <PreviewModal visible imageUrl={imageUrl} name={values.nameAr} price={price} description={values.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={values.availability} onClose={onClose} draft />;
+  return <PreviewModal visible imageUrl={imageUrl} name={values.nameAr} price={price} description={values.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={values.availability} onClose={onClose} draft phone={phone} />;
 }
 
-function PreviewModal({ visible, imageUrl, name, price, description, availability, onClose, draft = false }: { visible: boolean; imageUrl: string | null; name: string; price: string; description: string; availability: Availability; onClose: () => void; draft?: boolean }) {
-  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}><View style={styles.overlay}><Surface style={styles.previewModal} accessibilityViewIsModal><View style={styles.modalHeader}><View><AppText variant="h2">معاينة المنتج</AppText>{draft ? <AppText variant="caption" color={colors.warningText}>معاينة للتعديلات غير المحفوظة</AppText> : null}</View><Pressable accessibilityRole="button" accessibilityLabel="إغلاق المعاينة" onPress={onClose} style={styles.iconButton}><MaterialCommunityIcons name="close" size={24} color={colors.ink} /></Pressable></View><ScrollView contentContainerStyle={styles.doctorPreview}><Surface style={styles.previewImage}>{imageUrl ? <Image source={{ uri: imageUrl }} resizeMode="contain" style={styles.previewImageContent} accessibilityLabel={`صورة ${name}`} /> : <MaterialCommunityIcons name="image-outline" size={64} color={colors.muted} />}</Surface><View style={styles.previewCopy}><View style={styles.previewAvailability}><MaterialCommunityIcons name={availability === 'available' ? 'check-circle-outline' : availability === 'limited' ? 'alert-circle-outline' : 'close-circle-outline'} size={18} color={availability === 'available' ? colors.successText : availability === 'limited' ? colors.warningText : colors.danger} /><AppText variant="small">{getAvailabilityLabel(availability)}</AppText></View><AppText variant="h1">{name}</AppText><AppText variant="h2">{price}</AppText><Button label="إضافة إلى السلة" disabled={availability === 'unavailable' || price === 'السعر غير متوفر'} onPress={() => undefined} /></View><Surface style={styles.previewDescription}><AppText variant="h2">عن المنتج</AppText><AppText color={colors.muted}>{description}</AppText></Surface></ScrollView><Button label="إغلاق المعاينة" variant="secondary" onPress={onClose} /></Surface></View></Modal>;
+function PreviewModal({ visible, imageUrl, name, price, description, availability, onClose, draft = false, phone }: { visible: boolean; imageUrl: string | null; name: string; price: string; description: string; availability: Availability; onClose: () => void; draft?: boolean; phone: boolean }) {
+  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}><View style={[styles.overlay, phone ? styles.overlayPhone : undefined]}><Surface style={phone ? [styles.previewModal, styles.previewModalPhone] : styles.previewModal} accessibilityViewIsModal><View style={styles.modalHeader}><View><AppText variant="h2">معاينة المنتج</AppText>{draft ? <AppText variant="caption" color={colors.warningText}>معاينة للتعديلات غير المحفوظة</AppText> : null}</View><Pressable accessibilityRole="button" accessibilityLabel="إغلاق المعاينة" onPress={onClose} style={styles.iconButton}><MaterialCommunityIcons name="close" size={24} color={colors.ink} /></Pressable></View><ScrollView contentContainerStyle={styles.doctorPreview}><Surface style={phone ? [styles.previewImage, styles.previewImagePhone] : styles.previewImage}>{imageUrl ? <Image source={{ uri: imageUrl }} resizeMode="contain" style={[styles.previewImageContent, phone ? styles.previewImageContentPhone : undefined]} accessibilityLabel={`صورة ${name}`} /> : <MaterialCommunityIcons name="image-outline" size={64} color={colors.muted} />}</Surface><View style={styles.previewCopy}><View style={styles.previewAvailability}><MaterialCommunityIcons name={availability === 'available' ? 'check-circle-outline' : availability === 'limited' ? 'alert-circle-outline' : 'close-circle-outline'} size={18} color={availability === 'available' ? colors.successText : availability === 'limited' ? colors.warningText : colors.danger} /><AppText variant="small">{getAvailabilityLabel(availability)}</AppText></View><AppText variant={phone ? 'h2' : 'h1'}>{name}</AppText><AppText variant="h2">{price}</AppText><Button label="إضافة إلى السلة" disabled={availability === 'unavailable' || price === 'السعر غير متوفر'} onPress={() => undefined} /></View><Surface style={phone ? [styles.previewDescription, styles.previewDescriptionPhone] : styles.previewDescription}><AppText variant="h2">عن المنتج</AppText><AppText color={colors.muted}>{description}</AppText></Surface></ScrollView><Button label="إغلاق المعاينة" variant="secondary" onPress={onClose} /></Surface></View></Modal>;
 }
 
 function HeaderCell({ label, style }: { label: string; style?: object }) { return <View style={[styles.cell, style]}><AppText variant="caption" style={styles.semibold}>{label}</AppText></View>; }
@@ -218,9 +222,9 @@ function StockLegend({ color, label }: { color: string; label: string }) { retur
 function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><AppText variant="caption" color={colors.muted}>{label}</AppText><AppText variant="small">{value}</AppText></View>; }
 
 const styles = StyleSheet.create({
-  page: { gap: spacing.md }, toolbar: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md }, search: { flex: 1, minWidth: 260, maxWidth: 520 }, legend: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.md, paddingBottom: spacing.sm }, legendItem: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs }, legendDot: { width: 8, height: 8, borderRadius: 4 },
+  page: { gap: spacing.md }, toolbar: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md }, search: { flex: 1, minWidth: 240, maxWidth: 520 }, legend: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.md, paddingBottom: spacing.sm }, legendItem: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs }, legendDot: { width: 8, height: 8, borderRadius: 4 },
   tableScroll: { flexGrow: 1 }, table: { width: '100%', gap: spacing.xs }, tableDesktop: { minWidth: 1180 }, headerRow: { flexDirection: 'row-reverse', minHeight: 44, alignItems: 'center', backgroundColor: colors.pale, borderRadius: radius.md, paddingHorizontal: spacing.sm }, dataRow: { flexDirection: 'row-reverse', minHeight: 92, alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: spacing.sm }, cell: { width: 120, paddingHorizontal: spacing.xs, gap: spacing.xs }, productColumn: { width: 250 }, descriptionColumn: { width: 210 }, actionColumn: { width: 180 }, productCell: { flexDirection: 'row-reverse', alignItems: 'center' }, thumbnail: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.soft }, thumbnailPlaceholder: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }, productName: { flex: 1, minWidth: 0, gap: 2 },
-  stockBadge: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: 4, borderRadius: radius.pill, paddingHorizontal: spacing.xs, paddingVertical: 4 }, rowActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, mobileCard: { gap: spacing.md, padding: spacing.md }, mobileTitle: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm }, mobileMetrics: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, metric: { flexGrow: 1, flexBasis: 120, backgroundColor: colors.soft, borderRadius: radius.sm, padding: spacing.sm, gap: 2 },
-  overlay: { flex: 1, backgroundColor: colors.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, editorModal: { width: '100%', maxWidth: 1080, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, modalHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }, iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft }, editorContent: { paddingVertical: spacing.xs }, formGrid: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: spacing.lg }, formGridCompact: { flexDirection: 'column' }, formColumn: { flex: 1, width: '100%', gap: spacing.md }, imageColumn: { width: 380, maxWidth: '100%' }, twoColumns: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, flexField: { flex: 1, minWidth: 180 }, profit: { backgroundColor: colors.successSurface, borderRadius: radius.sm, padding: spacing.sm }, profitLoss: { backgroundColor: '#F5E9E7' }, fieldGroup: { gap: spacing.xs }, availability: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, modalActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'flex-start', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
-  previewModal: { width: '100%', maxWidth: 920, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, doctorPreview: { gap: spacing.lg }, previewImage: { minHeight: 320, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pale }, previewImageContent: { width: '100%', height: 320 }, previewCopy: { gap: spacing.md }, previewAvailability: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: spacing.xs }, previewDescription: { gap: spacing.md }, semibold: { fontFamily: typography.family.semibold, fontWeight: '600' },
+  stockBadge: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: 4, borderRadius: radius.pill, paddingHorizontal: spacing.xs, paddingVertical: 4 }, rowActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, cardAction: { flexGrow: 1, minWidth: 120 }, mobileCard: { gap: spacing.md, padding: spacing.md }, mobileTitle: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, mobileMetrics: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, metric: { flexGrow: 1, flexBasis: 120, backgroundColor: colors.soft, borderRadius: radius.sm, padding: spacing.sm, gap: 2 }, loadMore: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  overlay: { flex: 1, backgroundColor: colors.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, overlayPhone: { padding: 0, justifyContent: 'flex-end' }, editorModal: { width: '100%', maxWidth: 1080, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, editorModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, modalHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }, iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft }, editorContent: { paddingVertical: spacing.xs, paddingBottom: spacing.lg }, formGrid: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: spacing.lg }, formGridCompact: { flexDirection: 'column' }, formColumn: { flex: 1, width: '100%', gap: spacing.md }, imageColumn: { width: 380, maxWidth: '100%' }, twoColumns: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, flexField: { flex: 1, minWidth: 180 }, profit: { backgroundColor: colors.successSurface, borderRadius: radius.sm, padding: spacing.sm }, profitLoss: { backgroundColor: '#F5E9E7' }, fieldGroup: { gap: spacing.xs }, availability: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, modalActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'flex-start', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md }, modalActionsPhone: { flexDirection: 'row-reverse' }, modalActionPhone: { flexGrow: 1, minWidth: 145 },
+  previewModal: { width: '100%', maxWidth: 920, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, previewModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, doctorPreview: { gap: spacing.lg, paddingBottom: spacing.md }, previewImage: { minHeight: 320, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pale }, previewImagePhone: { minHeight: 240, padding: spacing.sm }, previewImageContent: { width: '100%', height: 320 }, previewImageContentPhone: { height: 240 }, previewCopy: { gap: spacing.md }, previewAvailability: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: spacing.xs }, previewDescription: { gap: spacing.md }, previewDescriptionPhone: { padding: spacing.md }, semibold: { fontFamily: typography.family.semibold, fontWeight: '600' },
 });
