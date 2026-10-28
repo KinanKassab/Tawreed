@@ -20,9 +20,18 @@ import type {
 export interface AuthRepository {
   getSession(): Promise<Session | null>;
   signInWithPassword(email: string, password: string): Promise<void>;
-  signUpWithPassword(email: string, password: string, fullName: string, clinicName?: string): Promise<boolean>;
-  requestWhatsAppOtp(phone: string, shouldCreateUser: boolean): Promise<void>;
-  verifyPhoneOtp(phone: string, token: string): Promise<void>;
+  signUpWithPassword(input: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    preferredContact: 'phone' | 'whatsapp' | 'email';
+    deliveryAddress: string;
+    latitude: number | null;
+    longitude: number | null;
+    googlePlaceId: string | null;
+  }): Promise<boolean>;
   requestPasswordReset(email: string, redirectTo: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
   signOut(): Promise<void>;
@@ -57,6 +66,9 @@ export interface OrdersRepository {
     recipientName: string;
     recipientPhone: string;
     deliveryNotes?: string;
+    deliveryLatitude?: number | null;
+    deliveryLongitude?: number | null;
+    deliveryGooglePlaceId?: string | null;
     items: { productId: string; quantity: number }[];
   }): Promise<{ orderId: string; orderNumber: string }>;
 }
@@ -392,18 +404,27 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         const { error } = await client.auth.signInWithPassword({ email, password });
         if (error) throw error;
       },
-      async signUpWithPassword(email, password, fullName, clinicName) {
-        const { data, error } = await client.auth.signUp({ email, password, options: { data: { full_name: fullName, clinic_name: clinicName ?? null } } });
+      async signUpWithPassword(input) {
+        const fullName = `${input.firstName.trim()} ${input.lastName.trim()}`;
+        const { data, error } = await client.auth.signUp({
+          email: input.email,
+          password: input.password,
+          options: {
+            data: {
+              first_name: input.firstName.trim(),
+              last_name: input.lastName.trim(),
+              full_name: fullName,
+              phone: input.phone,
+              preferred_contact: input.preferredContact,
+              default_address: input.deliveryAddress.trim(),
+              default_latitude: input.latitude,
+              default_longitude: input.longitude,
+              default_google_place_id: input.googlePlaceId,
+            },
+          },
+        });
         if (error) throw error;
         return Boolean(data.session);
-      },
-      async requestWhatsAppOtp(phone, shouldCreateUser) {
-        const { error } = await client.auth.signInWithOtp({ phone, options: { channel: 'whatsapp', shouldCreateUser } });
-        if (error) throw error;
-      },
-      async verifyPhoneOtp(phone, token) {
-        const { error } = await client.auth.verifyOtp({ phone, token, type: 'sms' });
-        if (error) throw error;
       },
       async requestPasswordReset(email, redirectTo) {
         const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
@@ -420,15 +441,21 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     profile: {
       async getMine() {
-        const { data, error } = await client.from('profiles').select('id, full_name, clinic_name, phone, email, default_address').maybeSingle();
+        const { data, error } = await client.from('profiles').select('id, first_name, last_name, full_name, clinic_name, phone, email, preferred_contact, default_address, default_latitude, default_longitude, default_google_place_id').maybeSingle();
         if (error) throw error;
         return data ? {
           id: data.id,
+          firstName: data.first_name,
+          lastName: data.last_name,
           fullName: data.full_name,
           clinicName: data.clinic_name,
           phone: data.phone,
           email: data.email,
+          preferredContact: data.preferred_contact,
           defaultAddress: data.default_address,
+          defaultLatitude: data.default_latitude,
+          defaultLongitude: data.default_longitude,
+          defaultGooglePlaceId: data.default_google_place_id,
         } : null;
       },
       async updateMine(input) {
@@ -494,6 +521,9 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           p_recipient_phone: input.recipientPhone,
           p_delivery_notes: input.deliveryNotes ?? null,
           p_items: input.items.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
+          p_delivery_latitude: input.deliveryLatitude ?? null,
+          p_delivery_longitude: input.deliveryLongitude ?? null,
+          p_delivery_google_place_id: input.deliveryGooglePlaceId ?? null,
         });
         if (error) throw error;
         const result = Array.isArray(data) ? data[0] : data;

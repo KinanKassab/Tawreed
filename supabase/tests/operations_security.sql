@@ -30,7 +30,7 @@ select throws_ok(
 
 set local "request.jwt.claim.sub" = '92000000-0000-0000-0000-000000000001';
 select is((select rank::text from public.operations_get_my_context()), 'owner', 'Owner receives staff context');
-select is((select count(*)::integer from public.products), 196, 'Owner inherits Operations catalog access');
+select is((select count(*)::integer from public.products), 198, 'Owner inherits Operations catalog access');
 
 select public.operations_set_product_price('20000000-0000-0000-0000-000000000001'::uuid, 2500::bigint, 'USD'::public.currency_code, 2::smallint);
 select is((select count(*)::integer from public.product_prices where product_id = '20000000-0000-0000-0000-000000000001' and active), 1, 'Operations creates one active selling price');
@@ -84,7 +84,8 @@ set local "request.jwt.claim.sub" = '91000000-0000-0000-0000-000000000001';
 insert into test_operations_order
 select * from public.create_doctor_order(
   '93000000-0000-0000-0000-000000000001', 'USD', 'عنوان اختبار صالح للطلب', 'طبيب اختبار', '+963900000000', null,
-  '[{"product_id":"20000000-0000-0000-0000-000000000001","quantity":2}]'::jsonb
+  '[{"product_id":"20000000-0000-0000-0000-000000000001","quantity":2}]'::jsonb,
+  33.5138, 36.2765, 'operations-test-place'
 );
 select is((select count(*)::integer from test_operations_order), 1, 'Doctor creates priced order for Operations flow');
 

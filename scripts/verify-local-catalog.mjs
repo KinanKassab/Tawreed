@@ -48,18 +48,18 @@ try {
 
   if (categories.length !== 12) throw new Error(`Expected 12 categories, received ${categories.length}`);
   if (categories.some((category) => !category.name_ar || !category.name_en)) throw new Error('One or more categories lost a bilingual name');
-  if (products.length !== 196) throw new Error(`Expected 196 products, received ${products.length}`);
+  if (products.length !== 198) throw new Error(`Expected 198 products, received ${products.length}`);
   if (products.some((product) => !product.name_ar || !product.name_en || !product.specifications_ar)) {
     throw new Error('One or more catalog records lost required source fields');
   }
-  if (sourcing.length !== 196 || sourcing.some((entry) => !entry.catalog_priority)) throw new Error('Internal sourcing metadata is incomplete');
+  if (sourcing.length !== 198 || sourcing.some((entry) => !entry.catalog_priority)) throw new Error('Internal sourcing metadata is incomplete');
   if (products.some((product) => product.availability !== 'unavailable' || product.product_prices.length !== 0)) {
     throw new Error('Unverified catalog records must not expose price or purchasable availability');
   }
   if (!englishSearch.some((product) => product.sku === 'TWD-DEN-0002')) throw new Error('English product-name search failed');
   if (!skuSearch.some((product) => product.sku === 'TWD-DEN-0196')) throw new Error('SKU search failed');
 
-  console.log('Verified authenticated catalog API: 12 bilingual categories, 196 complete products, Arabic/English/SKU search, 0 invented prices.');
+  console.log('Verified authenticated catalog API: 12 bilingual categories, 198 complete products, Arabic/English/SKU search, 0 invented prices.');
 } finally {
   if (userId) {
     const response = await fetch(`${local.API_URL}/auth/v1/admin/users/${userId}`, {

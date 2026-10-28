@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Surface } from '@tawreed/ui';
@@ -11,6 +11,8 @@ import { ar } from '@/locales/ar';
 import { useData } from '@/providers/app-providers';
 
 export default function LoginScreen() {
+  const params = useLocalSearchParams<{ returnTo?: string }>();
+  const returnTo = ['/checkout', '/orders', '/account', '/notifications', '/support'].includes(params.returnTo ?? '') ? params.returnTo! : '/(app)/(tabs)';
   const [showAccountSetup, setShowAccountSetup] = useState(false);
   const data = useData();
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<EmailPasswordInput>({
@@ -21,14 +23,14 @@ export default function LoginScreen() {
   const closeAccountSetup = () => setShowAccountSetup(false);
   const openAccountSetup = () => {
     closeAccountSetup();
-    router.push('/(auth)/register');
+    router.push({ pathname: '/(auth)/register', params: { returnTo } });
   };
   const submit = handleSubmit(async (values) => {
     if (!data) return;
     closeAccountSetup();
     try {
       await data.auth.signInWithPassword(values.email, values.password);
-      router.replace('/(app)/(tabs)');
+      router.replace(returnTo as never);
     } catch (error) {
       const normalized = normalizeAppError(error);
       setError('root', { message: normalized.messageAr });
@@ -40,6 +42,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
+          <Image accessibilityIgnoresInvertColors accessibilityLabel="شعار توريد" source={require('../../../assets/images/brand-logo.png')} style={styles.brandLogo} />
           <AppText variant="h1">توريد</AppText>
           <AppText variant="small" color={colors.green}>{ar.doctorApp}</AppText>
         </View>
@@ -50,11 +53,11 @@ export default function LoginScreen() {
           <Controller control={control} name="password" render={({ field }) => <Field label={ar.password} secureTextEntry autoComplete="current-password" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.password?.message} />} />
           {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.danger}>{errors.root.message}</AppText> : null}
           <Button label={ar.login} onPress={submit} loading={isSubmitting} />
+          <Button label="متابعة تصفح المنتجات كزائر" variant="quiet" onPress={() => router.replace('/(app)/(tabs)/catalog')} />
           <Link href="/(auth)/forgot" style={styles.link}>{ar.forgotPassword}</Link>
-          <Button label={ar.useWhatsApp} variant="secondary" onPress={() => router.push('/(auth)/phone')} />
           <View style={styles.inline}>
             <AppText variant="small" color={colors.muted}>{ar.noAccount}</AppText>
-            <Link href="/(auth)/register" style={styles.link}> {ar.register}</Link>
+            <Link href={{ pathname: '/(auth)/register', params: { returnTo } }} style={styles.link}> {ar.register}</Link>
           </View>
         </Surface>
       </ScrollView>
@@ -88,6 +91,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.soft },
   brand: { alignItems: 'center', marginBottom: spacing.xl },
+  brandLogo: { width: 112, height: 112, borderRadius: 26, marginBottom: spacing.sm },
   card: { width: '100%', maxWidth: 480, gap: spacing.md },
   modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.overlay },
   accountDialog: { width: '100%', maxWidth: 440, gap: spacing.md, borderColor: colors.green, elevation: 12, shadowColor: colors.deep, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 24 },

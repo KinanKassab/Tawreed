@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "addresses": {
                   Row: {
-                    "active": boolean,"address_text": string,"created_at": string,"id": string,"is_default": boolean,"label": string,"recipient_name": string,"recipient_phone": string,"updated_at": string,"user_id": string
+                    "active": boolean,"address_text": string,"created_at": string,"google_place_id": string | null,"id": string,"is_default": boolean,"label": string,"latitude": number | null,"longitude": number | null,"recipient_name": string,"recipient_phone": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"address_text": string,"created_at"?: string,"id"?: string,"is_default"?: boolean,"label": string,"recipient_name": string,"recipient_phone": string,"updated_at"?: string,"user_id": string
+                    "active"?: boolean,"address_text": string,"created_at"?: string,"google_place_id"?: string | null,"id"?: string,"is_default"?: boolean,"label": string,"latitude"?: number | null,"longitude"?: number | null,"recipient_name": string,"recipient_phone": string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "active"?: boolean,"address_text"?: string,"created_at"?: string,"id"?: string,"is_default"?: boolean,"label"?: string,"recipient_name"?: string,"recipient_phone"?: string,"updated_at"?: string,"user_id"?: string
+                    "active"?: boolean,"address_text"?: string,"created_at"?: string,"google_place_id"?: string | null,"id"?: string,"is_default"?: boolean,"label"?: string,"latitude"?: number | null,"longitude"?: number | null,"recipient_name"?: string,"recipient_phone"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -51,7 +51,7 @@ isOneToOne: false
                     "active"?: boolean,"created_at"?: string,"id"?: string,"name_ar"?: string,"name_en"?: string | null,"slug"?: string,"sort_order"?: number,"updated_at"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"currency_settings": {
                   Row: {
@@ -299,14 +299,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "base_currency": Database["public"]['Enums']["currency_code"],"base_delivery_fee_minor": number,"base_subtotal_minor": number,"base_tax_minor": number,"base_total_minor": number,"created_at": string,"currency": Database["public"]['Enums']["currency_code"],"currency_decimal_places": number,"delivery_address_snapshot": string,"delivery_fee_minor": number,"delivery_notes": string | null,"exchange_rate_snapshot": number,"id": string,"idempotency_key": string,"order_number": string,"payment_method": string,"recipient_name_snapshot": string,"recipient_phone_snapshot": string,"status": Database["public"]['Enums']["order_status"],"subtotal_minor": number,"tax_minor": number,"total_minor": number,"updated_at": string,"user_id": string
+                    "base_currency": Database["public"]['Enums']["currency_code"],"base_delivery_fee_minor": number,"base_subtotal_minor": number,"base_tax_minor": number,"base_total_minor": number,"created_at": string,"currency": Database["public"]['Enums']["currency_code"],"currency_decimal_places": number,"delivery_address_snapshot": string,"delivery_fee_minor": number,"delivery_google_place_id_snapshot": string | null,"delivery_latitude_snapshot": number | null,"delivery_longitude_snapshot": number | null,"delivery_notes": string | null,"exchange_rate_snapshot": number,"id": string,"idempotency_key": string,"order_number": string,"payment_method": string,"recipient_name_snapshot": string,"recipient_phone_snapshot": string,"status": Database["public"]['Enums']["order_status"],"subtotal_minor": number,"tax_minor": number,"total_minor": number,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "base_currency": Database["public"]['Enums']["currency_code"],"base_delivery_fee_minor": number,"base_subtotal_minor": number,"base_tax_minor": number,"base_total_minor": number,"created_at"?: string,"currency": Database["public"]['Enums']["currency_code"],"currency_decimal_places": number,"delivery_address_snapshot": string,"delivery_fee_minor": number,"delivery_notes"?: string | null,"exchange_rate_snapshot": number,"id"?: string,"idempotency_key": string,"order_number": string,"payment_method"?: string,"recipient_name_snapshot": string,"recipient_phone_snapshot": string,"status"?: Database["public"]['Enums']["order_status"],"subtotal_minor": number,"tax_minor": number,"total_minor": number,"updated_at"?: string,"user_id": string
+                    "base_currency": Database["public"]['Enums']["currency_code"],"base_delivery_fee_minor": number,"base_subtotal_minor": number,"base_tax_minor": number,"base_total_minor": number,"created_at"?: string,"currency": Database["public"]['Enums']["currency_code"],"currency_decimal_places": number,"delivery_address_snapshot": string,"delivery_fee_minor": number,"delivery_google_place_id_snapshot"?: string | null,"delivery_latitude_snapshot"?: number | null,"delivery_longitude_snapshot"?: number | null,"delivery_notes"?: string | null,"exchange_rate_snapshot": number,"id"?: string,"idempotency_key": string,"order_number": string,"payment_method"?: string,"recipient_name_snapshot": string,"recipient_phone_snapshot": string,"status"?: Database["public"]['Enums']["order_status"],"subtotal_minor": number,"tax_minor": number,"total_minor": number,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "base_currency"?: Database["public"]['Enums']["currency_code"],"base_delivery_fee_minor"?: number,"base_subtotal_minor"?: number,"base_tax_minor"?: number,"base_total_minor"?: number,"created_at"?: string,"currency"?: Database["public"]['Enums']["currency_code"],"currency_decimal_places"?: number,"delivery_address_snapshot"?: string,"delivery_fee_minor"?: number,"delivery_notes"?: string | null,"exchange_rate_snapshot"?: number,"id"?: string,"idempotency_key"?: string,"order_number"?: string,"payment_method"?: string,"recipient_name_snapshot"?: string,"recipient_phone_snapshot"?: string,"status"?: Database["public"]['Enums']["order_status"],"subtotal_minor"?: number,"tax_minor"?: number,"total_minor"?: number,"updated_at"?: string,"user_id"?: string
+                    "base_currency"?: Database["public"]['Enums']["currency_code"],"base_delivery_fee_minor"?: number,"base_subtotal_minor"?: number,"base_tax_minor"?: number,"base_total_minor"?: number,"created_at"?: string,"currency"?: Database["public"]['Enums']["currency_code"],"currency_decimal_places"?: number,"delivery_address_snapshot"?: string,"delivery_fee_minor"?: number,"delivery_google_place_id_snapshot"?: string | null,"delivery_latitude_snapshot"?: number | null,"delivery_longitude_snapshot"?: number | null,"delivery_notes"?: string | null,"exchange_rate_snapshot"?: number,"id"?: string,"idempotency_key"?: string,"order_number"?: string,"payment_method"?: string,"recipient_name_snapshot"?: string,"recipient_phone_snapshot"?: string,"status"?: Database["public"]['Enums']["order_status"],"subtotal_minor"?: number,"tax_minor"?: number,"total_minor"?: number,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -425,14 +425,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "clinic_name": string | null,"created_at": string,"default_address": string | null,"email": string | null,"full_name": string,"id": string,"phone": string | null,"updated_at": string
+                    "clinic_name": string | null,"created_at": string,"default_address": string | null,"default_google_place_id": string | null,"default_latitude": number | null,"default_longitude": number | null,"email": string | null,"first_name": string | null,"full_name": string,"id": string,"last_name": string | null,"phone": string | null,"preferred_contact": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"email"?: string | null,"full_name": string,"id": string,"phone"?: string | null,"updated_at"?: string
+                    "clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"default_google_place_id"?: string | null,"default_latitude"?: number | null,"default_longitude"?: number | null,"email"?: string | null,"first_name"?: string | null,"full_name": string,"id": string,"last_name"?: string | null,"phone"?: string | null,"preferred_contact"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"email"?: string | null,"full_name"?: string,"id"?: string,"phone"?: string | null,"updated_at"?: string
+                    "clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"default_google_place_id"?: string | null,"default_latitude"?: number | null,"default_longitude"?: number | null,"email"?: string | null,"first_name"?: string | null,"full_name"?: string,"id"?: string,"last_name"?: string | null,"phone"?: string | null,"preferred_contact"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -559,6 +559,10 @@ isOneToOne: false
           Functions: {
             "create_doctor_order":
 { Args: { "p_delivery_address": string,"p_delivery_notes": string,"p_display_currency": Database["public"]['Enums']["currency_code"],"p_idempotency_key": string,"p_items": Json,"p_recipient_name": string,"p_recipient_phone": string }; Returns: {
+              "order_id": string,"order_number": string
+            }[]
+                           } |
+{ Args: { "p_delivery_address": string,"p_delivery_google_place_id": string,"p_delivery_latitude": number,"p_delivery_longitude": number,"p_delivery_notes": string,"p_display_currency": Database["public"]['Enums']["currency_code"],"p_idempotency_key": string,"p_items": Json,"p_recipient_name": string,"p_recipient_phone": string }; Returns: {
               "order_id": string,"order_number": string
             }[]
                            },

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  signInWithOtp: vi.fn(),
   signUp: vi.fn(),
   rpc: vi.fn(),
   getPublicUrl: vi.fn(),
@@ -12,7 +11,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     auth: {
-      signInWithOtp: mocks.signInWithOtp,
       signUp: mocks.signUp,
       startAutoRefresh: vi.fn(),
       stopAutoRefresh: vi.fn(),
@@ -40,28 +38,37 @@ const config = {
 describe('Supabase repository adapter contracts', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('requests WhatsApp OTP without silently creating a second account', async () => {
-    mocks.signInWithOtp.mockResolvedValue({ error: null });
-    const data = createTawreedDataLayer(config);
-
-    await data.auth.requestWhatsAppOtp('+963900000000', false);
-
-    expect(mocks.signInWithOtp).toHaveBeenCalledWith({
-      phone: '+963900000000',
-      options: { channel: 'whatsapp', shouldCreateUser: false },
-    });
-  });
-
   it('reports an active session after password registration', async () => {
     mocks.signUp.mockResolvedValue({ data: { session: { access_token: 'token' } }, error: null });
     const data = createTawreedDataLayer(config);
 
-    const signedIn = await data.auth.signUpWithPassword('doctor@example.test', 'StrongPassword-123!', 'طبيب اختبار', 'عيادة الاختبار');
+    const signedIn = await data.auth.signUpWithPassword({
+      email: 'doctor@example.test',
+      password: 'StrongPassword-123!',
+      firstName: 'طبيب',
+      lastName: 'اختبار',
+      phone: '+963900000000',
+      preferredContact: 'whatsapp',
+      deliveryAddress: 'دمشق، شارع الاختبار',
+      latitude: 33.5138,
+      longitude: 36.2765,
+      googlePlaceId: 'place-1',
+    });
 
     expect(mocks.signUp).toHaveBeenCalledWith({
       email: 'doctor@example.test',
       password: 'StrongPassword-123!',
-      options: { data: { full_name: 'طبيب اختبار', clinic_name: 'عيادة الاختبار' } },
+      options: { data: {
+        first_name: 'طبيب',
+        last_name: 'اختبار',
+        full_name: 'طبيب اختبار',
+        phone: '+963900000000',
+        preferred_contact: 'whatsapp',
+        default_address: 'دمشق، شارع الاختبار',
+        default_latitude: 33.5138,
+        default_longitude: 36.2765,
+        default_google_place_id: 'place-1',
+      } },
     });
     expect(signedIn).toBe(true);
   });

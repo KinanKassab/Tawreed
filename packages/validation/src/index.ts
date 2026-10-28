@@ -6,16 +6,14 @@ export const emailPasswordSchema = z.object({
 });
 
 export const registerSchema = emailPasswordSchema.extend({
-  fullName: z.string().trim().min(2, 'أدخل الاسم الكامل').max(100),
-  clinicName: z.string().trim().max(120).optional(),
-});
-
-export const phoneSchema = z.object({
+  firstName: z.string().trim().min(2, 'أدخل الاسم الأول').max(50),
+  lastName: z.string().trim().min(2, 'أدخل الاسم الثاني').max(50),
   phone: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'استخدم رقم الهاتف بالصيغة الدولية مثل +963...'),
-});
-
-export const otpSchema = phoneSchema.extend({
-  token: z.string().trim().regex(/^\d{6}$/, 'أدخل رمز التحقق المؤلف من ٦ أرقام'),
+  preferredContact: z.enum(['phone', 'whatsapp', 'email']),
+  deliveryAddress: z.string().trim().min(8, 'أدخل عنواناً واضحاً للتوصيل').max(300),
+  latitude: z.number().min(-90).max(90).nullable(),
+  longitude: z.number().min(-180).max(180).nullable(),
+  googlePlaceId: z.string().trim().max(255).nullable(),
 });
 
 export const profileSchema = z.object({
@@ -34,6 +32,4 @@ export const checkoutSchema = z.object({
 
 export type EmailPasswordInput = z.infer<typeof emailPasswordSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
-export type PhoneInput = z.infer<typeof phoneSchema>;
-export type OtpInput = z.infer<typeof otpSchema>;
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

@@ -85,11 +85,17 @@ export interface OrderDetail extends OrderSummary {
 
 export interface DoctorProfile {
   id: string;
+  firstName: string | null;
+  lastName: string | null;
   fullName: string;
   clinicName: string | null;
   phone: string | null;
   email: string | null;
+  preferredContact: 'phone' | 'whatsapp' | 'email';
   defaultAddress: string | null;
+  defaultLatitude: number | null;
+  defaultLongitude: number | null;
+  defaultGooglePlaceId: string | null;
 }
 
 export type StaffRank = 'operations_manager' | 'admin' | 'owner';

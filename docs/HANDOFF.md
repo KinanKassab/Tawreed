@@ -2,7 +2,7 @@
 
 ## Current state
 
-The universal Doctor app, shared packages, hosted Supabase schema/RLS/RPC, Operations Web app, generated database types, and automated test harnesses are implemented. Code quality and both Web exports pass. The UI uses Segoe UI with native system fallbacks; failed sign-in opens a safe account-setup popup; successful registration enters the app immediately when a session is available; and authenticated mobile pages share one persistent bottom bar plus internal-page back navigation. No privileged credential was committed, and the visual reference in `../Design & Assets` remains untouched.
+The universal Doctor app, shared packages, hosted Supabase schema/RLS/RPC, Operations Web app, generated database types, and automated test harnesses are implemented. Code quality and both Web exports passed at the last recorded release check. Visitors can browse the active catalog and keep a cart without signing in; checkout and all user-scoped pages require authentication and preserve the checkout return path. Registration is a three-page flow for name, contact/follow-up preference, and delivery location. Account creation, sign-in, and recovery use email/password only; the phone number is contact/delivery data and no phone/WhatsApp authentication route remains. Registration can capture the current location, accept an in-app map point when a restricted Google Maps key is configured, and snapshots coordinates/address for delivery. The UI uses Segoe UI with native system fallbacks; failed sign-in opens a safe account-setup popup; successful registration enters the app immediately when a session is available; and mobile pages share one persistent bottom bar plus internal-page back navigation. No privileged credential was committed, and the visual reference in `../Design & Assets` remains untouched.
 
 The existing `Code` folder is linked to `https://github.com/KinanKassab/Tawreed.git`; `main` is pushed and tracks `origin/main`. Nested Git metadata discovered during the initial push was preserved locally under the ignored `.git-nested-backups/` folder, and the full Doctor application is committed as ordinary monorepo source.
 
@@ -12,7 +12,11 @@ The first internal Operations Web implementation exists in `apps/operations`. St
 
 A confirmed hosted Owner account exists for `owner@tawreed.app`, has active `owner` staff membership, and passed a publishable-key sign-in/RLS smoke test. Its temporary credential was provided to the user and is not stored in the repository.
 
-The hosted catalog now reflects the owner-curated `Design & Assets/images` instructions. It retains 196 records, of which 94 are active and 102 are reversibly inactive. Ninety-five normalized 1200×1200 WebP files cover 93 active products and are publicly served from the `product-media` bucket through 95 `media_assets`/`product_media` links. Their scale-v2 normalization sizes the detected product content itself to a consistent maximum 1000-pixel extent with preserved aspect ratio and safety padding. Nineteen bilingual name corrections are live. The untouched source selections and the generated review/manifest package are available under `outputs/product-media-ready`.
+The hosted catalog now reflects the owner-curated `Design & Assets/images` instructions plus the later product additions. It retains 198 records, of which 96 are active and 102 are reversibly inactive. All active products now have primary media. Current product-media links total 98 because one product has three gallery images. The latest changes corrected `مسندة MOD`, added `مسندة MO`, replaced the Gutta-Percha image, and added the missing H-Files image using the owner's exact files.
+
+The Doctor app now uses the exact owner-supplied `app logo.png` for the Web favicon, visible Web/mobile header mark, login branding, generic Expo icon, iOS icon, Android adaptive foreground, and splash image. The logo integration passes Expo Doctor 20/20, typecheck, lint, unit tests, and Web export; it is present in the working tree but has not been pushed from the current unrelated feature branch.
+
+Five later Arabic-only label corrections are also live and persisted locally: TWD-DEN-0014 `مسند MOD`, TWD-DEN-0027 `أقماع ورقية`, TWD-DEN-0082 `ألجينات`, TWD-DEN-0114 `ميكروتور`, and TWD-DEN-0160 `فلورايد للأطفال`.
 
 ## Last verified commands
 
@@ -34,22 +38,25 @@ Operations Expo Doctor 20/20 passed
 Supabase database advisors passed with no findings
 ```
 
-On 2026-10-26, hosted catalog/media verification also passed: 196 total products, 94 active, 102 inactive, 19 name corrections, 95 media links, 93 primary images, and 95/95 public Storage responses. This was a focused hosted-data verification, not a rerun of the full local application suite.
+On 2026-10-26, hosted catalog/media verification also passed after the latest changes: 198 total products, 96 active, 102 inactive, 98 media links, and successful public retrieval verification for all three newly supplied assets. This was a focused hosted-data verification, not a rerun of the full local application suite.
 
 Later on 2026-10-26, `pnpm test` (24/24), strict typecheck, lint, and both Web exports passed. Hosted migrations, Owner membership, the one-warehouse bootstrap, protected product costs, and low-stock fields were verified. Docker was stopped, so the local reset/pgTAP rerun was unavailable; use the preceding 57/57 database run as the latest local pgTAP evidence.
+
+For the visitor/onboarding update on 2026-10-26: workspace lint and strict typecheck passed; Vitest passed 24/24; Doctor Web export passed; Expo Doctor passed 20/20; Doctor Web E2E passed 10/10 on Pixel 7 and desktop profiles; all pgTAP suites passed 65/65 after a clean local reset; and the authenticated 197-product catalog check passed. The seed was corrected to reuse the single active bootstrapped warehouse. Android E2E/APK were not run because ADB, Maestro, and EAS are unavailable.
 
 `supabase db lint --local` still reports the pre-existing `requested_items` temporary-table resolution false positive inside `create_doctor_order`; the checkout function is exercised by the passing pgTAP suite.
 
 ## Exact continuation point
 
-0. Verify an authenticated Doctor sees the 94-product hosted assortment and its curated primary images in production. One remaining active SKU has no owner-selected image.
+0. Verify an authenticated Doctor sees the 96-product hosted assortment and its curated primary images in production. All active SKUs now have a selected primary image.
+0. Apply `20261026173000_public_catalog_and_delivery_location.sql` to hosted Supabase and verify anonymous active-product reads plus the new profile/address/order delivery fields. The 2026-10-28 CLI attempt reached the pooler but its temporary PostgreSQL login connection was terminated repeatedly.
 1. Preserve `outputs/product-media-ready/manifest.json` as the exact mapping of approved files, 19 name corrections, and 102 inactive SKUs. The older Internet candidate package remains rights-review material only and must not be imported automatically.
 2. Implement Admin-managed staff invitations, rank changes, revocation, final-Owner protection, and a staff audit view. The local bootstrap helper is not a hosted provisioning flow.
 3. Implement goods receipt into inventory batches and FEFO allocation/dispatch, with expiry validation and tests.
 4. Implement substitution proposals with product/quantity/price delta and recorded Doctor approval (WhatsApp initially), then recalculate authoritative totals server-side.
 5. Add detailed order-item inspection and explicit Doctor-facing messages to the Operations order workflow.
 6. Obtain approved Operations frames and complete visual QA; OQ-006 remains open.
-7. Continue Doctor release work: Twilio, approved artwork/auth frames, EAS APK, Android Maestro, and final deployed verification.
+7. Continue Doctor release work: approved auth frames, EAS APK, Android Maestro, and final deployed verification.
 
 ## Files to inspect first
 
@@ -65,5 +72,5 @@ Later on 2026-10-26, `pnpm test` (24/24), strict typecheck, lint, and both Web e
 - Keep staff membership server-controlled in `staff_accounts`; never move rank authorization into user-editable metadata.
 - Keep order confirmation atomic and full-order only; do not queue Operations mutations offline.
 - Keep `product_costs` staff-only; never add it to Doctor queries or grants. Keep product images normalized to 1200×1200 and publish them through `media_assets`/`product_media`, not direct image columns.
-- Keep WhatsApp `shouldCreateUser: false` until a verified linking ceremony is approved.
+- Keep Doctor authentication email/password-only; never treat the contact phone as an account identifier.
 - Do not queue offline writes or modify the supplied design source.

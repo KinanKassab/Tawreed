@@ -5,32 +5,28 @@
 - Status: open
 - Blocking: no for architecture; yes for claiming approved pixel fidelity on auth screens
 - Question: should the production authentication screens use a conservative extension of the store visual language, or will dedicated approved frames be supplied?
-- Reason: login, register, WhatsApp OTP, forgot password, and reset password are required but absent from the reference.
+- Reason: login, register, forgot-password, and reset-password screens are required but absent from the reference.
 - Impact: visual fidelity of authentication only.
 - Affected features: authentication and onboarding.
 - Suggested options: (A) reuse the reference surfaces/fields/buttons/palette; (B) provide approved frames before final visual QA.
 - Final answer: pending.
 
-## OQ-002 — Safe email/phone account linking
+## OQ-002 — Account identifiers
 
-- Status: open
-- Blocking: yes for production enablement of WhatsApp as an independent sign-in path
-- Question: which verified account-linking ceremony should Tawreed use when the same Doctor begins with email/password and later uses a phone/WhatsApp OTP (or the reverse)?
-- Reason: separate Supabase email and phone sign-ups can create separate Auth users; silently merging on matching profile data is unsafe.
-- Impact: duplicate profiles/orders and account takeover risk.
-- Affected features: WhatsApp OTP, registration, profile, cached orders.
-- Suggested option: require an authenticated user to add and verify the second identifier from account settings, then allow it as a sign-in identifier only after verified linking; keep independent phone signup disabled until this flow is verified end to end.
-- Final answer: pending.
+- Status: resolved
+- Blocking: no
+- Question: should Tawreed support phone/WhatsApp as an independent sign-in path?
+- Final answer: no. Email/password is the only sign-in and account-creation path. Phone remains contact and delivery data only.
 
 ## OQ-003 — External service configuration
 
 - Status: open
-- Blocking: no for released Web; yes for WhatsApp and Android release verification
-- Question: which Twilio Verify service and EAS project should receive the remaining production configuration?
-- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified, while Twilio and EAS identifiers/credentials are still absent.
-- Impact: WhatsApp delivery, APK cloud build, and Android release validation.
+- Blocking: no for released Web; yes for Android release verification
+- Question: which EAS project and restricted Google Maps key should receive the remaining production configuration?
+- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified, while EAS and `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` are still absent.
+- Impact: interactive Google map selection, APK cloud build, and Android release validation.
 - Affected features: release validation.
-- Final answer: Supabase and Vercel were resolved on 2026-10-26; Doctor and Operations have separate production projects using public client values only. Twilio and EAS configuration remain pending.
+- Final answer: Supabase and Vercel were resolved on 2026-10-26; Doctor and Operations have separate production projects using public client values only. EAS and a platform/domain-restricted Google Maps key remain pending. Without the map key, current-location capture, manual address entry, and a Google Maps preview link remain available, but in-app Google map selection is not enabled.
 
 ## OQ-004 — Privileged Operations approval boundaries
 

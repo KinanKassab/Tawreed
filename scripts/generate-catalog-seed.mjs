@@ -42,8 +42,8 @@ const products = productMatches.map((match, index) => {
   };
 });
 
-if (categories.length !== 12 || products.length !== 196) {
-  throw new Error(`Catalog integrity check failed: expected 12 categories/196 products, found ${categories.length}/${products.length}`);
+if (categories.length !== 12 || products.length !== 198) {
+  throw new Error(`Catalog integrity check failed: expected 12 categories/198 products, found ${categories.length}/${products.length}`);
 }
 
 const categoryValues = categories.map((category) =>
@@ -67,7 +67,9 @@ insert into public.currency_settings(code, display_label_ar, decimal_places, ena
 
 insert into public.exchange_rates(base_currency, quote_currency, rate, active) values ('USD', 'NEW_SYP', 100.00000000, true);
 insert into public.financial_settings(id, delivery_fee_minor, delivery_fee_currency, tax_rate_bps) values (true, 600, 'USD', 0);
-insert into public.warehouses(code, name_ar) values ('CENTRAL', 'المستودع المركزي لتوريد');
+insert into public.warehouses(code, name_ar)
+select 'CENTRAL', 'المستودع المركزي لتوريد'
+where not exists (select 1 from public.warehouses where active);
 
 insert into public.categories(id, slug, name_ar, name_en, sort_order) values
 ${categoryValues};
@@ -83,7 +85,8 @@ ${sourcingValues};
 
 insert into public.inventory_balances(warehouse_id, product_id, on_hand, reserved)
 select w.id, p.id, 0, 0
-from public.warehouses w cross join public.products p where w.code = 'CENTRAL';
+from public.warehouses w cross join public.products p
+where w.id = (select id from public.warehouses where active order by created_at limit 1);
 `;
 
 await writeFile(outputPath, sql, 'utf8');

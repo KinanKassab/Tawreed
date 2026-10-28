@@ -29,8 +29,7 @@
 ## Phase 4 — authentication
 
 - [x] Email/password login, registration, reset flow, session lifecycle, and profile bootstrap.
-- [x] Configurable Twilio/Twilio Verify WhatsApp OTP request/verification, with independent signup disabled.
-- [ ] Resolve safe email/phone account linking before enabling both entry paths in production.
+- [x] Email/password is the only account creation and sign-in path; phone remains contact/delivery data only.
 
 ## Phase 5 — catalog
 

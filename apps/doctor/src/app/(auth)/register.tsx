@@ -1,57 +1,123 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { colors, spacing } from '@tawreed/design-tokens';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { colors, spacing, typography } from '@tawreed/design-tokens';
 import { normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Surface } from '@tawreed/ui';
 import { registerSchema, type RegisterInput } from '@tawreed/validation';
-import { ar } from '@/locales/ar';
+import { DeliveryLocationPicker } from '@/components/delivery-location-picker';
 import { useData } from '@/providers/app-providers';
+
+const steps = ['الاسم', 'التواصل', 'التوصيل'] as const;
+const contactOptions = [
+  { value: 'phone', label: 'اتصال هاتفي', icon: 'phone-outline' },
+  { value: 'whatsapp', label: 'واتساب', icon: 'whatsapp' },
+  { value: 'email', label: 'بريد إلكتروني', icon: 'email-outline' },
+] as const;
+
+function safeReturnTo(value: string | string[] | undefined): '/(app)/(tabs)' | '/checkout' {
+  return value === '/checkout' ? '/checkout' : '/(app)/(tabs)';
+}
 
 export default function RegisterScreen() {
   const data = useData();
+  const params = useLocalSearchParams<{ returnTo?: string }>();
+  const returnTo = safeReturnTo(params.returnTo);
+  const [step, setStep] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<RegisterInput>({
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, trigger } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { fullName: '', clinicName: '', email: '', password: '' },
+    defaultValues: {
+      firstName: '', lastName: '', email: '', phone: '+963', password: '', preferredContact: 'whatsapp',
+      deliveryAddress: '', latitude: null, longitude: null, googlePlaceId: null,
+    },
   });
+
+  const next = async () => {
+    const fields: (keyof RegisterInput)[][] = [
+      ['firstName', 'lastName'],
+      ['email', 'phone', 'password', 'preferredContact'],
+    ];
+    if (await trigger(fields[step] ?? [])) setStep((current) => Math.min(current + 1, steps.length - 1));
+  };
 
   const submit = handleSubmit(async (values) => {
     if (!data) return;
     setNotice(null);
     try {
-      const signedIn = await data.auth.signUpWithPassword(values.email, values.password, values.fullName, values.clinicName);
+      const signedIn = await data.auth.signUpWithPassword(values);
       if (signedIn) {
-        router.replace('/(app)/(tabs)');
+        router.replace(returnTo);
         return;
       }
-      setNotice('تم تجهيز حسابك. افتح رسالة التأكيد في بريدك لإكمال الدخول تلقائياً.');
+      setNotice('تم تجهيز حسابك وحفظ عنوان التوصيل. افتح رسالة التأكيد في بريدك، ثم سجّل الدخول للمتابعة.');
     } catch (error) {
       setError('root', { message: normalizeAppError(error).messageAr });
     }
   });
 
   return (
-    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-      <Surface style={styles.card}>
-        <AppText variant="h2">تجهيز حساب جديد</AppText>
-        <AppText color={colors.muted}>أدخل بياناتك الأساسية لتجهيز حسابك والبدء باستخدام توريد.</AppText>
-        <Controller control={control} name="fullName" render={({ field }) => <Field label={ar.fullName} autoComplete="name" value={field.value} onChangeText={field.onChange} error={errors.fullName?.message} />} />
-        <Controller control={control} name="clinicName" render={({ field }) => <Field label={ar.clinicName} value={field.value ?? ''} onChangeText={field.onChange} error={errors.clinicName?.message} />} />
-        <Controller control={control} name="email" render={({ field }) => <Field label={ar.email} autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} error={errors.email?.message} />} />
-        <Controller control={control} name="password" render={({ field }) => <Field label={ar.password} secureTextEntry autoComplete="new-password" value={field.value} onChangeText={field.onChange} error={errors.password?.message} />} />
-        {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.danger}>{errors.root.message}</AppText> : null}
-        {notice ? <AppText accessibilityRole="alert" color={colors.successText}>{notice}</AppText> : null}
-        <Button label="تجهيز الحساب" onPress={submit} loading={isSubmitting} />
-        <View style={styles.inline}>
-          <AppText variant="small" color={colors.muted}>{ar.hasAccount}</AppText>
-          <Link href="/(auth)/login" style={styles.link}> {ar.login}</Link>
-        </View>
-      </Surface>
-    </ScrollView>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        <Surface style={styles.card}>
+          <View style={styles.topRow}>
+            <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => step ? setStep(step - 1) : router.back()} style={styles.back}><MaterialCommunityIcons name="arrow-right" size={24} color={colors.ink} /></Pressable>
+            <View style={styles.heading}><AppText variant="h2">تجهيز حسابك</AppText><AppText color={colors.muted}>الخطوة {(step + 1).toLocaleString('ar-SY')} من {steps.length.toLocaleString('ar-SY')}</AppText></View>
+          </View>
+          <View accessibilityLabel={`الخطوة ${step + 1} من ${steps.length}`} style={styles.progress}>
+            {steps.map((label, index) => <View key={label} style={styles.progressItem}><View style={[styles.progressDot, index <= step && styles.progressDotActive]} /><AppText variant="caption" color={index <= step ? colors.ink : colors.muted}>{label}</AppText></View>)}
+          </View>
+
+          {step === 0 ? <View style={styles.step}>
+            <View><AppText variant="h3">ما اسمك؟</AppText><AppText color={colors.muted}>سنستخدمه باسم المستلم في طلباتك.</AppText></View>
+            <Controller control={control} name="firstName" render={({ field }) => <Field label="الاسم الأول" autoComplete="given-name" value={field.value} onChangeText={field.onChange} error={errors.firstName?.message} />} />
+            <Controller control={control} name="lastName" render={({ field }) => <Field label="الاسم الثاني" autoComplete="family-name" value={field.value} onChangeText={field.onChange} error={errors.lastName?.message} />} />
+            <Button label="التالي" onPress={next} />
+          </View> : null}
+
+          {step === 1 ? <View style={styles.step}>
+            <View><AppText variant="h3">بيانات الدخول والتواصل</AppText><AppText color={colors.muted}>البريد للدخول إلى الحساب، والرقم للتواصل معك حول الطلب والتوصيل.</AppText></View>
+            <Controller control={control} name="email" render={({ field }) => <Field label="البريد الإلكتروني" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} error={errors.email?.message} />} />
+            <Controller control={control} name="phone" render={({ field }) => <Field label="رقم الهاتف" autoComplete="tel" keyboardType="phone-pad" value={field.value} onChangeText={field.onChange} error={errors.phone?.message} />} />
+            <Controller control={control} name="password" render={({ field }) => <Field label="كلمة المرور" secureTextEntry autoComplete="new-password" value={field.value} onChangeText={field.onChange} error={errors.password?.message} />} />
+            <View style={styles.contactGroup}><AppText variant="small">كيف تفضّل أن نتابع معك؟</AppText><Controller control={control} name="preferredContact" render={({ field }) => <View style={styles.contactOptions}>{contactOptions.map((option) => { const selected = field.value === option.value; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => field.onChange(option.value)} style={[styles.contactOption, selected && styles.contactOptionSelected]}><MaterialCommunityIcons name={option.icon} size={21} color={selected ? colors.green : colors.muted} /><AppText variant="small" color={selected ? colors.green : colors.ink}>{option.label}</AppText></Pressable>; })}</View>} /></View>
+            <Button label="التالي" onPress={next} />
+          </View> : null}
+
+          {step === 2 ? <View style={styles.step}>
+            <View><AppText variant="h3">أين نوصّل طلباتك؟</AppText><AppText color={colors.muted}>استخدم موقعك الحالي أو حدّد النقطة الصحيحة على الخريطة، ثم راجع العنوان.</AppText></View>
+            <Controller control={control} name="deliveryAddress" render={({ field }) => <Controller control={control} name="latitude" render={({ field: latitudeField }) => <Controller control={control} name="longitude" render={({ field: longitudeField }) => <Controller control={control} name="googlePlaceId" render={({ field: placeField }) => <DeliveryLocationPicker value={{ address: field.value, latitude: latitudeField.value, longitude: longitudeField.value, googlePlaceId: placeField.value }} error={errors.deliveryAddress?.message} onChange={(location) => { field.onChange(location.address); latitudeField.onChange(location.latitude); longitudeField.onChange(location.longitude); placeField.onChange(location.googlePlaceId); }} />} />} />} />} />
+            {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.danger}>{errors.root.message}</AppText> : null}
+            {notice ? <AppText accessibilityRole="alert" color={colors.successText}>{notice}</AppText> : null}
+            <Button label="تجهيز الحساب والمتابعة" onPress={submit} loading={isSubmitting} />
+          </View> : null}
+
+          <View style={styles.inline}><AppText variant="small" color={colors.muted}>لديك حساب؟</AppText><Link href={{ pathname: '/(auth)/login', params: { returnTo } }} style={styles.link}> تسجيل الدخول</Link></View>
+        </Surface>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({ page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md }, card: { width: '100%', maxWidth: 520, gap: spacing.md }, inline: { flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center' }, link: { color: colors.green, minHeight: 44, paddingVertical: spacing.sm } });
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.soft },
+  card: { width: '100%', maxWidth: 580, gap: spacing.xl },
+  topRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.md },
+  heading: { flex: 1, gap: spacing.xs },
+  back: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
+  progress: { flexDirection: 'row-reverse', gap: spacing.sm },
+  progressItem: { flex: 1, alignItems: 'center', gap: spacing.xs },
+  progressDot: { width: '100%', height: 5, borderRadius: 4, backgroundColor: colors.line },
+  progressDotActive: { backgroundColor: colors.green },
+  step: { gap: spacing.md },
+  contactGroup: { gap: spacing.sm },
+  contactOptions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
+  contactOption: { minHeight: 48, flexGrow: 1, flexBasis: 145, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.line, borderRadius: 14 },
+  contactOptionSelected: { borderColor: colors.green, backgroundColor: colors.pale },
+  inline: { flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center' },
+  link: { color: colors.green, minHeight: 44, paddingVertical: spacing.sm, fontFamily: typography.family.semibold },
+});

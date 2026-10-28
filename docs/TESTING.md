@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Unit | Money totals/formatting, availability/order labels, error normalization, auth/profile/checkout validators, public config | `pnpm test` | Passed as part of 23 tests |
 | Component | Product Card interaction/disabled state and all availability badges | `pnpm test` | Passed as part of 23 tests |
-| Repository contract | Immediate registration session, WhatsApp no-signup guard, checkout RPC payload/response, centralized media resolution | `pnpm test` | Passed as part of 23 tests |
+| Repository contract | Immediate email/password registration session, checkout RPC payload/response, centralized media resolution | `pnpm test` | See the latest verified count in `PROJECT_STATUS.md` |
 | Database/RLS | RLS/grants, protected sourcing metadata, checkout rejection, 12-category/196-product seed integrity, no invented price/inventory | `pnpm test:db` | 19/19 passed against reset local database |
 | Catalog API integration | Temporary confirmed Doctor reads the full Product Master and searches English/SKU through authenticated REST/RLS; user is removed afterward | `pnpm test:catalog` | Passed: 12 bilingual categories, 196 complete products, 0 prices |
 | Web E2E | Arabic/RTL metadata, Segoe UI, login controls, account-setup popup navigation/dismissal, and horizontal overflow at Pixel 7 and desktop sizes | `pnpm test:web` | 8/8 passed |
@@ -23,7 +23,6 @@ Disposable-account browser verification at 390×844, 375×812, and 812×375 conf
 ## Manual release checks still required
 
 - Confirm email registration/confirmation, password login/reset, logout, and session restoration against the hosted Supabase project.
-- Confirm WhatsApp delivery through the configured Twilio/Twilio Verify service, using an already-linked phone only.
 - Exercise cached catalog and cached order history after a successful online load, then verify every write fails clearly while offline.
 - Compare authenticated Web and Android screenshots to the supplied home, catalog, product, cart, checkout, order, and account references.
 - Install the preview APK on a real/emulated Android device and complete the core journey.

@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-10-26
+Last updated: 2026-10-28
 
 ## Current phase
 
@@ -18,7 +18,7 @@ The internal Operations expansion now has a working first implementation under `
 - Implemented Arabic RTL, user-approved Segoe UI typography with native system fallbacks, responsive Web/mobile navigation, shared states, and the supplied store visual language. Mobile uses matching vector icons, a right-aligned Tawreed logo, back navigation on internal pages, and a persistent four-item bottom bar across authenticated routes.
 - Added twelve semantically matched dental category visuals on the Doctor home screen, with accessible labels and responsive 2/3/4-column layout; Vercel production serves the updated bundle from commit `8d8fff9`.
 - Prepared a separate, unshipped rights-review package with 539 existing Internet product-photo candidates for all 196 products (two or three per SKU), including AI mapping and source-organization registers. None are approved for publication until rights clearance.
-- Implemented email/password auth, recovery, guarded WhatsApp OTP, catalog, search, product details, cart, checkout, orders/tracking, account/default address, support, and notifications placeholder.
+- Implemented email/password-only auth and recovery, catalog, search, product details, cart, checkout, orders/tracking, account/default address, support, and notifications placeholder. Phone is contact/delivery data only.
 - Implemented TanStack Query read persistence, user-scoped order cache clearing, local persistent cart, network awareness, and explicit offline write blocking.
 - Added migration-based Doctor commerce and future operations schema, development seed data, explicit grants/RLS, immutable order snapshots, and the transactional idempotent `create_doctor_order` RPC.
 - Added unit/validation/configuration tests, shared-component tests, repository contract tests, pgTAP database security tests, responsive Playwright tests, and a Maestro Android core-flow definition.
@@ -42,24 +42,35 @@ The internal Operations expansion now has a working first implementation under `
 ## Implemented but not executable in this machine
 
 - Android launch, Maestro flow, and APK validation require Android SDK/ADB, Maestro, and an emulator/device or EAS credentials; those are unavailable.
-- Twilio WhatsApp delivery and EAS Android cloud build still require their external configuration/credentials.
+- EAS Android cloud build still requires external configuration/credentials.
 
 ## Release blockers
 
 - The hosted Supabase database now contains 12 categories and 196 products named from the supplied pricing workbook, with 0 product prices by design. Missing prices must not prevent catalog display, only ordering.
-- The hosted catalog currently exposes 94 active products; 102 owner-marked products are retained but inactive. Ninety-three active products have curated photography and one active product remains without a selected image.
-- Resolve and verify safe email/phone identity linking before enabling independent WhatsApp signup. The current client deliberately uses `shouldCreateUser: false`.
+- The hosted catalog currently exposes 96 active products; 102 owner-marked products are retained but inactive. All 96 active products have primary photography.
 - Provide approved authentication frames and Tawreed app-icon/splash artwork for final visual approval.
-- Configure Twilio and EAS, then run the remaining WhatsApp and Android release checks.
+- Configure EAS, then run the remaining Android release checks.
 - Implement the Admin staff-management UI and secure invitation/revocation flow; local staff bootstrap currently uses the local-only helper.
 - Implement batch receiving and FEFO allocation before claiming expiry-aware fulfillment.
 - Implement substitution proposals and recorded Doctor approval before enabling substitutions operationally.
 - Provide approved Operations frames before claiming pixel-level visual approval; the current UI is a conservative extension of Tawreed's approved palette and typography.
+- Enable Supabase leaked-password protection when the project plan supports it. Current production advisors also report informational missing-policy notices on deliberately inaccessible future procurement tables, the intentionally authenticated transactional `create_doctor_order` security-definer RPC, and unindexed foreign keys in mostly deferred/empty operational tables; review indexes before production volume grows.
 
 ## Last successful validation
 
 On 2026-10-26, `pnpm test` (24/24), strict typecheck, lint, and both production Web exports passed. The hosted database accepted `product_management` and `operations_hardening_and_bootstrap`; verification confirmed one confirmed active Owner, one active warehouse, the low-stock column, and the protected cost table. A publishable-key password sign-in then read the Owner context and a product through the live RLS/API boundary. Docker was stopped, so the local reset/pgTAP rerun could not start; the prior complete local run remains 57/57 pgTAP, catalog verification, Doctor Web E2E 8/8, Operations Web E2E 12/12, and Expo Doctor 20/20 for both apps. Android E2E/APK remain unrun.
 
+Later on 2026-10-26, the Doctor visitor/onboarding change passed workspace lint and strict typecheck, 24/24 Vitest tests, Doctor Web export, Expo Doctor 20/20, Doctor Web E2E 10/10, all 65/65 pgTAP database tests after a clean local reset, and the authenticated 197-product catalog verification. The seed now reuses the single active bootstrapped warehouse instead of creating a second local warehouse. Android E2E/APK remain unrun because ADB, Maestro, and EAS are unavailable. Interactive Google map selection additionally requires a restricted `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`.
+
 ## Completion claim
 
-The Doctor and Operations Web foundations are released against hosted Supabase, but the overall product is not complete. Do not claim final completion until commercial prices/inventory are verified, Android E2E/APK startup passes, Twilio is validated, staff administration and remaining fulfillment work are implemented, and final visual QA is approved.
+The Doctor and Operations Web foundations are released against hosted Supabase, but the overall product is not complete. Do not claim final completion until commercial prices/inventory are verified, Android E2E/APK startup passes, staff administration and remaining fulfillment work are implemented, and final visual QA is approved.
+
+## 2026-10-28 release validation
+
+- Prepared the complete visitor catalog, staged registration/delivery-location flow, final 198-product catalog metadata, curated media mappings, exact owner-supplied branding, and responsive Operations updates for release.
+- Updated Doctor and Operations to the Expo SDK 58 patch versions required by Expo Doctor; Expo Doctor passed 20/20 afterward.
+- Passed workspace strict typecheck, lint, 23/23 Vitest tests, and both Doctor and Operations production Web exports after removing the obsolete phone/OTP flow.
+- Passed a clean local migration reset, all 65/65 pgTAP tests, authenticated catalog verification for 198 products, and Doctor Web E2E 10/10. Operations Web E2E passed 11/12 in the parallel run; the single shared-product media race passed immediately when rerun alone.
+- Hosted database migration application remains subject to the linked Supabase PostgreSQL pooler accepting the CLI login session; the connection was repeatedly terminated by the pooler on 2026-10-28. Do not claim the new anonymous catalog grants or delivery-coordinate schema are live until direct hosted verification passes.
+- Removed phone/WhatsApp authentication from the Doctor client while retaining phone as contact/delivery data. Workspace strict typecheck, lint, 23/23 Vitest tests, Doctor Web export, and the four focused mobile/desktop login-and-registration Web tests passed. The complete Web suite was not green because tests requiring local Supabase encountered an unavailable local service; this auth change did not require a database migration.

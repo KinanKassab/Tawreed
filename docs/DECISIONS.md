@@ -135,3 +135,19 @@
 - Decision: deploy Doctor and Operations as separate Vercel projects from the same monorepo. Doctor retains `tawreed.app`; Operations builds only from `apps/operations` and receives the same public Supabase URL/publishable key, never a secret key.
 - Reason: the internal console needs an independent release boundary without replacing the existing Doctor site or the older `tawreed` project.
 - Consequence: each surface can be deployed or rolled back independently, while authorization remains entirely server-controlled by Supabase staff membership and RLS.
+
+## ADR-018 — Public catalog with gated ordering and staged onboarding
+
+- Date: 2026-10-26
+- Status: accepted
+- Decision: allow anonymous visitors to read only the active Doctor catalog and retain a local cart; require authentication when entering checkout or any user-scoped route. Registration is a three-page flow for name, contact preferences, and delivery location. Delivery coordinates and the resolved address are snapshotted with an order.
+- Reason: visitors must be able to evaluate the assortment before committing to an account, while orders and personal data remain protected. Breaking registration into focused steps reduces form overload and lets location consent appear in context.
+- Consequence: `anon` receives RLS-limited select access only to active categories, products, prices, and linked public media. Profiles, orders, support, Operations data, and all mutations remain unavailable. Email/password is the only account identifier; phone is stored for contact/delivery only.
+
+## ADR-019 — Email/password-only Doctor authentication
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: remove phone and WhatsApp OTP sign-in from the Doctor client. Account creation, sign-in, and recovery use email/password only; the collected phone number remains required contact and delivery data.
+- Reason: WhatsApp Business messaging cannot reliably serve Syrian `+963` recipients, and the product owner chose to remove number-based registration.
+- Consequence: the Doctor app exposes no phone-auth routes, repository methods, or OTP validators. Phone values must never be treated as proof of identity.

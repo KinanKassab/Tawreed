@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkoutSchema, emailPasswordSchema, otpSchema, phoneSchema, profileSchema } from './index';
+import { checkoutSchema, emailPasswordSchema, profileSchema, registerSchema } from './index';
 
 describe('Doctor input validation', () => {
   it('accepts a valid email/password and rejects a short password', () => {
@@ -7,11 +7,14 @@ describe('Doctor input validation', () => {
     expect(emailPasswordSchema.safeParse({ email: 'doctor@example.com', password: 'short' }).success).toBe(false);
   });
 
-  it('requires international phone format and a six-digit OTP', () => {
-    expect(phoneSchema.safeParse({ phone: '+963900000000' }).success).toBe(true);
-    expect(phoneSchema.safeParse({ phone: '0900000000' }).success).toBe(false);
-    expect(otpSchema.safeParse({ phone: '+963900000000', token: '123456' }).success).toBe(true);
-    expect(otpSchema.safeParse({ phone: '+963900000000', token: '12345a' }).success).toBe(false);
+  it('keeps the phone number as registration contact data only', () => {
+    const valid = {
+      email: 'doctor@example.com', password: 'safe-pass-123', firstName: 'طبيب', lastName: 'اختبار',
+      phone: '+963900000000', preferredContact: 'phone', deliveryAddress: 'دمشق، شارع الاختبار',
+      latitude: null, longitude: null, googlePlaceId: null,
+    };
+    expect(registerSchema.safeParse(valid).success).toBe(true);
+    expect(registerSchema.safeParse({ ...valid, phone: '0900000000' }).success).toBe(false);
   });
 
   it('requires a usable default address in profile updates', () => {

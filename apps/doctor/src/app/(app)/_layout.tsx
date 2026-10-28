@@ -1,14 +1,16 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { StateView } from '@tawreed/ui';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { useSession } from '@/providers/app-providers';
 import { ar } from '@/locales/ar';
 
-export default function ProtectedLayout() {
+export default function AppLayout() {
   const { session, loading } = useSession();
+  const pathname = usePathname();
+  const publicPage = pathname === '/' || pathname === '/catalog' || pathname === '/cart' || pathname.startsWith('/product/');
   if (loading) return <StateView loading title={ar.loading} message={ar.loadingMessage} />;
-  if (!session) return <Redirect href="/(auth)/login" />;
+  if (!session && !publicPage) return <Redirect href={{ pathname: '/(auth)/login', params: { returnTo: pathname } }} />;
   return <View style={styles.shell}><View style={styles.content}><Stack screenOptions={{ headerShown: false }} /></View><MobileBottomNav /></View>;
 }
 

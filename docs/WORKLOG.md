@@ -153,6 +153,15 @@
 - Preserved all unrelated working-tree changes and did not modify the read-only visual reference folder.
 - Corrected inconsistent apparent product scale after owner review: detected the real non-white content bounds of every image, retained a safety margin, resized the subject proportionally to a 1000-pixel maximum extent, and re-centered it on the 1200×1200 white canvas.
 - Published content-hashed scale-v2 replacements and atomically relinked the 93 products. Verified 95/95 public images, 95/95 media links, and 93 primary flags; prior objects remain unlinked for safe rollback.
+- Applied five owner-requested Arabic display-name corrections to the hosted catalog and the local Product Master/seed: `مسند MOD`, `أقماع ورقية`, `ألجينات`, `ميكروتور`, and `فلورايد للأطفال`. English names and images were left unchanged, and all five hosted values were read back successfully.
+- Added active product `TWD-DEN-0197` (`مسند ملقط` / `Matrix Band Retainer Set`) under Restorative Dentistry with no price and unavailable ordering state, plus a zero-stock central inventory row.
+- Published the owner-supplied matrix-retainer image as the new product's primary media and replaced the primary image for `TWD-DEN-0027` (`أقماع ورقية`) with the supplied paper-points image. Both exact JPEG originals were preserved, publicly retrieved, and linked successfully.
+- Updated Product Master, seed, catalog-count checks, README, and the database catalog-count assertion from 196 to 197 products.
+- Corrected `TWD-DEN-0014` from `مسند MOD` to `مسندة MOD`, then added active product `TWD-DEN-0198` (`مسندة MO` / `MO Matrix Retainer`) with zero stock and no price.
+- Replaced the primary image for `TWD-DEN-0026` (`أقماع غوتا بيركا`), added the first primary image for `TWD-DEN-0022` (`مبارد H يدوية`), and published the owner-supplied image for `TWD-DEN-0198`. All three exact source files passed public Storage verification.
+- Hosted verification now reports 198 total products, 96 active products, 102 inactive products, and 98 media links. Every active product now has a primary image.
+- Replaced the Doctor app's Expo/iOS/Android icon, splash artwork, Web favicon, header brand mark, and login brand mark with the exact owner-supplied `app logo.png`. No generative edit was applied.
+- Passed Doctor Expo Doctor 20/20, strict typecheck, lint, 24/24 tests, and the production Web export after the logo integration.
 
 ## 2026-10-26 — Hosted Operations release
 
@@ -162,4 +171,34 @@
 - Verified hosted password authentication plus Owner context/product access through the publishable-key REST/RLS boundary.
 - Passed 24/24 unit/contract tests, strict typecheck, lint, and both production Web exports. The local database reset could not run because Docker Desktop was stopped.
 - Pushed commit `66dcabc` to GitHub. Vercel rebuilt the Doctor production project from that commit and a separate `tawreed-operations` project was linked to the same repository with root `apps/operations` and public Supabase client values only.
+- Reviewed hosted Supabase advisors after migration. The remaining security notices are the intentionally policy-free deny-by-default future procurement tables, the intentionally authenticated transactional checkout RPC, and disabled leaked-password protection; performance notices are currently unused/missing indexes on low-volume or deferred tables. Password protection and index review were recorded as follow-up hardening work.
 - Preserved unrelated backups, generated review outputs, Arabic notes, and the existing unstaged root `.env.example` deletion outside the release commit.
+
+## 2026-10-26 — Public browsing and staged delivery onboarding
+
+- Opened the Doctor home/catalog/product/cart shell to anonymous visitors while retaining RLS-protected checkout, orders, account, notifications, and support routes.
+- Changed the cart continuation action to request login only when the visitor is ready to order and preserved `/checkout` across login or account setup.
+- Rebuilt registration as three focused pages: first/last name, email/phone/contact preference, and delivery location.
+- Added current-location permission/capture, reverse-geocoded address handling, native map selection, and Google Maps Web selection behind a restricted public key with a safe manual/preview fallback.
+- Added profile/address coordinates and Google place identifiers, plus immutable order delivery coordinate snapshots. Phone is contact data only until verified identity linking is implemented.
+- Added anonymous active-catalog grants/RLS without exposing profiles, orders, costs, inventory, sourcing, or Operations data.
+- Updated the Operations database fixture for the 197-product catalog and corrected local seeding to reuse the bootstrapped active warehouse instead of creating a second one.
+- Passed workspace lint, strict typecheck, 24/24 Vitest, Doctor Web export, Expo Doctor 20/20, Doctor Web E2E 10/10, all pgTAP tests 65/65 after a clean reset, and the authenticated 197-product catalog verification. Android E2E/APK remain unavailable on this machine.
+
+## 2026-10-28 — Consolidated release preparation
+
+- Consolidated the approved Doctor catalog/onboarding, exact supplied logo assets, 198-product metadata/media updates, and responsive Operations work for publication.
+- Excluded local backups, generated outputs, schema ZIPs, credential-bearing environment files, and the destructive review-only replacement SQL from the release.
+- Updated Doctor and Operations Expo patch dependencies and reinstalled the workspace; Expo Doctor then passed 20/20.
+- Passed workspace strict typecheck, lint, 23/23 Vitest tests, and both production Web exports after removing the obsolete phone/OTP flow.
+- Worked around a Windows-reserved local Supabase port range only for validation, restored the committed configuration afterward, and passed the clean reset, 65/65 pgTAP tests, 198-product catalog verification, and Doctor Web E2E 10/10.
+- Operations Web E2E passed 11/12 in its parallel run; the only failure was a shared-product media race between projects, and that exact mobile image-edit test passed when rerun alone.
+- Attempted the linked hosted migration through Supabase CLI. The API issued a temporary login role, but the linked PostgreSQL pooler repeatedly terminated the connection; the migration was therefore not claimed as applied.
+
+## 2026-10-28 — Removed phone-based authentication
+
+- Removed the WhatsApp sign-in button and deleted the phone/OTP authentication routes.
+- Removed phone OTP methods from the shared data boundary and removed the unused OTP validators and contract test.
+- Kept the phone field in staged registration, profiles, checkout, and order snapshots strictly for customer contact and delivery.
+- Recorded email/password as the sole Doctor account identifier and removed Twilio authentication from the release blockers.
+- Passed workspace strict typecheck, lint, 23/23 Vitest tests, Doctor Web export, and 4/4 focused login/registration Playwright checks across mobile and desktop. The full Web suite also ran but local-Supabase-dependent cases failed because the local service was unavailable.
