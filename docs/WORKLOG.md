@@ -193,7 +193,8 @@
 - Passed workspace strict typecheck, lint, 23/23 Vitest tests, and both production Web exports after removing the obsolete phone/OTP flow.
 - Worked around a Windows-reserved local Supabase port range only for validation, restored the committed configuration afterward, and passed the clean reset, 65/65 pgTAP tests, 198-product catalog verification, and Doctor Web E2E 10/10.
 - Operations Web E2E passed 11/12 in its parallel run; the only failure was a shared-product media race between projects, and that exact mobile image-edit test passed when rerun alone.
-- Attempted the linked hosted migration through Supabase CLI. The API issued a temporary login role, but the linked PostgreSQL pooler repeatedly terminated the connection; the migration was therefore not claimed as applied.
+- Applied the linked hosted migration through the transaction pooler after the session-pooler connection was repeatedly terminated. Direct anonymous REST verification returned `0-1/96`, confirming all 96 active products are publicly readable.
+- Removed the temporary user-level database-password environment variable immediately after migration and verification.
 
 ## 2026-10-28 — Removed phone-based authentication
 

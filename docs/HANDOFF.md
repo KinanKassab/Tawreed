@@ -49,7 +49,7 @@ For the visitor/onboarding update on 2026-10-26: workspace lint and strict typec
 ## Exact continuation point
 
 0. Verify an authenticated Doctor sees the 96-product hosted assortment and its curated primary images in production. All active SKUs now have a selected primary image.
-0. Apply `20261026173000_public_catalog_and_delivery_location.sql` to hosted Supabase and verify anonymous active-product reads plus the new profile/address/order delivery fields. The 2026-10-28 CLI attempt reached the pooler but its temporary PostgreSQL login connection was terminated repeatedly.
+0. Verify an authenticated Doctor can complete registration and checkout with the newly deployed delivery coordinates. The hosted `20261026173000_public_catalog_and_delivery_location.sql` migration is applied, and anonymous REST verification returns the expected 96 active products.
 1. Preserve `outputs/product-media-ready/manifest.json` as the exact mapping of approved files, 19 name corrections, and 102 inactive SKUs. The older Internet candidate package remains rights-review material only and must not be imported automatically.
 2. Implement Admin-managed staff invitations, rank changes, revocation, final-Owner protection, and a staff audit view. The local bootstrap helper is not a hosted provisioning flow.
 3. Implement goods receipt into inventory batches and FEFO allocation/dispatch, with expiry validation and tests.
