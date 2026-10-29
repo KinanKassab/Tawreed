@@ -4,19 +4,13 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { AppText, Button, Field } from '@tawreed/ui';
-import { MapSelector, type MapPoint } from './map-selector';
+import { MapSelector, reverseGeocodePoint, type MapPoint } from './map-selector';
 
 export interface DeliveryLocationValue {
   address: string;
   latitude: number | null;
   longitude: number | null;
   googlePlaceId: string | null;
-}
-
-function formatAddress(place: Location.LocationGeocodedAddress): string {
-  return [place.name, place.street, place.district, place.city, place.region, place.country]
-    .filter((part, index, values): part is string => Boolean(part) && values.indexOf(part) === index)
-    .join('، ');
 }
 
 export function DeliveryLocationPicker({ value, error, onChange }: { value: DeliveryLocationValue; error?: string; onChange: (value: DeliveryLocationValue) => void }) {
@@ -27,17 +21,24 @@ export function DeliveryLocationPicker({ value, error, onChange }: { value: Deli
   const mapPoint = point ?? { latitude: 33.5138, longitude: 36.2765 };
 
   const updatePoint = async (next: MapPoint, address?: string, googlePlaceId?: string) => {
-    let nextAddress = address?.trim() || value.address;
-    if (!nextAddress) {
+    setMessage('جارٍ جلب عنوان نقطة التوصيل...');
+    let nextAddress = address?.trim() || value.address.trim();
+    let nextPlaceId = googlePlaceId ?? value.googlePlaceId;
+    if (!address?.trim()) {
       try {
-        const places = await Location.reverseGeocodeAsync(next);
-        nextAddress = places[0] ? formatAddress(places[0]) : '';
+        const resolved = await reverseGeocodePoint(next);
+        if (resolved?.address) {
+          nextAddress = resolved.address;
+          nextPlaceId = resolved.googlePlaceId;
+        }
       } catch {
-        nextAddress = '';
+        // Preserve a manually entered address if automatic lookup is unavailable.
       }
     }
-    onChange({ address: nextAddress, latitude: next.latitude, longitude: next.longitude, googlePlaceId: googlePlaceId ?? null });
-    setMessage('تم تحديد نقطة التوصيل. راجع العنوان المكتوب قبل المتابعة.');
+    onChange({ address: nextAddress, latitude: next.latitude, longitude: next.longitude, googlePlaceId: nextPlaceId ?? null });
+    setMessage(nextAddress
+      ? 'تم تحديد نقطة التوصيل وملء العنوان. راجعه قبل المتابعة.'
+      : 'تم تحديد النقطة، لكن تعذر جلب العنوان تلقائياً. اكتب عنوان التوصيل في الحقل قبل المتابعة.');
   };
 
   const useCurrentLocation = async () => {

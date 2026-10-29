@@ -23,10 +23,10 @@
 - Status: open
 - Blocking: no for released Web; yes for Android release verification
 - Question: which EAS project and three platform-restricted Google Maps keys should receive the remaining production configuration?
-- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified, while the Doctor app is not linked to an EAS project and `EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY`, `GOOGLE_MAPS_ANDROID_API_KEY`, and `GOOGLE_MAPS_IOS_API_KEY` are absent.
+- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified. The Web map key is configured, but its Google Cloud project still needs Geocoding API enabled and authorized on that key for automatic address lookup. The Doctor app is not linked to an EAS project, and the Android/iOS keys remain absent.
 - Impact: interactive Google map selection, APK cloud build, and Android release validation.
 - Affected features: release validation.
-- Final answer: Supabase and Vercel were resolved on 2026-10-26; Doctor and Operations have separate production projects using public client values only. EAS project linking and the three restricted Google Maps keys remain pending. Without the matching key, current-location capture, manual address entry, and a Google Maps preview link remain available, but in-app Google map selection is not enabled.
+- Final answer: Supabase and Vercel were resolved on 2026-10-26, and the production Web key now renders the in-app map. Automatic address filling remains blocked until Geocoding API is enabled in Google Cloud and added to the Web key's API restrictions. EAS project linking and the Android/iOS keys remain pending.
 
 ## OQ-004 — Privileged Operations approval boundaries
 

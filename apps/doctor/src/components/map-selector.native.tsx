@@ -1,10 +1,28 @@
 import MapView, { Marker, PROVIDER_GOOGLE, type MapPressEvent, type Region } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { StyleSheet, View } from 'react-native';
 import { colors } from '@tawreed/design-tokens';
 
 export interface MapPoint {
   latitude: number;
   longitude: number;
+}
+
+export interface ReverseGeocodeResult {
+  address: string;
+  googlePlaceId: string | null;
+}
+
+function formatAddress(place: Location.LocationGeocodedAddress): string {
+  return [place.name, place.street, place.district, place.city, place.region, place.country]
+    .filter((part, index, values): part is string => Boolean(part) && values.indexOf(part) === index)
+    .join('، ');
+}
+
+export async function reverseGeocodePoint(point: MapPoint): Promise<ReverseGeocodeResult | null> {
+  const places = await Location.reverseGeocodeAsync(point);
+  const address = places[0] ? formatAddress(places[0]) : '';
+  return address ? { address, googlePlaceId: null } : null;
 }
 
 export function MapSelector({ point, onSelect }: { point: MapPoint; onSelect: (point: MapPoint) => void }) {

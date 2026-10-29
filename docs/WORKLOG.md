@@ -235,3 +235,10 @@
 - Upgraded the installable Web icon from the small favicon to the full 1254×1254 app icon and versioned the service-worker shell cache.
 - Passed workspace strict typecheck, lint, 23/23 Vitest tests, Expo Doctor 20/20, both Web exports, and the focused signed-out Orders/Account prompt test 2/2 on Pixel 7 and desktop profiles. Local database, catalog, Operations Web E2E, and the remaining local-dependent Doctor Web E2E could not complete because Docker Desktop was not running. Android E2E could not start because ADB and Maestro are absent; EAS is authenticated but the app is not linked to an EAS project.
 - Pushed Doctor release commit `7ecaf77` to GitHub `main`; Vercel production reached `READY` and aliased it to `tawreed.app`, `www.tawreed.app`, and `tawreed-doctor.vercel.app`. Live HTTP checks returned 200 for the shell, manifest, service worker, full app icon, and favicon, and headless mobile/desktop checks confirmed the guest sign-in prompt is visible.
+
+## 2026-10-29 — Delivery address lookup diagnosis
+
+- Verified the production Web map key is present and the Google Maps script and interactive map load successfully.
+- Reproduced point selection on production: coordinates update, while Google rejects `Geocoding Service` because Geocoding API is not authorized on the key.
+- Unified reverse geocoding for map clicks and current-location selection across Web/native, preserves manually entered addresses on lookup failure, and now reports a clear manual-entry fallback instead of a misleading success message.
+- Doctor typecheck, lint, 23/23 tests, and Web export passed after the change.

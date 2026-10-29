@@ -9,6 +9,11 @@ export interface MapPoint {
   longitude: number;
 }
 
+export interface ReverseGeocodeResult {
+  address: string;
+  googlePlaceId: string | null;
+}
+
 const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY;
 let mapsPromise: Promise<void> | null = null;
 
@@ -31,6 +36,15 @@ function loadGoogleMaps(): Promise<void> {
     document.head.appendChild(script);
   });
   return mapsPromise;
+}
+
+export async function reverseGeocodePoint(point: MapPoint): Promise<ReverseGeocodeResult | null> {
+  if (!apiKey) return null;
+  await loadGoogleMaps();
+  const geocoder = new google.maps.Geocoder();
+  const response = await geocoder.geocode({ location: { lat: point.latitude, lng: point.longitude } });
+  const result = response.results[0];
+  return result ? { address: result.formatted_address, googlePlaceId: result.place_id || null } : null;
 }
 
 export function MapSelector({ point, onSelect }: { point: MapPoint; onSelect: (point: MapPoint, address?: string, googlePlaceId?: string) => void }) {
@@ -59,11 +73,9 @@ export function MapSelector({ point, onSelect }: { point: MapPoint; onSelect: (p
         if (!event.latLng) return;
         const selected = { latitude: event.latLng.lat(), longitude: event.latLng.lng() };
         marker.setPosition(event.latLng);
-        const geocoder = new google.maps.Geocoder();
         try {
-          const response = await geocoder.geocode({ location: event.latLng });
-          const result = response.results[0];
-          onSelectRef.current(selected, result?.formatted_address, result?.place_id);
+          const result = await reverseGeocodePoint(selected);
+          onSelectRef.current(selected, result?.address, result?.googlePlaceId ?? undefined);
         } catch {
           onSelectRef.current(selected);
         }
