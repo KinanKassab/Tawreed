@@ -203,3 +203,34 @@
 - Kept the phone field in staged registration, profiles, checkout, and order snapshots strictly for customer contact and delivery.
 - Recorded email/password as the sole Doctor account identifier and removed Twilio authentication from the release blockers.
 - Passed workspace strict typecheck, lint, 23/23 Vitest tests, Doctor Web export, and 4/4 focused login/registration Playwright checks across mobile and desktop. The full Web suite also ran but local-Supabase-dependent cases failed because the local service was unavailable.
+# 2026-10-28 — Cache-first PWA, product media states, and email flows
+
+- Made persisted catalog data render first and revalidate in the background on mount/reconnect without enabling offline mutations.
+- Added PWA manifest/service worker output, account-first installed launch, compact catalog category icons, product-image loading/error fallbacks, and removed visible in-app logo artwork while preserving app/site icons.
+- Added six-digit signup email verification/resend, an Arabic Supabase email template, and a protected Edge Function that emails saved support reports without exposing provider secrets to clients.
+- Added `docs/EMAIL_SETUP.md` and recorded the remaining external SMTP/sender/recipient deployment configuration.
+- Passed strict typecheck, lint, 23/23 unit tests, Expo Doctor 20/20, and Doctor Web export. Android E2E/APK and live production email were not run.
+
+## 2026-10-28 — Resend domain and hosted SMTP
+
+- Confirmed that Resend reports `auth.tawreed.app` as verified, including DKIM and both sending records.
+- Created `Tawreed Production` with sending-only access restricted to `auth.tawreed.app`; its value was handled through the browser clipboard and was not stored in repository files.
+- Enabled custom SMTP in hosted Supabase using `smtp.resend.com`, port `465`, username `resend`, and sender `Tawreed <no-reply@auth.tawreed.app>`.
+- Reloaded the Supabase dashboard and verified that sender, host, username, and encrypted stored-password state persisted.
+- Remaining email work: choose the support-report recipient, set Edge Function secrets, deploy `send-support-email`, and run live signup/support delivery tests.
+
+## 2026-10-28 — Support email activation
+
+- Set `SUPPORT_EMAIL_TO=problem@tawreed.app`, `SUPPORT_EMAIL_FROM=Tawreed Support <support@auth.tawreed.app>`, and the restricted Resend API key as hosted Supabase Edge Function secrets without writing their values to the repository.
+- Cleared the Resend key from the Windows clipboard after Supabase confirmed all three secrets were stored.
+- Deployed `send-support-email` through the linked Supabase CLI using API bundling; Supabase reports version 1 as `ACTIVE` with JWT verification enabled.
+- Verified the three custom secret names through the hosted secrets listing and confirmed the public endpoint rejects a request without authorization with HTTP 401.
+- A live authenticated Doctor support-case delivery and a signup-code inbox check remain to be exercised with real test credentials.
+
+## 2026-10-29 — Guest auth prompt and production release preparation
+
+- Added one accessible sign-in modal shared by mobile and desktop navigation for signed-out Orders and Account selections, including destination-preserving login routing and Playwright coverage.
+- Split Google Maps into independently restricted Web, Android, and iOS environment variables and added the stable iOS bundle identifier `com.tawreed.doctor`.
+- Upgraded Expo SDK 58 patch dependencies consistently across Doctor, Operations, and shared native packages; Expo Doctor passed 20/20 afterward.
+- Upgraded the installable Web icon from the small favicon to the full 1254×1254 app icon and versioned the service-worker shell cache.
+- Passed workspace strict typecheck, lint, 23/23 Vitest tests, Expo Doctor 20/20, both Web exports, and the focused signed-out Orders/Account prompt test 2/2 on Pixel 7 and desktop profiles. Local database, catalog, Operations Web E2E, and the remaining local-dependent Doctor Web E2E could not complete because Docker Desktop was not running. Android E2E could not start because ADB and Maestro are absent; EAS is authenticated but the app is not linked to an EAS project.

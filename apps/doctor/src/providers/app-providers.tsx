@@ -11,7 +11,7 @@ import { clientConfig } from '@/lib/runtime';
 
 const DataContext = createContext<TawreedDataLayer | null>(null);
 const SessionContext = createContext<{ session: Session | null; loading: boolean }>({ session: null, loading: true });
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, gcTime: 86_400_000, retry: 1, networkMode: 'offlineFirst' }, mutations: { retry: 0, networkMode: 'online' } } });
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, gcTime: 86_400_000, retry: 1, networkMode: 'offlineFirst', refetchOnMount: 'always', refetchOnReconnect: 'always' }, mutations: { retry: 0, networkMode: 'online' } } });
 const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'tawreed-query-cache-v1' });
 
 export function AppProviders({ children }: { children: ReactNode }) {

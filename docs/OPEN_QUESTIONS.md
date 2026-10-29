@@ -22,11 +22,11 @@
 
 - Status: open
 - Blocking: no for released Web; yes for Android release verification
-- Question: which EAS project and restricted Google Maps key should receive the remaining production configuration?
-- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified, while EAS and `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` are still absent.
+- Question: which EAS project and three platform-restricted Google Maps keys should receive the remaining production configuration?
+- Reason: hosted Supabase and separate Doctor/Operations Vercel projects are configured and verified, while the Doctor app is not linked to an EAS project and `EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY`, `GOOGLE_MAPS_ANDROID_API_KEY`, and `GOOGLE_MAPS_IOS_API_KEY` are absent.
 - Impact: interactive Google map selection, APK cloud build, and Android release validation.
 - Affected features: release validation.
-- Final answer: Supabase and Vercel were resolved on 2026-10-26; Doctor and Operations have separate production projects using public client values only. EAS and a platform/domain-restricted Google Maps key remain pending. Without the map key, current-location capture, manual address entry, and a Google Maps preview link remain available, but in-app Google map selection is not enabled.
+- Final answer: Supabase and Vercel were resolved on 2026-10-26; Doctor and Operations have separate production projects using public client values only. EAS project linking and the three restricted Google Maps keys remain pending. Without the matching key, current-location capture, manual address entry, and a Google Maps preview link remain available, but in-app Google map selection is not enabled.
 
 ## OQ-004 — Privileged Operations approval boundaries
 
@@ -59,3 +59,11 @@
 - Affected features: the entire Operations Web application.
 - Current implementation: conservative Arabic RTL extension of Tawreed's approved palette, Segoe UI typography, spacing, surfaces, and accessibility behavior.
 - Final answer: pending.
+
+## OQ-007 — Production email sender configuration
+
+- Status: resolved
+- Blocking: no
+- Question: which inbox should receive support reports?
+- Current implementation: `auth.tawreed.app` is verified in Resend, a domain-restricted sending key exists, hosted Supabase SMTP is enabled with `Tawreed <no-reply@auth.tawreed.app>`, and the JWT-protected `send-support-email` function is deployed with server-only secrets.
+- Final answer: support reports are sent to `problem@tawreed.app`; the function sends from `Tawreed Support <support@auth.tawreed.app>`. Secrets are stored only in Supabase and are not exposed through `EXPO_PUBLIC_*` values.

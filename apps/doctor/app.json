@@ -8,7 +8,8 @@
     "scheme": "tawreed-doctor",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "com.tawreed.doctor"
     },
     "android": {
       "package": "com.tawreed.doctor",

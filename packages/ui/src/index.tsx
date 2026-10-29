@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -121,10 +123,13 @@ export function ProductCard({ product, imageUrl, onPress, onAdd }: {
   onAdd: () => void;
 }) {
   const orderable = product.availability !== 'unavailable' && product.price !== null;
+  const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>(imageUrl ? 'loading' : 'error');
   return (
     <Surface style={styles.productCard}>
       <Pressable accessibilityRole="link" accessibilityLabel={`عرض ${product.nameAr}`} onPress={onPress} style={styles.productImage}>
-        {imageUrl ? <Image source={imageUrl} contentFit="contain" style={StyleSheet.absoluteFill} accessibilityLabel={product.media?.altTextAr ?? product.nameAr} /> : <View style={styles.productPlaceholder} />}
+        {imageUrl && imageState !== 'error' ? <Image source={imageUrl} cachePolicy="memory-disk" contentFit="contain" style={StyleSheet.absoluteFill} accessibilityLabel={product.media?.altTextAr ?? product.nameAr} onLoadStart={() => setImageState('loading')} onLoad={() => setImageState('loaded')} onError={() => setImageState('error')} /> : null}
+        {imageState === 'loading' ? <View accessibilityLabel="جارٍ تحميل صورة المنتج" style={styles.imageStatus}><ActivityIndicator color={colors.green} /></View> : null}
+        {imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.imageStatus}><MaterialCommunityIcons name="image-off-outline" size={38} color={colors.muted} /><AppText variant="caption" color={colors.muted}>الصورة غير متاحة</AppText></View> : null}
       </Pressable>
       {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSurface }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>السعر والتوفر قيد التأكيد</AppText></View>}
       <AppText variant="body" style={styles.productTitle}>{product.nameAr}</AppText>
@@ -160,6 +165,7 @@ const styles = StyleSheet.create({
   productCard: { flex: 1, minWidth: 0, padding: spacing.sm, gap: spacing.xs },
   productImage: { width: '100%', aspectRatio: 1, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.pale, borderWidth: 0 },
   productPlaceholder: { width: 64, height: 64, borderRadius: radius.sm, backgroundColor: colors.mint, alignSelf: 'center', marginTop: '35%' },
+  imageStatus: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.pale },
   productTitle: { minHeight: 50, fontFamily: typography.family.semibold, fontWeight: '600' },
   price: { fontFamily: typography.family.bold, fontWeight: '700', marginTop: spacing.xs },
 });

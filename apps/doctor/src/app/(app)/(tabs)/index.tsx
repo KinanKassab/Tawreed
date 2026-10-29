@@ -1,6 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
-import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
 import { AppText, StateView, Surface } from '@tawreed/ui';
@@ -8,23 +7,7 @@ import { AppPage } from '@/components/app-page';
 import { CatalogGrid } from '@/components/catalog-grid';
 import { useCategories, useProducts } from '@/hooks/use-catalog';
 import { ar } from '@/locales/ar';
-
-type CategoryIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const categoryIcons: Record<string, CategoryIconName> = {
-  'dental-01': 'tooth-outline',
-  'dental-02': 'needle',
-  'dental-03': 'face-mask-outline',
-  'dental-04': 'medical-bag',
-  'dental-05': 'tooth',
-  'dental-06': 'screwdriver',
-  'dental-07': 'shield-check-outline',
-  'dental-08': 'stethoscope',
-  'dental-09': 'link-variant',
-  'dental-10': 'baby-face-outline',
-  'dental-11': 'monitor',
-  'dental-12': 'clipboard-check-outline',
-};
+import { categoryIcons } from '@/lib/category-icons';
 
 export default function HomeScreen() {
   const categories = useCategories();

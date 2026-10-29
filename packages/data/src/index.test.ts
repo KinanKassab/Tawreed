@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   signUp: vi.fn(),
+  verifyOtp: vi.fn(),
+  resend: vi.fn(),
   rpc: vi.fn(),
   getPublicUrl: vi.fn(),
   upload: vi.fn(),
@@ -12,6 +14,8 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     auth: {
       signUp: mocks.signUp,
+      verifyOtp: mocks.verifyOtp,
+      resend: mocks.resend,
       startAutoRefresh: vi.fn(),
       stopAutoRefresh: vi.fn(),
     },

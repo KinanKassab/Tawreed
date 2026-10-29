@@ -1,0 +1,15 @@
+{
+  "name": "توريد للطبيب",
+  "short_name": "توريد",
+  "description": "متجر توريد للمستلزمات الطبية",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/account?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F7FAF9",
+  "theme_color": "#173F43",
+  "icons": [
+    { "src": "/icon.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -40,11 +40,13 @@ After `pnpm supabase:start`, copy the local API URL and publishable key reported
 ```text
 EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<local public key>
-# Optional until a restricted browser/Android/iOS Google Maps key is provisioned:
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=<restricted public maps key>
+# Optional until platform-restricted Google Maps keys are provisioned:
+EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY=<HTTP-referrer-restricted browser key>
+GOOGLE_MAPS_ANDROID_API_KEY=<Android-app-restricted key>
+GOOGLE_MAPS_IOS_API_KEY=<iOS-app-restricted key>
 ```
 
-Without the Google Maps key, onboarding still supports current-location capture, manual address entry, and a Google Maps preview link. In-app map-point selection is enabled when the restricted key is present. Restrict the key to Tawreed's Web origins and native application identifiers; never use a server secret in Expo.
+Without the Google Maps keys, onboarding still supports current-location capture, manual address entry, and a Google Maps preview link. In-app map-point selection is enabled when the matching platform key is present. Use separate Web, Android, and iOS keys so every key can carry the correct application and API restrictions; never use a server secret in Expo.
 
 Then start a target:
 

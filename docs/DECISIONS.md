@@ -151,3 +151,19 @@
 - Decision: remove phone and WhatsApp OTP sign-in from the Doctor client. Account creation, sign-in, and recovery use email/password only; the collected phone number remains required contact and delivery data.
 - Reason: WhatsApp Business messaging cannot reliably serve Syrian `+963` recipients, and the product owner chose to remove number-based registration.
 - Consequence: the Doctor app exposes no phone-auth routes, repository methods, or OTP validators. Phone values must never be treated as proof of identity.
+
+## ADR-020 — Cache-first PWA and email delivery
+
+- Date: 2026-10-28
+- Status: accepted
+- Decision: restore persisted catalog reads immediately, revalidate them in the background on mount/reconnect, install a same-origin app-shell service worker, and open installed Web apps at the authenticated account route. Email confirmation uses a six-digit Supabase email OTP, while support reports are saved under RLS before a server-side function sends them by email.
+- Reason: direct product-owner request for faster repeat launches, an account-first installed experience, code-based email activation, and emailed support reports.
+- Consequence: no mutation is cached or queued; email-provider secrets remain server-side; production requires configured SMTP, a verified sending domain, Edge Function secrets, and deployment of `send-support-email`.
+
+## ADR-021 — Guest navigation prompts and platform-specific map keys
+
+- Date: 2026-10-29
+- Status: accepted
+- Decision: when a signed-out visitor selects Orders or Account from primary navigation, keep the visitor on the current page and show an accessible sign-in prompt that preserves the requested return path. Configure Google Maps with separate Web, Android, and iOS keys.
+- Reason: protected destinations should explain why authentication is required without abruptly discarding browsing context, and Google application restrictions are platform-specific.
+- Consequence: the Web key is restricted by HTTP referrer and Maps JavaScript API; Android is restricted by `com.tawreed.doctor` plus the signing SHA-1 and Maps SDK for Android; iOS is restricted by `com.tawreed.doctor` and Maps SDK for iOS.

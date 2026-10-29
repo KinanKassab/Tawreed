@@ -11,6 +11,26 @@ test('lets a configured signed-out visitor browse the Arabic catalog', async ({ 
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 });
 
+test('prompts signed-out visitors before opening orders or account', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('tab', { name: 'طلباتي' }).or(page.getByRole('button', { name: 'طلباتي' })).click();
+  const ordersDialog = page.getByRole('dialog', { name: 'تسجيل الدخول مطلوب' });
+  await expect(ordersDialog).toBeVisible();
+  await expect(ordersDialog).toContainText('قسم طلباتي مرتبط بحسابك');
+  await expect(page).toHaveURL(/\/$/);
+  await ordersDialog.getByRole('button', { name: 'ليس الآن' }).click();
+
+  await page.getByRole('tab', { name: 'الحساب' }).or(page.getByRole('button', { name: 'الحساب' })).click();
+  const accountDialog = page.getByRole('dialog', { name: 'تسجيل الدخول مطلوب' });
+  await expect(accountDialog).toBeVisible();
+  await expect(accountDialog).toContainText('قسم الحساب مرتبط بحسابك');
+  await accountDialog.getByRole('button', { name: 'تسجيل الدخول' }).click();
+
+  await expect(page).toHaveURL(/\/login\?returnTo=%2Faccount/);
+  await expect(page.getByLabel('البريد الإلكتروني')).toBeVisible();
+});
+
 test('renders the RTL sign-in surface without horizontal overflow', async ({ page }) => {
   await page.goto('/login');
 

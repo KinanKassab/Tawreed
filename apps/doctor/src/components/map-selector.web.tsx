@@ -9,7 +9,7 @@ export interface MapPoint {
   longitude: number;
 }
 
-const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY;
 let mapsPromise: Promise<void> | null = null;
 
 function loadGoogleMaps(): Promise<void> {

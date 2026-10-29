@@ -17,7 +17,7 @@
     "@supabase/supabase-js": "2.118.0",
     "@tawreed/config": "workspace:*",
     "@tawreed/domain": "workspace:*",
-    "react-native": "0.88.0"
+    "react-native": "0.88.1"
   },
   "devDependencies": {
     "react": "19.3.0",

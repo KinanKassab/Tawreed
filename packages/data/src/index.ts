@@ -32,6 +32,8 @@ export interface AuthRepository {
     longitude: number | null;
     googlePlaceId: string | null;
   }): Promise<boolean>;
+  verifySignupCode(email: string, token: string): Promise<void>;
+  resendSignupCode(email: string): Promise<void>;
   requestPasswordReset(email: string, redirectTo: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
   signOut(): Promise<void>;
@@ -426,6 +428,14 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         if (error) throw error;
         return Boolean(data.session);
       },
+      async verifySignupCode(email, token) {
+        const { error } = await client.auth.verifyOtp({ email, token, type: 'signup' });
+        if (error) throw error;
+      },
+      async resendSignupCode(email) {
+        const { error } = await client.auth.resend({ email, type: 'signup' });
+        if (error) throw error;
+      },
       async requestPasswordReset(email, redirectTo) {
         const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
@@ -537,6 +547,8 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         if (userError || !userData.user) throw userError ?? new Error('Unauthorized');
         const { data: inserted, error } = await client.from('support_cases').insert({ user_id: userData.user.id, subject, message }).select('id').single();
         if (error) throw error;
+        const { error: emailError } = await client.functions.invoke('send-support-email', { body: { caseId: inserted.id } });
+        if (emailError) throw emailError;
         return { id: inserted.id };
       },
     },

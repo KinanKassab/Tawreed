@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Surface } from '@tawreed/ui';
@@ -42,7 +42,6 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
-          <Image accessibilityIgnoresInvertColors accessibilityLabel="شعار توريد" source={require('../../../assets/images/brand-logo.png')} style={styles.brandLogo} />
           <AppText variant="h1">توريد</AppText>
           <AppText variant="small" color={colors.green}>{ar.doctorApp}</AppText>
         </View>
@@ -91,7 +90,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.soft },
   brand: { alignItems: 'center', marginBottom: spacing.xl },
-  brandLogo: { width: 112, height: 112, borderRadius: 26, marginBottom: spacing.sm },
   card: { width: '100%', maxWidth: 480, gap: spacing.md },
   modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.overlay },
   accountDialog: { width: '100%', maxWidth: 440, gap: spacing.md, borderColor: colors.green, elevation: 12, shadowColor: colors.deep, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 24 },

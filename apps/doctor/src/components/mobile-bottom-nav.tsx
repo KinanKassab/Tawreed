@@ -1,41 +1,52 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, usePathname } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, controlHeight, spacing, typography } from '@tawreed/design-tokens';
 import { AppText } from '@tawreed/ui';
+import { GuestAuthPrompt } from './guest-auth-prompt';
+import { useSession } from '@/providers/app-providers';
 
 const destinations = [
   { label: 'الرئيسية', icon: 'home-outline', activeIcon: 'home', href: '/(app)/(tabs)', matches: (path: string) => path === '/' },
   { label: 'المنتجات', icon: 'view-grid-outline', activeIcon: 'view-grid', href: '/(app)/(tabs)/catalog', matches: (path: string) => path === '/catalog' || path.startsWith('/product/') || path === '/cart' || path === '/checkout' },
-  { label: 'طلباتي', icon: 'clipboard-text-outline', activeIcon: 'clipboard-text', href: '/(app)/(tabs)/orders', matches: (path: string) => path === '/orders' || path.startsWith('/order/') || path === '/order-success' },
-  { label: 'الحساب', icon: 'account-outline', activeIcon: 'account', href: '/(app)/(tabs)/account', matches: (path: string) => path === '/account' || path === '/support' },
+  { label: 'طلباتي', icon: 'clipboard-text-outline', activeIcon: 'clipboard-text', href: '/(app)/(tabs)/orders', returnTo: '/orders', matches: (path: string) => path === '/orders' || path.startsWith('/order/') || path === '/order-success' },
+  { label: 'الحساب', icon: 'account-outline', activeIcon: 'account', href: '/(app)/(tabs)/account', returnTo: '/account', matches: (path: string) => path === '/account' || path === '/support' },
 ] as const;
 
 export function MobileBottomNav() {
   const { width, height } = useWindowDimensions();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { session } = useSession();
+  const [prompt, setPrompt] = useState<{ label: string; returnTo: '/orders' | '/account' } | null>(null);
   if (width > 680 && (width > 900 || height > 500)) return null;
 
   return (
-    <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
-      {destinations.map((destination) => {
-        const active = destination.matches(pathname);
-        return (
-          <Pressable
-            key={destination.label}
-            accessibilityRole="tab"
-            accessibilityLabel={destination.label}
-            accessibilityState={{ selected: active }}
-            onPress={() => router.replace(destination.href)}
-            style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
-            <MaterialCommunityIcons name={active ? destination.activeIcon : destination.icon} color={active ? colors.ink : colors.muted} size={24} />
-            <AppText variant="caption" color={active ? colors.ink : colors.muted} style={active ? styles.activeLabel : styles.label}>{destination.label}</AppText>
-          </Pressable>
-        );
-      })}
-    </View>
+    <>
+      <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
+        {destinations.map((destination) => {
+          const active = destination.matches(pathname);
+          return (
+            <Pressable
+              key={destination.label}
+              accessibilityRole="tab"
+              accessibilityLabel={destination.label}
+              accessibilityState={{ selected: active }}
+              onPress={() => {
+                if ('returnTo' in destination && !session) setPrompt({ label: destination.label, returnTo: destination.returnTo });
+                else router.replace(destination.href);
+              }}
+              style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
+              <MaterialCommunityIcons name={active ? destination.activeIcon : destination.icon} color={active ? colors.ink : colors.muted} size={24} />
+              <AppText variant="caption" color={active ? colors.ink : colors.muted} style={active ? styles.activeLabel : styles.label}>{destination.label}</AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <GuestAuthPrompt visible={Boolean(prompt)} sectionLabel={prompt?.label ?? ''} returnTo={prompt?.returnTo ?? '/account'} onClose={() => setPrompt(null)} />
+    </>
   );
 }
 

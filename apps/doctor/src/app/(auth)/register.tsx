@@ -28,6 +28,9 @@ export default function RegisterScreen() {
   const returnTo = safeReturnTo(params.returnTo);
   const [step, setStep] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const [activationEmail, setActivationEmail] = useState<string | null>(null);
+  const [activationCode, setActivationCode] = useState('');
+  const [activationLoading, setActivationLoading] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError, trigger } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -53,11 +56,22 @@ export default function RegisterScreen() {
         router.replace(returnTo);
         return;
       }
-      setNotice('تم تجهيز حسابك وحفظ عنوان التوصيل. افتح رسالة التأكيد في بريدك، ثم سجّل الدخول للمتابعة.');
+      setActivationEmail(values.email.trim().toLowerCase());
+      setNotice('أرسلنا رمز تفعيل من ٦ أرقام إلى بريدك الإلكتروني.');
     } catch (error) {
       setError('root', { message: normalizeAppError(error).messageAr });
     }
   });
+
+  const verifyCode = async () => {
+    if (!data || !activationEmail || !/^\d{6}$/.test(activationCode)) return;
+    setActivationLoading(true); setNotice(null);
+    try { await data.auth.verifySignupCode(activationEmail, activationCode); router.replace(returnTo); }
+    catch (error) { setNotice(normalizeAppError(error).messageAr); }
+    finally { setActivationLoading(false); }
+  };
+
+  if (activationEmail && data) return <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}><ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled"><Surface style={styles.card}><AppText variant="h2">تفعيل البريد الإلكتروني</AppText><AppText color={colors.muted}>أدخل الرمز المرسل إلى {activationEmail}. تنتهي صلاحيته خلال ساعة.</AppText><Field label="رمز التفعيل" autoComplete="one-time-code" keyboardType="number-pad" maxLength={6} value={activationCode} onChangeText={(value) => setActivationCode(value.replace(/\D/g, ''))} /><AppText accessibilityRole="alert" color={notice?.startsWith('أرسلنا') ? colors.successText : colors.danger}>{notice}</AppText><Button label="تفعيل الحساب" loading={activationLoading} disabled={!/^\d{6}$/.test(activationCode)} onPress={verifyCode} /><Button label="إعادة إرسال الرمز" variant="secondary" onPress={async () => { try { await data.auth.resendSignupCode(activationEmail); setNotice('أرسلنا رمز تفعيل جديداً.'); } catch (error) { setNotice(normalizeAppError(error).messageAr); } }} /></Surface></ScrollView></KeyboardAvoidingView>;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>

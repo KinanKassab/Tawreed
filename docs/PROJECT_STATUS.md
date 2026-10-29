@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-10-28
+Last updated: 2026-10-29
 
 ## Current phase
 
@@ -19,6 +19,9 @@ The internal Operations expansion now has a working first implementation under `
 - Added twelve semantically matched dental category visuals on the Doctor home screen, with accessible labels and responsive 2/3/4-column layout; Vercel production serves the updated bundle from commit `8d8fff9`.
 - Prepared a separate, unshipped rights-review package with 539 existing Internet product-photo candidates for all 196 products (two or three per SKU), including AI mapping and source-organization registers. None are approved for publication until rights clearance.
 - Implemented email/password-only auth and recovery, catalog, search, product details, cart, checkout, orders/tracking, account/default address, support, and notifications placeholder. Phone is contact/delivery data only.
+- Added a signed-out Orders/Account navigation prompt that keeps visitors in context and carries the selected destination through login.
+- Added a cache-first PWA shell with a large install icon, account-first installed launch, product-image loading/error states, and compact category icons.
+- Split Google Maps configuration into independently restricted Web, Android, and iOS keys and fixed the iOS bundle identifier at `com.tawreed.doctor`.
 - Implemented TanStack Query read persistence, user-scoped order cache clearing, local persistent cart, network awareness, and explicit offline write blocking.
 - Added migration-based Doctor commerce and future operations schema, development seed data, explicit grants/RLS, immutable order snapshots, and the transactional idempotent `create_doctor_order` RPC.
 - Added unit/validation/configuration tests, shared-component tests, repository contract tests, pgTAP database security tests, responsive Playwright tests, and a Maestro Android core-flow definition.
@@ -41,8 +44,8 @@ The internal Operations expansion now has a working first implementation under `
 
 ## Implemented but not executable in this machine
 
-- Android launch, Maestro flow, and APK validation require Android SDK/ADB, Maestro, and an emulator/device or EAS credentials; those are unavailable.
-- EAS Android cloud build still requires external configuration/credentials.
+- Android launch and Maestro verification require Android SDK/ADB, Maestro, and an emulator/device; those tools are not installed on this machine.
+- The EAS account is authenticated, but `apps/doctor` is not linked to an EAS project, so an APK build cannot start until that external project is selected or created.
 
 ## Release blockers
 
@@ -74,3 +77,8 @@ The Doctor and Operations Web foundations are released against hosted Supabase, 
 - Passed a clean local migration reset, all 65/65 pgTAP tests, authenticated catalog verification for 198 products, and Doctor Web E2E 10/10. Operations Web E2E passed 11/12 in the parallel run; the single shared-product media race passed immediately when rerun alone.
 - Applied `20261026173000_public_catalog_and_delivery_location.sql` to hosted Supabase through the transaction pooler on 2026-10-28. Direct anonymous REST verification succeeded and returned 96 active products, confirming the public catalog grants and policies are live.
 - Removed phone/WhatsApp authentication from the Doctor client while retaining phone as contact/delivery data. Workspace strict typecheck, lint, 23/23 Vitest tests, Doctor Web export, and the four focused mobile/desktop login-and-registration Web tests passed. The complete Web suite was not green because tests requiring local Supabase encountered an unavailable local service; this auth change did not require a database migration.
+- Added a cache-first installed-Web experience: persisted catalog content renders before background revalidation, the PWA app shell is cached, and the installed icon starts at the account route. Product images now show reserved loading feedback and an explicit fallback; compact icon categories were added to the product page; in-app logo artwork was removed while favicon/native/PWA branding remains.
+- Added six-digit email signup verification, a localized confirmation template, and a server-side support-email function plus setup documentation. Production email remains blocked until SMTP, a verified sender domain, support recipient, and Edge Function secrets are configured and deployed.
+- Verified this change with workspace strict typecheck, lint, 23/23 Vitest tests, Expo Doctor 20/20, and Doctor Web export. Android E2E/APK and live email delivery were not run.
+- Verified `auth.tawreed.app` in Resend and created a production sending-only API key restricted to that domain. The secret was not written to the repository or exposed to either client.
+- Enabled hosted Supabase custom SMTP with Resend (`smtp.resend.com:465`), sender `Tawreed <no-reply@auth.tawreed.app>`, and verified the saved values after a full dashboard reload. Configured `problem@tawreed.app` as the support recipient, stored all three Edge Function secrets server-side, and deployed `send-support-email` as an active JWT-protected function. Live authenticated signup/support delivery tests remain pending.
