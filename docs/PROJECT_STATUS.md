@@ -11,7 +11,7 @@ The internal Operations expansion now has a working first implementation under `
 ## Completed and verified
 
 - Pushed the complete flattened monorepo to `https://github.com/KinanKassab/Tawreed` on `main` and created the dedicated Vercel project `tawreed-doctor` without replacing the existing Astro-based `tawreed` production project.
-- Deployed the Doctor Web export to `https://tawreed-doctor.vercel.app`; Vercel reports the production deployment ready and the public response is HTTP 200 with the expected Arabic RTL shell.
+- Deployed Doctor commit `7ecaf77` to `https://tawreed.app` and `https://tawreed-doctor.vercel.app`; Vercel reports the production deployment ready. The public shell, manifest, service worker, 1254×1254 icon, favicon, and signed-out Orders/Account prompt were verified live on mobile and desktop.
 - Verified that the existing local Git repository is linked to `https://github.com/KinanKassab/Tawreed.git` as `origin` and tracks the pushed `main` branch.
 - Audited every supplied HTML, CSS, JavaScript, SVG, and PNG reference file without modifying the source.
 - Created the pnpm monorepo, Expo SDK 58 universal app, shared packages, strict TypeScript, ESLint, pinned lockfile, and equivalent Codex/Claude rules.
@@ -40,7 +40,7 @@ The internal Operations expansion now has a working first implementation under `
 - Re-normalized all 95 published images by detected subject bounds so the product itself—not only the canvas—uses a consistent maximum 1000-pixel extent inside the 1200×1200 frame. The transformation preserves aspect ratio and safety padding; all replacement URLs and links passed hosted verification.
 - Applied the image-folder instructions to the hosted catalog: verified 19 bilingual name corrections and reversibly deactivated 102 products instead of deleting records. Hosted verification passed for all 95 public image URLs and all 95 media links.
 - Applied the hosted product-management and Operations hardening migrations, provisioned the single active main warehouse, and created the confirmed hosted `owner@tawreed.app` identity with active `owner` staff membership.
-- Pushed commit `66dcabc` to `main`, redeployed the Doctor Web app from that commit, and created a separate Git-linked `tawreed-operations` Vercel project with public Supabase client configuration only.
+- Created a separate Git-linked `tawreed-operations` Vercel project with public Supabase client configuration only; the latest consolidated Doctor release is commit `7ecaf77` on `main`.
 
 ## Implemented but not executable in this machine
 
