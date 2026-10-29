@@ -67,3 +67,4 @@
 - Question: which inbox should receive support reports?
 - Current implementation: `auth.tawreed.app` is verified in Resend, a domain-restricted sending key exists, hosted Supabase SMTP is enabled with `Tawreed <no-reply@auth.tawreed.app>`, and the JWT-protected `send-support-email` function is deployed with server-only secrets.
 - Final answer: support reports are sent to `problem@tawreed.app`; the function sends from `Tawreed Support <support@auth.tawreed.app>`. Secrets are stored only in Supabase and are not exposed through `EXPO_PUBLIC_*` values.
+- Production Auth was synchronized on 2026-10-29 to a six-digit OTP, the Arabic Tawreed confirmation template, `https://tawreed.app`, and the intended redirect allow-list; custom SMTP remained enabled and unchanged.

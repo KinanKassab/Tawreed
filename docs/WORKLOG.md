@@ -242,3 +242,11 @@
 - Reproduced point selection on production: coordinates update, while Google rejects `Geocoding Service` because Geocoding API is not authorized on the key.
 - Unified reverse geocoding for map clicks and current-location selection across Web/native, preserves manually entered addresses on lookup failure, and now reports a clear manual-entry fallback instead of a misleading success message.
 - Doctor typecheck, lint, 23/23 tests, and Web export passed after the change.
+
+## 2026-10-29 — Hosted signup-code correction
+
+- Investigated a production report that the signup activation code did not arrive and compared the linked hosted Auth configuration against the application contract.
+- Found hosted drift: Supabase still generated eight-digit OTPs and used its default English confirmation template while the Doctor activation screen accepted exactly six digits.
+- Updated only the hosted Auth settings needed for production: six-digit OTPs, the Arabic Tawreed confirmation-code template, `https://tawreed.app` as the site URL, and the intended Web/native redirect allow-list.
+- Re-ran the hosted configuration diff and confirmed zero remaining managed Auth differences; the existing Resend SMTP host, sender, username, port, and enabled state remained unchanged.
+- A fresh resend to the user's real inbox is still required to verify final mailbox delivery and spam filtering.
