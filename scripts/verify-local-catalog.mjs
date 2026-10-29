@@ -38,28 +38,24 @@ try {
     body: JSON.stringify({ email, password }),
   }));
   const headers = { apikey: local.PUBLISHABLE_KEY, Authorization: `Bearer ${session.access_token}` };
-  const categories = await json(await fetch(`${local.API_URL}/rest/v1/categories?select=id,slug,name_ar,name_en&order=sort_order`, { headers }));
-  const products = await json(await fetch(`${local.API_URL}/rest/v1/products?select=sku,name_ar,name_en,specifications_ar,availability,product_prices(amount_minor)&product_prices.active=eq.true&order=sku&limit=250`, { headers }));
-  const sourcing = await json(await fetch(`${local.API_URL}/rest/v1/product_sourcing_suggestions?select=product_id,suggested_brands,catalog_priority`, {
-    headers: { apikey: local.SERVICE_ROLE_KEY, Authorization: `Bearer ${local.SERVICE_ROLE_KEY}` },
-  }));
-  const englishSearch = await json(await fetch(`${local.API_URL}/rest/v1/products?select=sku&search_text=ilike.*Flowable%20Composite*`, { headers }));
-  const skuSearch = await json(await fetch(`${local.API_URL}/rest/v1/products?select=sku&search_text=ilike.*TWD-DEN-0196*`, { headers }));
+  const categories = await json(await fetch(`${local.API_URL}/rest/v1/categories?select=id,slug,name_ar&active=eq.true&order=sort_order`, { headers }));
+  const products = await json(await fetch(`${local.API_URL}/rest/v1/products?select=sku,name_ar,active,availability,variant_group_key,variant_label_ar,product_prices(amount_minor,currency,active)&order=sku&limit=300`, { headers }));
+  const arabicSearch = await json(await fetch(`${local.API_URL}/rest/v1/products?select=sku&search_text=ilike.*كومبوزت%20سيال*`, { headers }));
+  const skuSearch = await json(await fetch(`${local.API_URL}/rest/v1/products?select=sku&search_text=ilike.*TWD-USD-0202*`, { headers }));
 
-  if (categories.length !== 12) throw new Error(`Expected 12 categories, received ${categories.length}`);
-  if (categories.some((category) => !category.name_ar || !category.name_en)) throw new Error('One or more categories lost a bilingual name');
-  if (products.length !== 198) throw new Error(`Expected 198 products, received ${products.length}`);
-  if (products.some((product) => !product.name_ar || !product.name_en || !product.specifications_ar)) {
-    throw new Error('One or more catalog records lost required source fields');
+  const active = products.filter((product) => product.active);
+  const visibleGroups = new Set(active.map((product) => product.variant_group_key ?? product.sku));
+  if (categories.length !== 11) throw new Error(`Expected 11 categories, received ${categories.length}`);
+  if (categories.some((category) => !category.name_ar)) throw new Error('One or more categories lost its Arabic name');
+  if (products.length !== 167 || active.length !== 167) throw new Error(`Expected 167 publicly visible active rows, received ${products.length}/${active.length}`);
+  if (visibleGroups.size !== 109) throw new Error(`Expected 109 visible grouped products, received ${visibleGroups.size}`);
+  if (active.some((product) => product.availability !== 'unavailable' || product.product_prices.length !== 1 || product.product_prices[0].currency !== 'USD')) {
+    throw new Error('Every active row must have exactly one explicit USD price while remaining unavailable until stock is verified');
   }
-  if (sourcing.length !== 198 || sourcing.some((entry) => !entry.catalog_priority)) throw new Error('Internal sourcing metadata is incomplete');
-  if (products.some((product) => product.availability !== 'unavailable' || product.product_prices.length !== 0)) {
-    throw new Error('Unverified catalog records must not expose price or purchasable availability');
-  }
-  if (!englishSearch.some((product) => product.sku === 'TWD-DEN-0002')) throw new Error('English product-name search failed');
-  if (!skuSearch.some((product) => product.sku === 'TWD-DEN-0196')) throw new Error('SKU search failed');
+  if (!arabicSearch.length) throw new Error('Arabic product-name search failed');
+  if (!skuSearch.some((product) => product.sku === 'TWD-USD-0202')) throw new Error('SKU search failed');
 
-  console.log('Verified authenticated catalog API: 12 bilingual categories, 198 complete products, Arabic/English/SKU search, 0 invented prices.');
+  console.log('Verified public catalog API: 11 categories, 109 grouped products, 167 active priced rows, explicit USD prices only.');
 } finally {
   if (userId) {
     const response = await fetch(`${local.API_URL}/auth/v1/admin/users/${userId}`, {

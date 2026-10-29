@@ -1,0 +1,120 @@
+{
+  "currency": "USD",
+  "decimalPlaces": 2,
+  "categories": [
+    { "name": "سوائل", "slug": "liquids", "items": [
+      { "name": "أوجينول برازيلي", "price": 4.5 }, { "name": "فورميزول", "price": 3.5 },
+      { "name": "أكزيلول", "price": 1.5 }, { "name": "هكزوتوث", "price": 1.5 },
+      { "name": "ماء أكسوجيني", "price": 1.5 }, { "name": "زيت قبضة", "price": 0.7 },
+      { "name": "كحول", "options": [{ "label": "طبي", "price": 3.75 }, { "label": "أزرق", "price": 1.75 }] },
+      { "name": "مطهر سطوح", "price": 2.75 }, { "name": "هبوكلوريد", "price": 1.5 },
+      { "name": "معقم رغوي", "price": 2.5 }, { "name": "معقم سنابل", "price": 1.5 }
+    ]},
+    { "name": "سمنتات", "slug": "cements", "items": [
+      { "name": "إلصاق", "options": [{ "label": "هيوج", "price": 17.5 }, { "label": "ميديسن", "price": 33 }, { "label": "GIC هوجي", "price": null }] },
+      { "name": "أوكسيد الزنك", "price": 2 }, { "name": "فوسفات زنك", "price": 8.5 },
+      { "name": "بولي كاربوسلات", "price": 8.5 }, { "name": "قاتل عصب روسي", "price": 6 },
+      { "name": "ماءات كالسيوم", "price": 3.5 }, { "name": "ويجا ريزين", "price": 13 },
+      { "name": "معجون تقليح", "price": 3.75 }, { "name": "مجموعة بيسكو", "price": null },
+      { "name": "تبييض بليتش", "price": 23 },
+      { "name": "أوبليسنس", "options": [{ "label": "ليزري", "price": 25 }, { "label": "منزلي", "price": 6.5 }] },
+      { "name": "عازل لثة", "price": 2.5 },
+      { "name": "حشوة مؤقتة", "options": [{ "label": "هندي", "price": 2.5 }, { "label": "روسي", "price": 2.9 }, { "label": "وطني", "price": 1.75 }] }
+    ]},
+    { "name": "ترميمية", "slug": "restorative", "items": [
+      { "name": "أقراص سحل", "price": 5.5 },
+      { "name": "أوتاد خشب / بلاستيك", "options": [{ "label": "خشب", "price": 3.5 }, { "label": "بلاستيك", "price": 3.5 }] },
+      { "name": "مسندة ملقط حلقية + شرائط", "price": 5.5 },
+      { "name": "MO / MOD", "options": [{ "label": "MO", "price": 2.75 }, { "label": "MOD", "price": 2.75 }] },
+      { "name": "شرائط MO / MOD", "options": [{ "label": "MOD (بكرة)", "price": 2.5 }, { "label": "MO", "price": 1.25 }] },
+      { "name": "أوتاد فايبر (كيس)", "price": 7.5 }, { "name": "أوتاد ريزين (علبة)", "price": 3.75 },
+      { "name": "شرائط سحل (علبة)", "price": 5.5 },
+      { "name": "ورق عض", "options": [{ "label": "صيني", "price": 2.5 }, { "label": "بيخت", "price": 4.5 }] },
+      { "name": "رؤوس تخريش", "options": [{ "label": "كيس", "price": 2 }, { "label": "حبة", "price": 0.05 }] },
+      { "name": "أسنان أكريل", "price": 0.1 },
+      { "name": "أمثلة جبسية", "options": [{ "label": "عادية", "price": 0.2 }, { "label": "أطفال", "price": 1.2 }] },
+      { "name": "مثال لثوي", "price": 2.75 }
+    ]},
+    { "name": "كومبوزت", "slug": "composite", "items": [
+      { "name": "كومبوزت سيال", "options": [{ "label": "روبي", "price": 2.5 }, { "label": "ميدينتال", "price": 3.25 }, { "label": "نيكوسيبيا", "price": 7.5 }] },
+      { "name": "مجموعة كومبوزت", "options": [{ "label": "تترك", "price": 92 }, { "label": "كاريزما", "price": 43 }, { "label": "KDM", "price": 42 }] },
+      { "name": "تيوب كومبوزت", "options": [{ "label": "تترك", "price": 16 }, { "label": "كاريزما", "price": 8 }, { "label": "KDM", "price": 7 }, { "label": "إيزسكوم", "price": 6.5 }, { "label": "إيلكوم", "price": 7.5 }, { "label": "فول ماجيك", "price": 5.5 }, { "label": "ليليس", "price": 3.5 }, { "label": "كراون فول", "price": 3 }] },
+      { "name": "بوند", "options": [{ "label": "تترك", "price": 45 }, { "label": "كاريزما", "price": 12 }, { "label": "KDM", "price": 5 }, { "label": "ميتا", "price": 9.5 }, { "label": "عادي", "price": 6 }] },
+      { "name": "مخرج", "options": [{ "label": "تترك", "price": 2 }, { "label": "كاريزما", "price": 2 }, { "label": "KDM", "price": 1 }, { "label": "سنسيرا 15 مم", "price": 4 }, { "label": "ميتا", "price": 3.5 }] },
+      { "name": "فراشي بوند", "price": 1.5 },
+      { "name": "أمالجيم", "options": [{ "label": "دفعتين", "price": null }, { "label": "3 دفعات", "price": null }] }
+    ]},
+    { "name": "سنابل", "slug": "burs", "items": [
+      { "name": "سنابل توربين", "options": [{ "label": "الكت", "price": 2 }, { "label": "قطعة", "price": 0.2 }] },
+      { "name": "سنابل مكرتور", "options": [{ "label": "الكت", "price": null }, { "label": "قطعة", "price": null }] },
+      { "name": "فراشي (قطعة)", "price": 0.25 }, { "name": "مطاط", "price": 0.5 },
+      { "name": "قبضات مستقيمة", "price": null }, { "name": "إنهاء", "price": null }, { "name": "تقطير فينير", "price": null }
+    ]},
+    { "name": "أجهزة", "slug": "equipment", "items": [
+      { "name": "سنسور", "price": null }, { "name": "كاميرا", "price": null }, { "name": "إيبيكس", "price": null },
+      { "name": "روتاري", "price": null }, { "name": "جهاز تصليب", "price": null },
+      { "name": "أكياس تغليف سنسور (علبة)", "price": 4.75 }, { "name": "كرسي عيادة أسنان", "price": null },
+      { "name": "ألترا سونك", "price": null },
+      { "name": "قبضة", "options": [{ "label": "دينغ", "price": null }, { "label": "أبل", "price": null }, { "label": "NSK", "price": null }, { "label": "مكروتور", "price": 32 }, { "label": "مستقيمة", "price": 23 }] },
+      { "name": "مكروتور مارثون", "options": [{ "label": "كوري", "price": 125 }, { "label": "صيني", "price": 85 }] }
+    ]},
+    { "name": "معدنيات", "slug": "metal-instruments", "items": [
+      { "name": "محقنة", "options": [{ "label": "ثلاثية", "price": 5 }, { "label": "أحادية", "price": 5 }] },
+      { "name": "طقم فحص", "price": 2 }, { "name": "مدفع ملغم", "price": 2.5 }, { "name": "مطاوي", "price": 3.5 },
+      { "name": "مسبر لبي", "price": 1.7 }, { "name": "مسبر لثوي وليمز", "price": 2.5 }, { "name": "سكين جبس", "price": 2 },
+      { "name": "سكين شمع", "options": [{ "label": "كبير", "price": 1.5 }, { "label": "صغير", "price": 1.2 }] },
+      { "name": "حامل إبر", "price": 2 }, { "name": "منحتة نقطية", "price": 1.5 }, { "name": "نازع تيجان آلي", "price": 14 },
+      { "name": "حاجز مطاطي", "options": [{ "label": "12 مشبك", "price": 20 }, { "label": "حقيبة: 16 مشبك + 3 أقواس", "price": 26 }] },
+      { "name": "طقم باين", "price": 20 },
+      { "name": "طقم كلابات", "options": [{ "label": "عادي", "price": 60 }, { "label": "أطفال", "price": 20 }] },
+      { "name": "ملوقة معدن", "price": 1.5 },
+      { "name": "طقم كومبوزت", "options": [{ "label": "عادي", "price": 12 }, { "label": "مطلي", "price": 13.5 }] },
+      { "name": "ملقط نسج", "price": 1.5 },
+      { "name": "طقم لثة جريسي", "options": [{ "label": "مطلي", "price": 20 }, { "label": "غير مطلي", "price": 15 }] },
+      { "name": "حامل شفرة", "price": 1.25 }, { "name": "مقص جراحي", "price": 2.5 }, { "name": "منشار جبس", "price": 2 },
+      { "name": "شفرة منشار", "price": 0.5 }, { "name": "مدك", "price": 1.25 }, { "name": "مسقلة ثلاثية", "price": 1.5 },
+      { "name": "مجرفة عاج", "price": 1.25 }, { "name": "حشوة مواد لينة", "price": 1.25 }, { "name": "أداة تبطين", "price": 1.25 },
+      { "name": "مصاقل أملجيم", "price": 1.25 }, { "name": "منحتة صابون", "price": 1.25 }
+    ]},
+    { "name": "إنفكشن كنترول", "slug": "infection-control", "items": [
+      { "name": "لفافات قطنية (1000 حبة)", "price": 5 },
+      { "name": "ماصات", "options": [{ "label": "لعاب", "price": 2.5 }, { "label": "جراحية", "price": 2.5 }] },
+      { "name": "شانات", "options": [{ "label": "مريض", "price": 4 }, { "label": "صينية", "price": 2.5 }] },
+      { "name": "كفوف", "options": [{ "label": "نتريل", "price": 3.5 }, { "label": "لاتكس", "price": null }, { "label": "جراحة", "price": null }] },
+      { "name": "كمامات", "price": 1.5 }, { "name": "لابكوت", "price": null }, { "name": "سكراب", "price": null },
+      { "name": "رول قطن", "price": null },
+      { "name": "طواقي", "options": [{ "label": "عادية", "price": null }, { "label": "جراحية", "price": null }] },
+      { "name": "كاسات", "price": null }
+    ]},
+    { "name": "جراحة", "slug": "surgery", "items": [
+      { "name": "خيوط جراحية", "options": [{ "label": "نايلون (علبة)", "price": 2.75 }, { "label": "نايلون (حبة)", "price": 0.25 }, { "label": "حرير (علبة)", "price": 2.75 }, { "label": "حرير (حبة)", "price": 0.25 }] },
+      { "name": "شفرات", "options": [{ "label": "علبة", "price": 5.5 }, { "label": "حبة", "price": 0.06 }] },
+      { "name": "مخدر", "options": [{ "label": "كولومبي (السعر الأساسي)", "price": 18 }, { "label": "كولومبي (أمبولة)", "price": 0.5 }, { "label": "هندي (السعر الأساسي)", "price": 16 }, { "label": "هندي (أمبولة)", "price": 0.4 }] },
+      { "name": "رؤوس إبر", "options": [{ "label": "رباطي", "price": 5.5 }, { "label": "عادي (طويل / قصير)", "price": 3.25 }] },
+      { "name": "شاش معقم", "price": null },
+      { "name": "جل فوم", "options": [{ "label": "علبة", "price": 20 }, { "label": "شريطة", "price": 4.5 }] },
+      { "name": "جل مخدر", "price": 2.5 }, { "name": "بخاخ مخدر", "price": 1.5 }
+    ]},
+    { "name": "تعويضات ثابتة / متحركة", "slug": "prosthodontics", "items": [
+      { "name": "مطاط طبعات", "options": [{ "label": "زيتا", "price": 35 }, { "label": "بيرفيل", "price": 21 }] },
+      { "name": "كولزر", "price": 25 },
+      { "name": "طوابع", "options": [{ "label": "بلاستيك", "price": 0.3 }, { "label": "معدن", "price": null }] },
+      { "name": "ألجينات هيوج", "price": 3 }, { "name": "شمع صف", "price": 4.5 },
+      { "name": "إمبرشن أكسيد الزنك وأوجينول", "price": null }, { "name": "خيوط تبعيد لثة", "price": 2.75 },
+      { "name": "جبس", "price": null },
+      { "name": "أكريل", "options": [{ "label": "سائل", "price": 1.8 }, { "label": "بودرة", "price": 1.8 }] },
+      { "name": "قنديل", "price": null }, { "name": "كجة", "price": 1 }
+    ]},
+    { "name": "لبية", "slug": "endodontics", "items": [
+      { "name": "كوتا", "options": [{ "label": "بيركا آلي", "price": 3 }, { "label": "سواك يدوي", "price": 1.9 }] },
+      { "name": "خواتم لبية", "price": 1.5 },
+      { "name": "مبارد", "options": [{ "label": "آلي", "price": null }, { "label": "ماني", "price": 3 }, { "label": "ديفيندر", "price": null }, { "label": "سي فايل", "price": null }] },
+      { "name": "سبريدر", "price": 2 }, { "name": "مبارد إعادة معالجة اللب BMC", "price": 8.5 },
+      { "name": "سيلير AD", "price": 12 }, { "name": "بيو سيرامك Nova", "price": 14 }, { "name": "رؤوس إرواء", "price": 4.5 },
+      { "name": "سيرينغ", "options": [{ "label": "السعر المذكور دون تحديد العبوة", "price": 4.5 }, { "label": "حبة", "price": 0.1 }] },
+      { "name": "MTA", "options": [{ "label": "روسي", "price": 3 }, { "label": "ضوئي", "price": 7.5 }] },
+      { "name": "دنتابيكس", "price": 3.25 },
+      { "name": "أفلام", "options": [{ "label": "ذاتية (علبة)", "price": 30 }, { "label": "ذاتية (حبة)", "price": 0.8 }, { "label": "استخدام مرة واحدة (علبة)", "price": 28 }, { "label": "استخدام مرة واحدة (حبة)", "price": 0.5 }] }
+    ]}
+  ]
+}

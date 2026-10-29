@@ -144,6 +144,14 @@
 - Reason: visitors must be able to evaluate the assortment before committing to an account, while orders and personal data remain protected. Breaking registration into focused steps reduces form overload and lets location consent appear in context.
 - Consequence: `anon` receives RLS-limited select access only to active categories, products, prices, and linked public media. Profiles, orders, support, Operations data, and all mutations remain unavailable. Email/password is the only account identifier; phone is stored for contact/delivery only.
 
+## ADR-020 — Explicit USD catalog and grouped product options
+
+- Date: 2026-10-29
+- Status: accepted
+- Decision: treat the owner-supplied numeric values as USD. Store every priced option as its own product/price row for authoritative checkout, link sibling rows with `variant_group_key`, and present them as options within one Doctor-facing product. Archive rows whose price is `غير محدد` or `حسب الطلب`.
+- Reason: options need distinct server-authoritative prices without moving price authority to the client or redesigning order snapshots.
+- Consequence: the imported catalog contains 202 product/option rows, 167 active priced rows, 35 archived unpriced rows, and 109 visible grouped products. Availability remains unavailable until inventory is verified.
+
 ## ADR-019 — Email/password-only Doctor authentication
 
 - Date: 2026-10-28

@@ -250,3 +250,12 @@
 - Updated only the hosted Auth settings needed for production: six-digit OTPs, the Arabic Tawreed confirmation-code template, `https://tawreed.app` as the site URL, and the intended Web/native redirect allow-list.
 - Re-ran the hosted configuration diff and confirmed zero remaining managed Auth differences; the existing Resend SMTP host, sender, username, port, and enabled state remained unchanged.
 - A fresh resend to the user's real inbox is still required to verify final mailbox delivery and spam filtering.
+## 2026-10-29 — Priced USD catalog replacement
+
+- Transcribed the owner-approved catalog into `data/catalogs/tawreed_priced_catalog_usd.json` with USD as the explicitly confirmed currency.
+- Added grouped product options without weakening server-authoritative checkout: each option retains its own product ID and price row, while Doctor catalog/detail views group siblings and require an option choice.
+- Generated 11 categories, 131 product groups, and 202 product/option rows. Exactly 167 rows have numeric USD prices and are active; 35 rows marked unspecified/on-request are archived. The public catalog exposes 109 priced product groups.
+- Added a guarded hosted replacement utility that deletes the pre-existing 102 archived rows and their safe orphaned media, archives active rows absent from the approved catalog, replaces prices, and verifies the resulting active catalog. The destructive apply requires an exact confirmation environment value.
+- Preserved commercial integrity by importing no inventory and leaving every row unavailable until Operations verifies stock.
+- Local clean reset passed. Workspace strict typecheck, lint, 23/23 Vitest tests, 65/65 pgTAP tests, authenticated public catalog verification, and both production Web exports passed. Hosted migration/data replacement succeeded: 102 prior archived rows were deleted, 167 active USD-priced rows were verified, 123 rows remain archived, and no active row lacks a price.
+

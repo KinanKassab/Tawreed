@@ -40,9 +40,9 @@ Historical rows remain interpretable if catalog prices, exchange rates, names, o
 
 ## Catalog source and import path
 
-The supplied Product Master is versioned at `data/catalogs/tawreed_dental_catalog_syria.md`. `scripts/generate-catalog-seed.mjs` validates the expected 12 categories/196 products and deterministically generates `supabase/seed.sql`. The Doctor-facing product schema preserves English name, Arabic description/specifications, and proposed selling unit. Suggested sourcing brands and intake priority are stored separately in `product_sourcing_suggestions`, which has RLS enabled and no `anon` or `authenticated` grants.
+The approved commercial Product Master is versioned at `data/catalogs/tawreed_priced_catalog_usd.json`. `scripts/generate-catalog-seed.mjs` deterministically generates 11 categories and 202 product/option rows in `supabase/seed.sql`: 167 rows with explicit USD prices are active and 35 rows without numeric prices are archived. Options share `variant_group_key` and are grouped into one Doctor-facing product; each option keeps its own product ID and server-authoritative `product_prices` row.
 
-The source states that brands, availability, inventory, and prices are unverified. Consequently the seed creates no `product_prices`, assigns zero inventory, and keeps each record non-orderable. Suggested brands are informational sourcing candidates, not a manufacturer claim or Doctor-visible offer. A future Operations flow must verify and populate price/availability/inventory before ordering is enabled.
+The owner explicitly confirmed USD and supplied the numeric selling prices. No inventory was supplied, so all imported rows remain unavailable and no inventory balance is invented. Rows marked `غير محدد` or `حسب الطلب` have no active price and remain archived until Operations verifies a numeric price.
 
 Future catalog CSV columns remain: `sku`, `name_ar`, `name_en`, `category_slug`, `manufacturer`, `unit_label_ar`, `package_label_ar`, `description_ar`, `specifications_ar`, `availability`, `base_price_minor`, `base_currency`, `media_provider`, `media_object_key`, `media_external_url`, `media_alt_ar`, and `active`. Validate every row, resolve categories/media first, then upsert Product Master by SKU and price records by product/currency. Never import vendor purchase cost into a Doctor-readable table.
 

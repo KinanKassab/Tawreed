@@ -122,7 +122,10 @@ export function ProductCard({ product, imageUrl, onPress, onAdd }: {
   onPress: () => void;
   onAdd: () => void;
 }) {
-  const orderable = product.availability !== 'unavailable' && product.price !== null;
+  const hasVariants = product.variants.length > 0;
+  const orderable = hasVariants
+    ? product.variants.some((variant) => variant.availability !== 'unavailable')
+    : product.availability !== 'unavailable' && product.price !== null;
   const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>(imageUrl ? 'loading' : 'error');
   return (
     <Surface style={styles.productCard}>
@@ -134,8 +137,8 @@ export function ProductCard({ product, imageUrl, onPress, onAdd }: {
       {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSurface }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>السعر والتوفر قيد التأكيد</AppText></View>}
       <AppText variant="body" style={styles.productTitle}>{product.nameAr}</AppText>
       <AppText variant="caption" color={colors.muted}>{[product.manufacturer, product.packageLabelAr ?? product.unitLabelAr].filter(Boolean).join(' · ')}</AppText>
-      <AppText variant="body" style={styles.price}>{product.price ? formatMoney(product.price) : 'السعر غير متوفر'}</AppText>
-      <Button label={orderable ? 'إضافة إلى السلة' : 'غير متاح للطلب'} onPress={onAdd} disabled={!orderable} />
+      <AppText variant="body" style={styles.price}>{product.price ? `${hasVariants ? 'ابتداءً من ' : ''}${formatMoney(product.price)}` : 'السعر غير متوفر'}</AppText>
+      <Button label={orderable ? hasVariants ? 'اختيار النوع' : 'إضافة إلى السلة' : 'غير متاح للطلب'} onPress={onAdd} disabled={!orderable} />
     </Surface>
   );
 }

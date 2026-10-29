@@ -138,6 +138,8 @@ interface CatalogProductRow {
   description_ar: string | null;
   specifications_ar: string | null;
   availability: Product['availability'];
+  variant_group_key: string | null;
+  variant_label_ar: string | null;
   categories: { id: string; slug: string; name_ar: string; name_en: string | null } | null;
   product_prices: { amount_minor: number; currency: CurrencyCode; decimal_places: number }[] | null;
   product_media: { media_assets: {
@@ -151,32 +153,51 @@ interface CatalogProductRow {
   } | null }[] | null;
 }
 
-function mapProduct(row: CatalogProductRow): Product {
-  const price = row.product_prices?.[0];
-  if (!row.categories) throw new Error('Incomplete catalog product');
-  const mediaRow = row.product_media?.[0]?.media_assets;
+function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Product {
+  const pricedRows = rows.filter((row) => row.product_prices?.[0]);
+  const selected = pricedRows.find((row) => row.id === selectedId)
+    ?? [...pricedRows].sort((left, right) => (left.product_prices?.[0]?.amount_minor ?? 0) - (right.product_prices?.[0]?.amount_minor ?? 0))[0]
+    ?? rows[0];
+  if (!selected?.categories) throw new Error('Incomplete catalog product');
+  const price = selected.product_prices?.[0];
+  const mediaSource = rows.find((row) => row.product_media?.[0]?.media_assets) ?? selected;
+  const mediaRow = mediaSource.product_media?.[0]?.media_assets;
   return {
-    id: row.id,
-    sku: row.sku,
-    nameAr: row.name_ar,
-    nameEn: row.name_en,
-    manufacturer: row.manufacturer,
-    unitLabelAr: row.unit_label_ar,
-    packageLabelAr: row.package_label_ar,
-    descriptionAr: row.description_ar,
-    specificationsAr: row.specifications_ar,
-    availability: row.availability,
-    category: { id: row.categories.id, slug: row.categories.slug, nameAr: row.categories.name_ar, nameEn: row.categories.name_en },
+    id: selected.id,
+    sku: selected.sku,
+    nameAr: selected.name_ar,
+    nameEn: selected.name_en,
+    manufacturer: selected.manufacturer,
+    unitLabelAr: selected.unit_label_ar,
+    packageLabelAr: selected.package_label_ar,
+    descriptionAr: selected.description_ar,
+    specificationsAr: selected.specifications_ar,
+    availability: selected.availability,
+    category: { id: selected.categories.id, slug: selected.categories.slug, nameAr: selected.categories.name_ar, nameEn: selected.categories.name_en },
     price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
     media: mediaRow ? {
       id: mediaRow.id,
       provider: mediaRow.provider,
       objectKey: mediaRow.object_key,
       externalUrl: mediaRow.external_url,
-      altTextAr: mediaRow.alt_text_ar ?? row.name_ar,
+      altTextAr: mediaRow.alt_text_ar ?? selected.name_ar,
       width: mediaRow.width,
       height: mediaRow.height,
     } : null,
+    variantLabelAr: selected.variant_label_ar,
+    variants: pricedRows
+      .filter((row) => row.variant_label_ar)
+      .map((row) => ({
+        id: row.id,
+        sku: row.sku,
+        labelAr: row.variant_label_ar!,
+        price: {
+          amountMinor: row.product_prices![0]!.amount_minor,
+          currency: row.product_prices![0]!.currency,
+          decimalPlaces: row.product_prices![0]!.decimal_places,
+        },
+        availability: row.availability,
+      })),
   };
 }
 
@@ -213,10 +234,10 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
   };
 
   const productSelect = `
-    id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
-    specifications_ar, availability,
+      id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
+      specifications_ar, availability, variant_group_key, variant_label_ar,
     categories!inner(id, slug, name_ar, name_en),
-    product_prices(amount_minor, currency, decimal_places),
+      product_prices!inner(amount_minor, currency, decimal_places),
     product_media(media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
   `;
 
@@ -231,16 +252,28 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       if (filters.query) query = query.ilike('search_text', `%${filters.query}%`);
       if (filters.categoryId) query = query.eq('category_id', filters.categoryId);
       if (filters.availability?.length) query = query.in('availability', filters.availability);
-      const offset = filters.offset ?? 0;
-      query = query.range(offset, offset + (filters.limit ?? 30) - 1).order('name_ar');
+        query = query.order('name_ar').limit(1000);
       const { data, error } = await query;
       if (error) throw error;
-      return (data as unknown as CatalogProductRow[]).map(mapProduct);
+        const grouped = new Map<string, CatalogProductRow[]>();
+        for (const row of data as unknown as CatalogProductRow[]) {
+          const key = row.variant_group_key ?? row.id;
+          grouped.set(key, [...(grouped.get(key) ?? []), row]);
+        }
+        const products = [...grouped.values()].map((rows) => mapProductGroup(rows));
+        const offset = filters.offset ?? 0;
+        return products.slice(offset, offset + (filters.limit ?? 30));
     },
     async getProduct(id) {
-      const { data, error } = await client.from('products').select(productSelect).eq('id', id).eq('active', true).eq('product_prices.active', true).maybeSingle();
+        const { data, error } = await client.from('products').select(productSelect).eq('id', id).eq('active', true).eq('product_prices.active', true).maybeSingle();
       if (error) throw error;
-      return data ? mapProduct(data as unknown as CatalogProductRow) : null;
+        if (!data) return null;
+        const selected = data as unknown as CatalogProductRow;
+        if (!selected.variant_group_key) return mapProductGroup([selected], id);
+        const { data: siblings, error: siblingsError } = await client.from('products').select(productSelect)
+          .eq('variant_group_key', selected.variant_group_key).eq('active', true).eq('product_prices.active', true).order('variant_label_ar');
+        if (siblingsError) throw siblingsError;
+        return mapProductGroup(siblings as unknown as CatalogProductRow[], id);
     },
   };
 

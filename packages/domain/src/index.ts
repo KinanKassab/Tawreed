@@ -38,6 +38,16 @@ export interface Product {
   category: Category;
   price: Money | null;
   media: MediaAsset | null;
+  variantLabelAr: string | null;
+  variants: ProductVariant[];
+}
+
+export interface ProductVariant {
+  id: string;
+  sku: string;
+  labelAr: string;
+  price: Money;
+  availability: Availability;
 }
 
 export interface CartLine {

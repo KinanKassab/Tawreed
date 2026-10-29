@@ -1,87 +1,75 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const sourcePath = resolve(root, 'data/catalogs/tawreed_dental_catalog_syria.md');
+const sourcePath = resolve(root, 'data/catalogs/tawreed_priced_catalog_usd.json');
 const outputPath = resolve(root, 'supabase/seed.sql');
-const source = await readFile(sourcePath, 'utf8');
+const catalog = JSON.parse(await readFile(sourcePath, 'utf8'));
 
-const sqlText = (value) => `'${value.replaceAll("'", "''")}'`;
-const sqlArray = (values) => `array[${values.map(sqlText).join(', ')}]::text[]`;
+const sqlText = (value) => value === null ? 'null' : `'${String(value).replaceAll("'", "''")}'`;
 const uuid = (prefix, number) => `${prefix}-0000-0000-0000-${String(number).padStart(12, '0')}`;
+const amountMinor = (value) => Math.round(value * 100);
 
-const categories = [...source.matchAll(/^## الفئة (\d+): (.+?) — (.+)$/gm)].map((match) => ({
-  number: Number(match[1]),
-  nameAr: match[2].trim(),
-  nameEn: match[3].trim(),
-}));
-
-const productMatches = [...source.matchAll(/^### (\d{3})\. (.+?) — (.+)$/gm)];
-const products = productMatches.map((match, index) => {
-  const bodyStart = match.index + match[0].length;
-  const bodyEnd = productMatches[index + 1]?.index ?? source.length;
-  const body = source.slice(bodyStart, bodyEnd);
-  const field = (label) => body.match(new RegExp(`^- \\*\\*${label}:\\*\\*\\s*(.+)$`, 'm'))?.[1]?.trim();
-  const sku = field('رقم المنتج')?.replaceAll('`', '');
-  const categoryLabel = field('الفئة');
-  const description = field('الوصف والاستخدام');
-  const specifications = field('المواصفات والخيارات');
-  const unit = field('وحدة البيع المقترحة');
-  const brands = field('ماركات مقترحة')?.split('،').map((brand) => brand.trim()).filter(Boolean) ?? [];
-  const priority = field('أولوية الإدخال');
-  const category = categories.find((candidate) => categoryLabel?.startsWith(candidate.nameAr));
-
-  if (!sku || !category || !description || !specifications || !unit || !priority) {
-    throw new Error(`Incomplete product ${match[1]} (${match[2]})`);
-  }
-
-  return {
-    number: Number(match[1]), sku, categoryNumber: category.number,
-    nameAr: match[2].trim(), nameEn: match[3].trim(), description,
-    specifications, unit, brands, priority,
-  };
-});
-
-if (categories.length !== 12 || products.length !== 198) {
-  throw new Error(`Catalog integrity check failed: expected 12 categories/198 products, found ${categories.length}/${products.length}`);
+if (catalog.currency !== 'USD' || catalog.decimalPlaces !== 2) {
+  throw new Error('Catalog must use USD with two decimal places.');
 }
 
-const categoryValues = categories.map((category) =>
-  `  (${sqlText(uuid('10000000', category.number))}, ${sqlText(`dental-${String(category.number).padStart(2, '0')}`)}, ${sqlText(category.nameAr)}, ${sqlText(category.nameEn)}, ${category.number})`,
+const products = [];
+let sequence = 1;
+for (const [categoryIndex, category] of catalog.categories.entries()) {
+  for (const item of category.items) {
+    const options = item.options ?? [{ label: null, price: item.price ?? null }];
+    for (const option of options) {
+      products.push({
+        number: sequence++,
+        categoryNumber: categoryIndex + 1,
+        category,
+        nameAr: item.name,
+        optionLabelAr: option.label,
+        groupKey: item.options ? `priced-${category.slug}-${createHash('sha1').update(item.name).digest('hex').slice(0, 12)}` : null,
+        price: option.price,
+      });
+    }
+  }
+}
+
+const categoryValues = catalog.categories.map((category, index) =>
+  `  (${sqlText(uuid('11000000', index + 1))}, ${sqlText(category.slug)}, ${sqlText(category.name)}, null, ${index + 1}, true)`,
 ).join(',\n');
 
 const productValues = products.map((product) =>
-  `  (${sqlText(uuid('20000000', product.number))}, ${sqlText(product.sku)}, ${sqlText(product.nameAr)}, ${sqlText(product.nameEn)}, ${sqlText(uuid('10000000', product.categoryNumber))}, null, ${sqlText(product.unit)}, null, ${sqlText(product.description)}, ${sqlText(product.specifications)}, 'unavailable', true)`,
+  `  (${sqlText(uuid('20000000', product.number))}, ${sqlText(`TWD-USD-${String(product.number).padStart(4, '0')}`)}, ${sqlText(product.nameAr)}, ${sqlText(uuid('11000000', product.categoryNumber))}, 'قطعة', ${sqlText(product.optionLabelAr)}, 'unavailable', ${typeof product.price === 'number'}, ${sqlText(product.groupKey)}, ${sqlText(product.optionLabelAr)})`,
 ).join(',\n');
 
-const sourcingValues = products.map((product) =>
-  `  (${sqlText(uuid('20000000', product.number))}, ${sqlArray(product.brands)}, ${sqlText(product.priority)}, 'مرجع كتالوج مقترح؛ يتطلب تحقق فريق العمليات')`,
+const priceValues = products.filter((product) => typeof product.price === 'number').map((product) =>
+  `  (${sqlText(uuid('20000000', product.number))}, 'USD', ${amountMinor(product.price)}, 2, true)`,
 ).join(',\n');
 
-const sql = `-- Generated from data/catalogs/tawreed_dental_catalog_syria.md by scripts/generate-catalog-seed.mjs.
--- Catalog entries are proposed Product Master data. Prices, brands, and availability are not verified offers.
+const sql = `-- Generated from data/catalogs/tawreed_priced_catalog_usd.json by scripts/generate-catalog-seed.mjs.
+-- USD was explicitly confirmed by the product owner. Missing/on-request prices remain archived.
 
 insert into public.currency_settings(code, display_label_ar, decimal_places, enabled, is_base, is_default_display) values
   ('USD', 'دولار أمريكي', 2, true, true, true),
-  ('NEW_SYP', 'ليرة سورية جديدة', 2, true, false, false);
+  ('NEW_SYP', 'ليرة سورية جديدة', 2, false, false, false);
 
-insert into public.exchange_rates(base_currency, quote_currency, rate, active) values ('USD', 'NEW_SYP', 100.00000000, true);
-insert into public.financial_settings(id, delivery_fee_minor, delivery_fee_currency, tax_rate_bps) values (true, 600, 'USD', 0);
+insert into public.financial_settings(id, delivery_fee_minor, delivery_fee_currency, tax_rate_bps)
+values (true, 0, 'USD', 0);
+
 insert into public.warehouses(code, name_ar)
 select 'CENTRAL', 'المستودع المركزي لتوريد'
 where not exists (select 1 from public.warehouses where active);
 
-insert into public.categories(id, slug, name_ar, name_en, sort_order) values
+insert into public.categories(id, slug, name_ar, name_en, sort_order, active) values
 ${categoryValues};
 
 insert into public.products(
-  id, sku, name_ar, name_en, category_id, manufacturer, unit_label_ar, package_label_ar,
-  description_ar, specifications_ar, availability, active
+  id, sku, name_ar, category_id, unit_label_ar, package_label_ar, availability, active, variant_group_key, variant_label_ar
 ) values
 ${productValues};
 
-insert into public.product_sourcing_suggestions(product_id, suggested_brands, catalog_priority, source_note) values
-${sourcingValues};
+insert into public.product_prices(product_id, currency, amount_minor, decimal_places, active) values
+${priceValues};
 
 insert into public.inventory_balances(warehouse_id, product_id, on_hand, reserved)
 select w.id, p.id, 0, 0
@@ -90,4 +78,4 @@ where w.id = (select id from public.warehouses where active order by created_at 
 `;
 
 await writeFile(outputPath, sql, 'utf8');
-console.log(`Generated ${products.length} products in ${categories.length} categories at ${outputPath}`);
+console.log(`Generated ${products.length} rows (${products.filter((product) => typeof product.price === 'number').length} active/priced) in ${catalog.categories.length} categories at ${outputPath}`);

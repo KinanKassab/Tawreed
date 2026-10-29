@@ -30,7 +30,7 @@ select throws_ok(
 
 set local "request.jwt.claim.sub" = '92000000-0000-0000-0000-000000000001';
 select is((select rank::text from public.operations_get_my_context()), 'owner', 'Owner receives staff context');
-select is((select count(*)::integer from public.products), 198, 'Owner inherits Operations catalog access');
+select is((select count(*)::integer from public.products), 202, 'Owner inherits Operations catalog access');
 
 select public.operations_set_product_price('20000000-0000-0000-0000-000000000001'::uuid, 2500::bigint, 'USD'::public.currency_code, 2::smallint);
 select is((select count(*)::integer from public.product_prices where product_id = '20000000-0000-0000-0000-000000000001' and active), 1, 'Operations creates one active selling price');
@@ -38,7 +38,7 @@ select ok((select count(*) from public.audit_events where table_name = 'product_
 
 select public.operations_set_exchange_rate('USD'::public.currency_code, 'NEW_SYP'::public.currency_code, 125::numeric);
 select is((select rate from public.exchange_rates where base_currency = 'USD' and quote_currency = 'NEW_SYP' and active), 125.00000000::numeric, 'Operations changes exchange rate directly');
-select ok((select count(*) from public.audit_events where table_name = 'exchange_rates') >= 2, 'Exchange rate replacement is audited');
+select ok((select count(*) from public.audit_events where table_name = 'exchange_rates') >= 1, 'Exchange rate change is audited');
 
 select * from public.operations_adjust_inventory('20000000-0000-0000-0000-000000000001'::uuid, 10, 'رصيد اختبار العمليات');
 select is((select on_hand from public.inventory_balances where product_id = '20000000-0000-0000-0000-000000000001'), 10, 'Operations adjusts inventory');

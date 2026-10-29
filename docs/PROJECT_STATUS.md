@@ -4,6 +4,8 @@ Last updated: 2026-10-29
 
 ## Current phase
 
+The owner-approved USD catalog replacement is applied to hosted Supabase. It contains 11 categories and 290 retained rows after replacing the prior catalog: 167 rows with explicit numeric USD prices are active and 123 are archived. Grouping yields 109 visible priced products, while options retain independent server-authoritative prices. The prior 102 archived rows were physically deleted before replacement. No inventory was provided, so availability remains unavailable until stock is verified. Local reset, strict typecheck, lint, 23/23 Vitest, 65/65 pgTAP, and public catalog verification pass.
+
 Phases 0–12 and the locally verifiable parts of phases 14–15 are implemented. Phase 13 and live integration verification are blocked by external tooling/configuration.
 
 The internal Operations expansion now has a working first implementation under `apps/operations`. Its launch authorization model is cumulative (Owner > Admin > Operations Manager) while capabilities remain individually represented for later separation.

@@ -20,9 +20,9 @@ select ok(has_table_privilege('anon', 'public.categories', 'SELECT'), 'visitors 
 select ok(has_table_privilege('anon', 'public.product_prices', 'SELECT'), 'visitors can see active catalog prices through RLS');
 select ok(not has_table_privilege('anon', 'public.profiles', 'SELECT'), 'visitors cannot read profiles');
 select ok(not has_table_privilege('anon', 'public.orders', 'SELECT'), 'visitors cannot read orders');
-select is((select count(*)::integer from public.categories), 12, 'dental catalog has 12 categories');
-select is((select count(*)::integer from public.products), 198, 'dental catalog has 198 products');
-select is((select count(*)::integer from public.product_prices), 0, 'unverified catalog has no invented prices');
+select is((select count(*)::integer from public.categories), 11, 'priced catalog has 11 categories');
+select is((select count(*)::integer from public.products), 202, 'priced catalog has 202 product/variant rows');
+select is((select count(*)::integer from public.product_prices), 167, 'explicit USD catalog has 167 prices');
 select is((select count(*)::integer from public.inventory_balances where on_hand <> 0), 0, 'unverified catalog has no invented inventory');
 
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)

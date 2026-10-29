@@ -56,7 +56,7 @@ pnpm dev:android
 pnpm dev:operations
 ```
 
-The local database seeds the supplied 12-category, 198-product dental catalog. Create a Doctor through the registration screen before exercising authenticated routes. Local confirmation emails are available in the Supabase mail viewer at `http://127.0.0.1:54324`.
+The local database seeds the owner-approved USD catalog: 11 categories, 131 product groups, and 202 product/option rows. Of those rows, 167 have explicit numeric prices and are active; 35 without a numeric price are archived. Create a Doctor through the registration screen before exercising authenticated routes. Local confirmation emails are available in the Supabase mail viewer at `http://127.0.0.1:54324`.
 
 The Arabic RTL Operations console lives in `apps/operations`. Copy the same public Supabase URL/key into `apps/operations/.env` from its `.env.example`; never place a secret or service-role key in either app. Its product table manages Doctor-visible names/descriptions/prices/media plus staff-only costs, profit, stock, and low-stock thresholds. New product images are interactively cropped and normalized to 1200×1200 WebP before upload. To provision a local staff account, set `TAWREED_STAFF_EMAIL`, `TAWREED_STAFF_PASSWORD`, and optionally `TAWREED_STAFF_RANK` (`owner`, `admin`, or `operations_manager`), then run `pnpm staff:create:local`. This helper refuses hosted URLs. Launch permissions are cumulative: Owner includes Admin and Operations Manager; Admin includes Operations Manager.
 
@@ -77,11 +77,11 @@ pnpm test:catalog
 
 `pnpm test:web` covers configured signed-out routing and the Arabic RTL Doctor login layout. `pnpm test:operations-web` creates disposable local Owner/Doctor accounts and verifies responsive staff entry, product editing, unsaved preview, real image selection/crop/upload, persisted Storage output, internal navigation, exchange-rate controls, and denial of non-staff accounts. `pnpm test:db` runs against the migrated local database and verifies grants, RLS, Doctor cost isolation, product/media updates, audited financial changes, confirm-then-reserve, complete dispatch, and unauthenticated checkout rejection.
 
-`pnpm test:catalog` creates a temporary confirmed local Doctor, reads the catalog through the authenticated REST/RLS boundary, verifies 12 categories and 198 complete dental products, confirms that no price or stock was invented, and removes the temporary user.
+`pnpm test:catalog` creates a temporary confirmed local Doctor, reads the catalog through the authenticated REST/RLS boundary, verifies 11 categories, 109 visible grouped products, and 167 explicitly priced USD product/option rows, confirms that no stock was invented, and removes the temporary user.
 
 ## Dental catalog source
 
-The Product Master source is `data/catalogs/tawreed_dental_catalog_syria.md`. Regenerate `supabase/seed.sql` after an approved source edit with:
+The approved commercial Product Master source is `data/catalogs/tawreed_priced_catalog_usd.json`. Regenerate `supabase/seed.sql` after an approved source edit with:
 
 ```powershell
 node scripts/generate-catalog-seed.mjs
@@ -91,7 +91,7 @@ pnpm test:db
 pnpm test:catalog
 ```
 
-The source explicitly identifies brands as internal sourcing suggestions and contains no verified prices or inventory. Accordingly, imported records appear for browsing but remain non-orderable and display “السعر والتوفر قيد التأكيد” until verified price and availability data are added. Internal sourcing suggestions are not exposed to Doctor clients.
+USD was explicitly confirmed by the owner. Price-bearing options are stored as server-priced product rows and grouped into one Doctor-facing product with selectable options. Rows without an explicit numeric price remain archived. Inventory was not provided, so the imported catalog remains unavailable for ordering until Operations verifies stock; no availability was invented.
 
 For the Android core journey, provide a confirmed test Doctor and run:
 
