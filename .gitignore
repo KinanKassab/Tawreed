@@ -20,6 +20,9 @@ supabase/.temp/
 *.orig
 .DS_Store
 Thumbs.db
-
+outputs
 # Empty duplicate repository created during initial GitHub linking.
 /Tawreed/
+.tmp-production-auth-config
+.maestro
+backup

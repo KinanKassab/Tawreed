@@ -259,3 +259,25 @@
 - Preserved commercial integrity by importing no inventory and leaving every row unavailable until Operations verifies stock.
 - Local clean reset passed. Workspace strict typecheck, lint, 23/23 Vitest tests, 65/65 pgTAP tests, authenticated public catalog verification, and both production Web exports passed. Hosted migration/data replacement succeeded: 102 prior archived rows were deleted, 167 active USD-priced rows were verified, 123 rows remain archived, and no active row lacks a price.
 
+## 2026-10-29 — Production activation-email delivery diagnosis
+
+- Reproduced the live resend flow on `www.tawreed.app`; the UI reported success.
+- Confirmed the corresponding hosted Supabase Auth `/resend` request completed with HTTP 200 at 16:39:23 Riyadh time.
+- Verified custom SMTP is enabled with `smtp.resend.com:465`, the Tawreed sender, and the expected username; DNS/DKIM and the Resend return-path records resolve.
+- Found no sent emails in the Resend account, and the intended `Tawreed Production` sending-only API key reports `No activity`.
+- Concluded that the stored Supabase SMTP password does not match the intended active Resend key. No credential was exposed or changed. Repair requires creating a fresh restricted key, replacing the Supabase SMTP password, saving, and repeating the real-inbox test.
+
+## 2026-10-29 — Complete current-catalog image candidate package
+
+- Read the hosted catalog inventory and grouped 290 current product rows (167 active, 123 archived) into 219 actual products so variant rows share the same image choices.
+- Reused only exact-name prior candidates and researched missing products from Internet sources, then manually reviewed contact sheets and replaced visibly wrong results for veneer preparation burs, Hexitol/chlorhexidine, surface/foam disinfectants, and sodium-hypochlorite irrigant.
+- Produced 640 candidates: 202 products have three options and 17 have two; no product has fewer than two.
+- Normalized every file to a centered 1200×1200 WebP and verified all files, dimensions, manifest links, and 640 source rows.
+- Added AI mapping, rights/source records, 359 source organizations, Arabic instructions, and 28 visual review sheets under `outputs/tawreed_product_images_all_current/`. All candidates remain permission-required and were not published.
+
+## 2026-10-30 — Current product price-list export
+
+- Read all 290 current hosted product rows and their active price records without exposing or storing a privileged key.
+- Created an Arabic Excel list with product number, product name (including option/package labels), and numeric USD price.
+- Preserved blank price cells for the 123 rows without a current explicit price; verified 290 total rows, 167 numeric prices, no spreadsheet formula errors, and reviewed the rendered layout.
+

@@ -2,6 +2,8 @@
 
 Last updated: 2026-10-29
 
+Production signup email delivery is currently blocked: Supabase accepts the `/resend` request with HTTP 200, but the configured Resend account shows no sent-email activity and its `Tawreed Production` sending key has never been used. The SMTP password/key must be replaced and a real-inbox delivery verified before signup can be considered operational.
+
 ## Current phase
 
 The owner-approved USD catalog replacement is applied to hosted Supabase. It contains 11 categories and 290 retained rows after replacing the prior catalog: 167 rows with explicit numeric USD prices are active and 123 are archived. Grouping yields 109 visible priced products, while options retain independent server-authoritative prices. The prior 102 archived rows were physically deleted before replacement. No inventory was provided, so availability remains unavailable until stock is verified. Local reset, strict typecheck, lint, 23/23 Vitest, 65/65 pgTAP, and public catalog verification pass.
@@ -85,3 +87,5 @@ The Doctor and Operations Web foundations are released against hosted Supabase, 
 - Verified `auth.tawreed.app` in Resend and created a production sending-only API key restricted to that domain. The secret was not written to the repository or exposed to either client.
 - Enabled hosted Supabase custom SMTP with Resend (`smtp.resend.com:465`), sender `Tawreed <no-reply@auth.tawreed.app>`, and verified the saved values after a full dashboard reload. Configured `problem@tawreed.app` as the support recipient, stored all three Edge Function secrets server-side, and deployed `send-support-email` as an active JWT-protected function. Live authenticated signup/support delivery tests remain pending.
 - On 2026-10-29, corrected the hosted Auth drift that still used an eight-digit OTP and the default English confirmation template. Hosted Supabase now uses a six-digit OTP, the Arabic Tawreed code template, `https://tawreed.app` as the site URL, and the Web/native redirect allow-list. A real-inbox resend check remains pending.
+- On 2026-10-29, prepared a rights-review-only Internet image candidate package for every current hosted catalog row, including archived rows. The package groups 290 rows into 219 actual products, supplies 2–3 normalized 1200×1200 candidates per product (640 total), and includes AI mapping, source, organization/contact, and visual review files. Nothing from this package was published automatically.
+- On 2026-10-30, exported the current hosted catalog to a simple Excel price list with 290 product rows, including 167 rows with active USD prices and blank price cells where no current explicit price exists.
