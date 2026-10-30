@@ -203,6 +203,9 @@ export function normalizeAppError(error: unknown): AppError {
     if (message.includes('user already registered')) {
       return { kind: 'validation', messageAr: 'يوجد حساب مسجل بهذا البريد الإلكتروني بالفعل.', cause: error };
     }
+    if (message.includes('signup_not_created')) {
+      return { kind: 'validation', messageAr: 'تعذر إكمال إنشاء الحساب. إذا استخدمت هذا البريد سابقاً، سجّل الدخول أو استعد كلمة المرور.', cause: error };
+    }
     if (message.includes('network') || message.includes('fetch')) {
       return { kind: 'network', messageAr: 'تعذر الاتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.', cause: error };
     }

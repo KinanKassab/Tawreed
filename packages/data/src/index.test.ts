@@ -77,6 +77,27 @@ describe('Supabase repository adapter contracts', () => {
     expect(signedIn).toBe(true);
   });
 
+  it('does not show an activation step when signup returns an obfuscated existing user', async () => {
+    mocks.signUp.mockResolvedValue({
+      data: { session: null, user: { identities: [] } },
+      error: null,
+    });
+    const data = createTawreedDataLayer(config);
+
+    await expect(data.auth.signUpWithPassword({
+      email: 'existing@example.test',
+      password: 'StrongPassword-123!',
+      firstName: 'طبيب',
+      lastName: 'مسجل',
+      phone: '+963900000000',
+      preferredContact: 'email',
+      deliveryAddress: 'دمشق، شارع الاختبار',
+      latitude: null,
+      longitude: null,
+      googlePlaceId: null,
+    })).rejects.toThrow('signup_not_created');
+  });
+
   it('sends only product identity and quantity to the authoritative checkout RPC', async () => {
     mocks.rpc.mockResolvedValue({ data: [{ order_id: 'order-1', order_number: 'TWD-1001' }], error: null });
     const data = createTawreedDataLayer(config);

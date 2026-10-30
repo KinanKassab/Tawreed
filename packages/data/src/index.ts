@@ -459,6 +459,9 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           },
         });
         if (error) throw error;
+        if (!data.session && data.user?.identities?.length === 0) {
+          throw new Error('signup_not_created');
+        }
         return Boolean(data.session);
       },
       async verifySignupCode(email, token) {
