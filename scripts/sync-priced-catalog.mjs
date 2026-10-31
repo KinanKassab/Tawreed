@@ -35,6 +35,20 @@ async function rest(pathname, init = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+async function deleteStorageObject(objectKey) {
+  const objectPath = objectKey.split('/').map(encodeURIComponent).join('/');
+  const response = await fetch(`${baseUrl}/storage/v1/object/product-media/${objectPath}`, {
+    method: 'DELETE',
+    headers: { apikey: secretKey, Authorization: `Bearer ${secretKey}` },
+  });
+  const body = await response.text();
+  const alreadyMissing = response.status === 404
+    || (response.status === 400 && /not found|does not exist/i.test(body));
+  if (!response.ok && !alreadyMissing) {
+    throw new Error(`Storage cleanup failed for ${objectKey}: ${response.status} ${body.slice(0, 300)}`);
+  }
+}
+
 const normalize = (value) => value.normalize('NFKC').replace(/[\u064B-\u065F\u0670]/g, '').replace(/[\sـ]+/g, ' ').trim().toLowerCase();
 const groupKey = (slug, name) => `priced-${slug}-${crypto.createHash('sha1').update(name).digest('hex').slice(0, 12)}`;
 const amountMinor = (value) => Math.round(value * 100);
@@ -61,7 +75,7 @@ for (const category of categories) {
   }
 }
 
-const existingProducts = await rest('products?select=id,sku,name_ar,name_en,manufacturer,unit_label_ar,package_label_ar,description_ar,specifications_ar,availability,active,category_id&order=sku&limit=1000');
+const existingProducts = await rest('products?select=id,sku,name_ar,name_en,manufacturer,unit_label_ar,package_label_ar,description_ar,specifications_ar,availability,active,category_id,variant_group_key,variant_label_ar&order=sku&limit=1000');
 const archivedProducts = existingProducts.filter((product) => !product.active);
 const liveProducts = existingProducts.filter((product) => product.active);
 const existingCategories = await rest('categories?select=id,slug,name_ar,name_en,active&limit=1000');
@@ -78,14 +92,15 @@ const categoryIdBySlug = new Map(categoryRows.map((category) => [category.slug, 
 
 const unusedLive = new Map();
 for (const product of liveProducts) {
-  const key = normalize(product.name_ar);
+  const key = `${normalize(product.name_ar)}|${normalize(product.variant_label_ar ?? product.package_label_ar ?? '')}`;
   unusedLive.set(key, [...(unusedLive.get(key) ?? []), product]);
 }
 
 let reused = 0;
 let created = 0;
 for (const row of desired) {
-  const matches = unusedLive.get(normalize(row.nameAr)) ?? [];
+  const key = `${normalize(row.nameAr)}|${normalize(row.optionLabelAr ?? '')}`;
+  const matches = unusedLive.get(key) ?? [];
   const existing = matches.shift();
   if (existing) {
     row.id = existing.id;
@@ -94,7 +109,9 @@ for (const row of desired) {
     reused++;
   } else {
     row.id = crypto.randomUUID();
-    row.sku = `TWD-USD-${String(row.sequence).padStart(4, '0')}`;
+    row.sku = row.active
+      ? `TWD-USD-${String(row.sequence).padStart(4, '0')}`
+      : `TWD-USD-ARCH-${String(row.sequence).padStart(4, '0')}`;
     created++;
   }
 }
@@ -108,13 +125,19 @@ const report = {
   mode: apply ? 'apply' : 'dry-run',
   before: { total: existingProducts.length, active: liveProducts.length, archived: archivedProducts.length },
   incoming: { categories: categories.length, groupedProducts: categories.reduce((sum, category) => sum + category.items.length, 0), rows: desired.length, pricedRows: pricedRows.length, rowsArchivedForMissingPrice: unpricedRows.length },
-  matching: { reused, created, currentActiveArchivedAsMissing: newlyArchived.length },
+  matching: {
+    reused,
+    created,
+    createdPriced: desired.filter((row) => !row.existing && row.active).length,
+    createdArchived: desired.filter((row) => !row.existing && !row.active).length,
+    currentActiveArchivedAsMissing: newlyArchived.length,
+  },
   afterExpected: { activeRows: pricedRows.length, archivedRows: unpricedRows.length + newlyArchived.length, visibleGroupedProducts: categories.reduce((sum, category) => sum + category.items.filter((item) => item.options ? item.options.some((option) => typeof option.price === 'number') : typeof item.price === 'number').length, 0) },
 };
 console.log(JSON.stringify(report, null, 2));
 
 if (!apply) process.exit(0);
-if (confirmation !== 'DELETE-102-ARCHIVED-AND-REPLACE-CATALOG') {
+if (confirmation !== 'DELETE-ALL-ARCHIVED-AND-REPLACE-CATALOG') {
   throw new Error('Refusing destructive catalog replacement without the exact confirmation environment value.');
 }
 
@@ -122,6 +145,10 @@ if (confirmation !== 'DELETE-102-ARCHIVED-AND-REPLACE-CATALOG') {
 const archivedIds = archivedProducts.map((product) => product.id);
 let archivedMediaLinks = [];
 if (archivedIds.length) {
+  const archivedOrderItems = await rest(`order_items?select=id&product_id=in.(${archivedIds.join(',')})&limit=1`);
+  if (archivedOrderItems.length) {
+    throw new Error('Refusing to delete archived products referenced by historical order items.');
+  }
   archivedMediaLinks = await rest(`product_media?select=product_id,media_asset_id,media_assets(id,provider,object_key)&product_id=in.(${archivedIds.join(',')})&limit=1000`);
   for (const table of ['order_inventory_reservations', 'inventory_movements', 'inventory_batches', 'inventory_balances', 'purchase_order_items']) {
     await rest(`${table}?product_id=in.(${archivedIds.join(',')})`, { method: 'DELETE' });
@@ -137,9 +164,7 @@ if (archivedMediaLinks.length) {
     if (referenced.has(link.media_asset_id)) continue;
     const asset = Array.isArray(link.media_assets) ? link.media_assets[0] : link.media_assets;
     if (asset?.provider === 'supabase' && asset.object_key) {
-      const objectPath = asset.object_key.split('/').map(encodeURIComponent).join('/');
-      const response = await fetch(`${baseUrl}/storage/v1/object/product-media/${objectPath}`, { method: 'DELETE', headers });
-      if (!response.ok && response.status !== 404) throw new Error(`Storage cleanup failed for ${asset.object_key}: ${response.status}`);
+      await deleteStorageObject(asset.object_key);
     }
     await rest(`media_assets?id=eq.${link.media_asset_id}`, { method: 'DELETE' });
   }
@@ -202,10 +227,39 @@ for (let index = 0; index < priceRows.length; index += 100) {
   await rest('product_prices', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(priceRows.slice(index, index + 100)) });
 }
 
+// Remove media records and Storage objects that no longer belong to any product.
+const allMediaAssets = await rest('media_assets?select=id,provider,object_key&limit=5000');
+const allMediaLinks = await rest('product_media?select=media_asset_id&limit=5000');
+const referencedMediaIds = new Set(allMediaLinks.map((link) => link.media_asset_id));
+const orphanedMediaAssets = allMediaAssets.filter((asset) => !referencedMediaIds.has(asset.id));
+for (const asset of orphanedMediaAssets) {
+  if (asset.provider === 'supabase' && asset.object_key) await deleteStorageObject(asset.object_key);
+  await rest(`media_assets?id=eq.${asset.id}`, { method: 'DELETE' });
+}
+
 const verificationProducts = await rest('products?select=id,name_ar,active,variant_group_key,variant_label_ar,product_prices(amount_minor,currency,active)&limit=1000');
 const activeRows = verificationProducts.filter((product) => product.active);
+const archivedRows = verificationProducts.filter((product) => !product.active);
 const activeWithoutPrice = activeRows.filter((product) => !product.product_prices?.some((price) => price.active));
-if (activeRows.length !== pricedRows.length || activeWithoutPrice.length) {
-  throw new Error(`Verification failed: ${activeRows.length} active rows, ${activeWithoutPrice.length} active rows without price.`);
+const archivedWithPrice = archivedRows.filter((product) => product.product_prices?.some((price) => price.active));
+if (
+  verificationProducts.length !== desired.length
+  || activeRows.length !== pricedRows.length
+  || archivedRows.length !== unpricedRows.length
+  || activeWithoutPrice.length
+  || archivedWithPrice.length
+) {
+  throw new Error(
+    `Verification failed: ${verificationProducts.length} total, ${activeRows.length} active, ${archivedRows.length} archived, `
+    + `${activeWithoutPrice.length} active without price, ${archivedWithPrice.length} archived with active price.`,
+  );
 }
-console.log(JSON.stringify({ applied: true, activeRows: activeRows.length, archivedRows: verificationProducts.length - activeRows.length, activeWithoutPrice: activeWithoutPrice.length }, null, 2));
+console.log(JSON.stringify({
+  applied: true,
+  totalRows: verificationProducts.length,
+  activeRows: activeRows.length,
+  archivedRows: archivedRows.length,
+  activeWithoutPrice: activeWithoutPrice.length,
+  archivedWithPrice: archivedWithPrice.length,
+  orphanedMediaAssetsDeleted: orphanedMediaAssets.length,
+}, null, 2));
