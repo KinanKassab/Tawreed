@@ -95,7 +95,11 @@ export interface OperationsRepository {
   updateProduct(input: {
     productId: string;
     nameAr: string;
+    manufacturer: string;
+    unitLabelAr: string;
+    packageLabelAr: string;
     descriptionAr: string;
+    specificationsAr: string;
     availability: Product['availability'];
     lowStockThreshold: number;
     sellingPriceMinor: number | null;
@@ -153,15 +157,20 @@ interface CatalogProductRow {
   } | null }[] | null;
 }
 
+const displayPrice = (row: CatalogProductRow) => row.product_prices?.find((price) => price.currency === 'NEW_SYP') ?? row.product_prices?.[0];
+
 function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Product {
-  const pricedRows = rows.filter((row) => row.product_prices?.[0]);
+  const pricedRows = rows.filter((row) => displayPrice(row));
   const selected = pricedRows.find((row) => row.id === selectedId)
-    ?? [...pricedRows].sort((left, right) => (left.product_prices?.[0]?.amount_minor ?? 0) - (right.product_prices?.[0]?.amount_minor ?? 0))[0]
+    ?? [...pricedRows].sort((left, right) => (displayPrice(left)?.amount_minor ?? 0) - (displayPrice(right)?.amount_minor ?? 0))[0]
     ?? rows[0];
   if (!selected?.categories) throw new Error('Incomplete catalog product');
-  const price = selected.product_prices?.[0];
-  const mediaSource = rows.find((row) => row.product_media?.[0]?.media_assets) ?? selected;
-  const mediaRow = mediaSource.product_media?.[0]?.media_assets;
+  const price = displayPrice(selected);
+  const mediaRow = selected.product_media?.[0]?.media_assets;
+  const mapMedia = (row: CatalogProductRow): MediaAsset | null => {
+    const value = row.product_media?.[0]?.media_assets;
+    return value ? { id: value.id, provider: value.provider, objectKey: value.object_key, externalUrl: value.external_url, altTextAr: value.alt_text_ar ?? row.name_ar, width: value.width, height: value.height } : null;
+  };
   return {
     id: selected.id,
     sku: selected.sku,
@@ -175,15 +184,7 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
     availability: selected.availability,
     category: { id: selected.categories.id, slug: selected.categories.slug, nameAr: selected.categories.name_ar, nameEn: selected.categories.name_en },
     price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
-    media: mediaRow ? {
-      id: mediaRow.id,
-      provider: mediaRow.provider,
-      objectKey: mediaRow.object_key,
-      externalUrl: mediaRow.external_url,
-      altTextAr: mediaRow.alt_text_ar ?? selected.name_ar,
-      width: mediaRow.width,
-      height: mediaRow.height,
-    } : null,
+    media: mediaRow ? mapMedia(selected) : null,
     variantLabelAr: selected.variant_label_ar,
     variants: pricedRows
       .filter((row) => row.variant_label_ar)
@@ -191,10 +192,18 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
         id: row.id,
         sku: row.sku,
         labelAr: row.variant_label_ar!,
+        nameAr: row.name_ar,
+        nameEn: row.name_en,
+        manufacturer: row.manufacturer,
+        unitLabelAr: row.unit_label_ar,
+        packageLabelAr: row.package_label_ar,
+        descriptionAr: row.description_ar,
+        specificationsAr: row.specifications_ar,
+        media: mapMedia(row),
         price: {
-          amountMinor: row.product_prices![0]!.amount_minor,
-          currency: row.product_prices![0]!.currency,
-          decimalPlaces: row.product_prices![0]!.decimal_places,
+          amountMinor: displayPrice(row)!.amount_minor,
+          currency: displayPrice(row)!.currency,
+          decimalPlaces: displayPrice(row)!.decimal_places,
         },
         availability: row.availability,
       })),
@@ -248,7 +257,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       return (data ?? []).map((row) => ({ id: row.id, slug: row.slug, nameAr: row.name_ar, nameEn: row.name_en }));
     },
     async listProducts(filters = {}) {
-      let query = client.from('products').select(productSelect).eq('active', true).eq('product_prices.active', true);
+      let query = client.from('products').select(productSelect).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP');
       if (filters.query) query = query.ilike('search_text', `%${filters.query}%`);
       if (filters.categoryId) query = query.eq('category_id', filters.categoryId);
       if (filters.availability?.length) query = query.in('availability', filters.availability);
@@ -265,13 +274,13 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         return products.slice(offset, offset + (filters.limit ?? 30));
     },
     async getProduct(id) {
-        const { data, error } = await client.from('products').select(productSelect).eq('id', id).eq('active', true).eq('product_prices.active', true).maybeSingle();
+        const { data, error } = await client.from('products').select(productSelect).eq('id', id).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP').maybeSingle();
       if (error) throw error;
         if (!data) return null;
         const selected = data as unknown as CatalogProductRow;
         if (!selected.variant_group_key) return mapProductGroup([selected], id);
         const { data: siblings, error: siblingsError } = await client.from('products').select(productSelect)
-          .eq('variant_group_key', selected.variant_group_key).eq('active', true).eq('product_prices.active', true).order('variant_label_ar');
+          .eq('variant_group_key', selected.variant_group_key).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP').order('variant_label_ar');
         if (siblingsError) throw siblingsError;
         return mapProductGroup(siblings as unknown as CatalogProductRow[], id);
     },
@@ -304,7 +313,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     async listProducts(queryText) {
       let query = client.from('products').select(`
-        id, sku, name_ar, description_ar, availability, active, low_stock_threshold,
+        id, sku, name_ar, manufacturer, unit_label_ar, package_label_ar, description_ar, specifications_ar, availability, active, low_stock_threshold,
         product_prices(amount_minor, currency, decimal_places, active),
         product_costs(amount_minor, currency, decimal_places, active),
         inventory_balances(on_hand, reserved),
@@ -314,8 +323,10 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []).map((row) => {
-        const price = (row.product_prices ?? []).find((candidate: { active: boolean }) => candidate.active);
-        const cost = (row.product_costs ?? []).find((candidate: { active: boolean }) => candidate.active);
+        const priceRows = (row.product_prices ?? []).filter((candidate: { active: boolean }) => candidate.active);
+        const costRows = (row.product_costs ?? []).filter((candidate: { active: boolean }) => candidate.active);
+        const price = priceRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'NEW_SYP') ?? priceRows[0];
+        const cost = costRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'NEW_SYP') ?? costRows[0];
         const balance = row.inventory_balances?.[0];
         const mediaLink = (row.product_media ?? []).find((candidate: { is_primary: boolean }) => candidate.is_primary) ?? row.product_media?.[0];
         const mediaValue = mediaLink?.media_assets;
@@ -324,7 +335,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           id: row.id,
           sku: row.sku,
           nameAr: row.name_ar,
+          manufacturer: row.manufacturer,
+          unitLabelAr: row.unit_label_ar,
+          packageLabelAr: row.package_label_ar,
           descriptionAr: row.description_ar,
+          specificationsAr: row.specifications_ar,
           availability: row.availability,
           active: row.active,
           price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
@@ -394,7 +409,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { error } = await client.rpc('operations_update_product', {
         p_product_id: input.productId,
         p_name_ar: input.nameAr,
+        p_manufacturer: input.manufacturer,
+        p_unit_label_ar: input.unitLabelAr,
+        p_package_label_ar: input.packageLabelAr,
         p_description_ar: input.descriptionAr,
+        p_specifications_ar: input.specificationsAr,
         p_availability: input.availability,
         p_low_stock_threshold: input.lowStockThreshold,
         p_sell_price_minor: input.sellingPriceMinor,

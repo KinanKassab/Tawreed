@@ -400,6 +400,15 @@ insert into public.product_prices(product_id, currency, amount_minor, decimal_pl
   ('20000000-0000-0000-0000-000000000201', 'USD', 2800, 2, true),
   ('20000000-0000-0000-0000-000000000202', 'USD', 50, 2, true);
 
+insert into public.exchange_rates(base_currency, quote_currency, rate, active)
+values ('USD', 'NEW_SYP', 100, true)
+on conflict do nothing;
+
+insert into public.product_prices(product_id, currency, amount_minor, decimal_places, active)
+select product_id, 'NEW_SYP', (ceil(((amount_minor / 100.0) * 100) / 50.0) * 50)::bigint, 0, true
+from public.product_prices
+where currency = 'USD' and active;
+
 insert into public.inventory_balances(warehouse_id, product_id, on_hand, reserved)
 select w.id, p.id, 0, 0
 from public.warehouses w cross join public.products p

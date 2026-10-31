@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">توريد | Tawreed</title>
+  <desc id="desc">احتياجك، واصل لعندك.</desc>
+  <defs>
+    <pattern id="capsules" width="92" height="66" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)">
+      <g fill="#FFFFFF" opacity=".09">
+        <rect x="12" y="24" width="31" height="14" rx="7" />
+        <rect x="47" y="24" width="31" height="14" rx="7" />
+      </g>
+    </pattern>
+    <style>
+      @font-face{font-family:Kufi;src:url('/fonts/kufi.ttf') format('truetype');font-weight:400 800}
+      .tagline{font-family:Kufi,system-ui,sans-serif;font-size:34px;font-weight:700;fill:#FBF6EC}
+    </style>
+  </defs>
+  <rect width="1200" height="630" fill="#0E5245" />
+  <rect width="1200" height="630" fill="url(#capsules)" />
+  <image href="/brand/tawreed-horizontal-reversed.svg" x="390" y="176" width="420" height="133" preserveAspectRatio="xMidYMid meet" />
+  <text class="tagline" x="600" y="402" text-anchor="middle" direction="rtl">احتياجك، واصل لعندك.</text>
+  <rect x="553" y="448" width="94" height="8" rx="4" fill="#F4A62A" />
+</svg>

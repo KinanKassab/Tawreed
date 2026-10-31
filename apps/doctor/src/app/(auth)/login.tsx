@@ -9,6 +9,7 @@ import { AppText, Button, Field, Surface } from '@tawreed/ui';
 import { emailPasswordSchema, type EmailPasswordInput } from '@tawreed/validation';
 import { ar } from '@/locales/ar';
 import { useData } from '@/providers/app-providers';
+import { BrandLogo } from '@/components/brand-logo';
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ returnTo?: string }>();
@@ -42,20 +43,20 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
-          <AppText variant="h1">توريد</AppText>
-          <AppText variant="small" color={colors.green}>{ar.doctorApp}</AppText>
+          <BrandLogo variant="horizontal" width={150} />
+          <AppText variant="small" color={colors.primary}>احتياجك، واصل لعندك.</AppText>
         </View>
         <Surface style={styles.card}>
           <AppText variant="h2">{ar.login}</AppText>
-          <AppText color={colors.muted}>أدخل بيانات حسابك للمتابعة.</AppText>
+          <AppText color={colors.textMuted}>أدخل بيانات حسابك للمتابعة.</AppText>
           <Controller control={control} name="email" render={({ field }) => <Field label={ar.email} autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.email?.message} />} />
           <Controller control={control} name="password" render={({ field }) => <Field label={ar.password} secureTextEntry autoComplete="current-password" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.password?.message} />} />
-          {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.danger}>{errors.root.message}</AppText> : null}
+          {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.error}>{errors.root.message}</AppText> : null}
           <Button label={ar.login} onPress={submit} loading={isSubmitting} />
           <Button label="متابعة تصفح المنتجات كزائر" variant="quiet" onPress={() => router.replace('/(app)/(tabs)/catalog')} />
           <Link href="/(auth)/forgot" style={styles.link}>{ar.forgotPassword}</Link>
           <View style={styles.inline}>
-            <AppText variant="small" color={colors.muted}>{ar.noAccount}</AppText>
+            <AppText variant="small" color={colors.textMuted}>{ar.noAccount}</AppText>
             <Link href={{ pathname: '/(auth)/register', params: { returnTo } }} style={styles.link}> {ar.register}</Link>
           </View>
         </Surface>
@@ -74,7 +75,7 @@ export default function LoginScreen() {
             role="dialog"
             style={styles.accountDialog}>
             <AppText variant="h3">هل تريد تجهيز حساب جديد؟</AppText>
-            <AppText color={colors.muted}>إذا لم يكن لديك حساب في توريد، يمكنك تجهيز حسابك الآن والبدء خلال دقائق.</AppText>
+            <AppText color={colors.textMuted}>إذا لم يكن لديك حساب في توريد، يمكنك تجهيز حسابك الآن والبدء خلال دقائق.</AppText>
             <View style={styles.dialogActions}>
               <Button label="تجهيز حساب جديد" onPress={openAccountSetup} />
               <Button label="ليس الآن" variant="secondary" onPress={closeAccountSetup} />
@@ -88,12 +89,12 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.soft },
+  page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.backgroundSubtle },
   brand: { alignItems: 'center', marginBottom: spacing.xl },
   card: { width: '100%', maxWidth: 480, gap: spacing.md },
   modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.overlay },
-  accountDialog: { width: '100%', maxWidth: 440, gap: spacing.md, borderColor: colors.green, elevation: 12, shadowColor: colors.deep, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 24 },
+  accountDialog: { width: '100%', maxWidth: 440, gap: spacing.md, borderColor: colors.primary, elevation: 2, shadowColor: colors.text, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 18 },
   dialogActions: { gap: spacing.sm, marginTop: spacing.xs },
-  link: { color: colors.green, textAlign: 'center', minHeight: 44, paddingVertical: spacing.sm },
+  link: { color: colors.primary, textAlign: 'center', minHeight: 44, paddingVertical: spacing.sm },
   inline: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center' },
 });

@@ -3,7 +3,7 @@
 /**
  * This script is used to reset the project to a blank state.
  * It deletes or moves the /src and /scripts directories to /example based on user input and creates a new /src/app directory with an index.tsx and _layout.tsx file.
- * Demo images in /assets/images are deleted or moved along with them.
+ * Project files are deleted or moved along with them.
  * You can remove the `reset-project` script from package.json and safely delete this file after running it.
  */
 
@@ -16,18 +16,7 @@ const oldDirs = ["src", "scripts"];
 const exampleDir = "example";
 const newAppDir = "src/app";
 const exampleDirPath = path.join(root, exampleDir);
-// Demo images and folders used only by the files in /src
-const exampleAssets = [
-  "expo-badge.png",
-  "expo-badge-white.png",
-  "expo-logo.png",
-  "logo-glow.png",
-  "react-logo.png",
-  "react-logo@2x.png",
-  "react-logo@3x.png",
-  "tutorial-web.png",
-  "tabIcons",
-];
+const exampleAssets = [];
 
 const indexContent = `import { Text, View, StyleSheet } from "react-native";
 
