@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateSubtotal, formatMoney, getAvailabilityLabel, getOrderStatusLabel, normalizeAppError } from './index';
+import { calculateSubtotal, formatMoney, getAvailabilityLabel, getOrderStatusLabel, normalizeAppError, roundSypTo50 } from './index';
 
 describe('commerce domain', () => {
   it('calculates integer minor-unit subtotals', () => {
@@ -20,8 +20,11 @@ describe('commerce domain', () => {
     expect(formatMoney({ amountMinor: 2400, currency: 'USD', decimalPlaces: 2 }, 'en-US')).toBe('24.00 USD');
   });
 
-  it('formats the internal NEW_SYP display label without guessing a public code', () => {
-    expect(formatMoney({ amountMinor: 1250, currency: 'NEW_SYP', decimalPlaces: 0 }, 'en-US')).toBe('1,250 ل.س الجديدة');
+  it('formats SYP and rounds operational prices to the nearest 50', () => {
+    expect(formatMoney({ amountMinor: 1250, currency: 'NEW_SYP', decimalPlaces: 0 }, 'en-US')).toBe('1,250 SYP');
+    expect(roundSypTo50(1276)).toBe(1300);
+    expect(roundSypTo50(1251)).toBe(1300);
+    expect(roundSypTo50(1250)).toBe(1250);
   });
 
   it('maps normal and exceptional Doctor-visible order states', () => {

@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @tawreed/doctor start",
+    "dev:local": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-local.ps1",
     "dev:web": "pnpm --filter @tawreed/doctor web",
     "dev:android": "pnpm --filter @tawreed/doctor android",
     "dev:operations": "pnpm --filter @tawreed/operations web",
@@ -19,6 +20,7 @@
     "test:web": "playwright test",
     "test:operations-web": "playwright test --config playwright.operations.config.ts",
     "test:operations-visual": "node scripts/visual-check-operations.mjs",
+    "verify:brand": "node scripts/verify-brand-pwa.mjs",
     "build:web": "pnpm --filter @tawreed/doctor build:web",
     "build:operations": "pnpm --filter @tawreed/operations build:web",
     "expo:doctor": "expo-doctor apps/doctor",

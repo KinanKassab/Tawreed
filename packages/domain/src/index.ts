@@ -46,6 +46,14 @@ export interface ProductVariant {
   id: string;
   sku: string;
   labelAr: string;
+  nameAr: string;
+  nameEn: string | null;
+  manufacturer: string | null;
+  unitLabelAr: string;
+  packageLabelAr: string | null;
+  descriptionAr: string | null;
+  specificationsAr: string | null;
+  media: MediaAsset | null;
   price: Money;
   availability: Availability;
 }
@@ -126,7 +134,11 @@ export interface OperationsProduct {
   id: string;
   sku: string;
   nameAr: string;
+  manufacturer: string | null;
+  unitLabelAr: string;
+  packageLabelAr: string | null;
   descriptionAr: string | null;
+  specificationsAr: string | null;
   availability: Availability;
   active: boolean;
   price: Money | null;
@@ -171,13 +183,19 @@ const orderStatusLabels: Record<DoctorOrderStatus, string> = {
 export const getAvailabilityLabel = (value: Availability) => availabilityLabels[value];
 export const getOrderStatusLabel = (value: DoctorOrderStatus) => orderStatusLabels[value];
 
-export function formatMoney(money: Money, locale = 'ar-SY'): string {
+export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat('en-US', options).format(value);
+}
+
+export function formatMoney(money: Money, locale = 'en-US'): string {
   const amount = money.amountMinor / 10 ** money.decimalPlaces;
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: money.decimalPlaces,
     maximumFractionDigits: money.decimalPlaces,
-  }).format(amount) + ` ${money.currency === 'NEW_SYP' ? 'ل.س الجديدة' : 'USD'}`;
+  }).format(amount) + ` ${money.currency === 'NEW_SYP' ? 'SYP' : 'USD'}`;
 }
+
+export const roundSypTo50 = (amount: number): number => Math.ceil(amount / 50) * 50;
 
 export function calculateSubtotal(lines: readonly { quantity: number; unitPriceMinor: number }[]): number {
   return lines.reduce((sum, line) => {

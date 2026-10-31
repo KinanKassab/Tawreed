@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tawreed-shell-v2';
-const APP_SHELL = ['/', '/catalog', '/account', '/manifest.webmanifest', '/favicon.ico', '/icon.png'];
+const CACHE_NAME = 'tawreed-brand-v3';
+const APP_SHELL = ['/', '/catalog', '/manifest.webmanifest', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/app-icon-192.png', '/app-icon-512.png', '/maskable-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));

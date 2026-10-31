@@ -98,8 +98,9 @@ test.describe('لوحة العمليات', () => {
     await page.getByRole('button', { name: 'تعديل', exact: true }).click();
 
     await page.getByLabel('اسم المنتج').fill('منتج محرر من لوحة العمليات');
-    await page.getByLabel('سعر البيع (USD)').fill('45.75');
-    await page.getByLabel('سعر التكلفة (USD)').fill('25');
+    await page.getByLabel('سعر البيع (SYP)').fill('45775');
+    await page.getByLabel('سعر البيع (SYP)').blur();
+    await page.getByLabel('سعر التكلفة (SYP)').fill('25000');
     await page.getByLabel('الكمية الموجودة').fill('20');
     await page.getByLabel('حد التنبيه').fill('4');
     await page.getByLabel('الوصف الظاهر في تطبيق الدكتور').fill('وصف محدث يظهر مباشرة في صفحة المنتج لدى الطبيب.');
@@ -109,7 +110,7 @@ test.describe('لوحة العمليات', () => {
     const chooserPromise = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: 'اختيار صورة من الجهاز' }).click();
     const chooser = await chooserPromise;
-    await chooser.setFiles(resolve(import.meta.dirname, '../../apps/doctor/assets/images/icon.png'));
+    await chooser.setFiles(resolve(import.meta.dirname, '../../apps/doctor/assets/images/app-icon-1024.png'));
     await expect(page.getByLabel('منطقة قص الصورة')).toBeVisible();
     await page.getByRole('button', { name: '+ تكبير' }).click();
     await page.getByRole('button', { name: 'اعتماد القص' }).click();
@@ -118,19 +119,19 @@ test.describe('لوحة العمليات', () => {
     await page.getByRole('button', { name: 'معاينة المنتج', exact: true }).last().click();
     await expect(page.getByText('معاينة للتعديلات غير المحفوظة')).toBeVisible();
     await expect(page.getByText('منتج محرر من لوحة العمليات', { exact: true }).last()).toBeVisible();
-    await expect(page.getByText('45.75 USD', { exact: true }).last()).toBeVisible();
+    await expect(page.getByText('45,800 SYP', { exact: true }).last()).toBeVisible();
     await page.getByLabel('إغلاق المعاينة').click();
 
     await page.getByRole('button', { name: 'حفظ التغييرات' }).click();
     await expect(page.getByText('تم حفظ معلومات المنتج وصورته بنجاح.')).toBeVisible({ timeout: 30_000 });
 
-    const productRows = await json(await fetch(`${apiUrl}/rest/v1/products?id=eq.${targetProductId}&select=name_ar,description_ar,low_stock_threshold,product_prices(amount_minor,active),product_media(media_assets(object_key,width,height))`, {
+    const productRows = await json(await fetch(`${apiUrl}/rest/v1/products?id=eq.${targetProductId}&select=name_ar,description_ar,low_stock_threshold,product_prices(amount_minor,currency,active),product_media(media_assets(object_key,width,height))`, {
       headers: { apikey: publishableKey, Authorization: `Bearer ${ownerAccessToken}` },
     }));
     expect(productRows[0].name_ar).toBe('منتج محرر من لوحة العمليات');
     expect(productRows[0].description_ar).toContain('يظهر مباشرة');
     expect(productRows[0].low_stock_threshold).toBe(4);
-    expect(productRows[0].product_prices.find((price: { active: boolean }) => price.active)?.amount_minor).toBe(4575);
+    expect(productRows[0].product_prices.find((price: { active: boolean; currency: string }) => price.active && price.currency === 'NEW_SYP')?.amount_minor).toBe(45800);
     const media = productRows[0].product_media[0].media_assets;
     expect(media.width).toBe(1200);
     expect(media.height).toBe(1200);

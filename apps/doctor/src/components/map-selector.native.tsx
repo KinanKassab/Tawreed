@@ -44,6 +44,6 @@ export function MapSelector({ point, onSelect }: { point: MapPoint; onSelect: (p
 }
 
 const styles = StyleSheet.create({
-  frame: { height: 300, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, borderRadius: 16 },
+  frame: { height: 300, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, borderRadius: 14 },
   map: { flex: 1 },
 });

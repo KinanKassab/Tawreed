@@ -92,10 +92,10 @@ export function MapSelector({ point, onSelect }: { point: MapPoint; onSelect: (p
 
   if (!apiKey || failed) {
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${point.latitude},${point.longitude}`;
-    return <View style={styles.fallback}><AppText color={colors.muted}>يمكنك معاينة النقطة الحالية في خرائط Google، أو كتابة العنوان الدقيق في الحقل.</AppText><Button label="فتح خرائط Google" variant="secondary" onPress={() => Linking.openURL(mapsUrl)} /></View>;
+    return <View style={styles.fallback}><AppText color={colors.textMuted}>يمكنك معاينة النقطة الحالية في خرائط Google، أو كتابة العنوان الدقيق في الحقل.</AppText><Button label="فتح خرائط Google" variant="outline" onPress={() => Linking.openURL(mapsUrl)} /></View>;
   }
 
-  return <div ref={hostRef} aria-label="خريطة تحديد موقع التوصيل" style={{ width: '100%', height: 320, borderRadius: 16, overflow: 'hidden', border: `1px solid ${colors.line}` }} />;
+  return <div ref={hostRef} aria-label="خريطة تحديد موقع التوصيل" style={{ width: '100%', height: 320, borderRadius: 14, overflow: 'hidden', border: `1px solid ${colors.border}` }} />;
 }
 
-const styles = StyleSheet.create({ fallback: { gap: spacing.sm, padding: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 16, backgroundColor: colors.pale } });
+const styles = StyleSheet.create({ fallback: { gap: spacing.sm, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.primarySoft } });

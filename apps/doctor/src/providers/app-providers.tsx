@@ -30,15 +30,26 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     if (!data) return;
-    data.auth.getSession().then((next) => { previousUserId.current = next?.user.id ?? null; setSession(next); }).finally(() => setLoading(false));
+    let mounted = true;
+    data.auth.getSession()
+      .then((next) => {
+        if (!mounted) return;
+        previousUserId.current = next?.user.id ?? null;
+        setSession(next);
+      })
+      .catch(() => {
+        // An unavailable backend must not crash the public/offline catalog shell.
+        if (mounted) setSession(null);
+      })
+      .finally(() => { if (mounted) setLoading(false); });
     const { data: subscription } = data.client.auth.onAuthStateChange((_event, next) => {
       const nextId = next?.user.id ?? null;
       if (previousUserId.current && nextId !== previousUserId.current) queryClient.removeQueries({ predicate: (query) => ['orders', 'profile'].includes(String(query.queryKey[0])) });
       previousUserId.current = nextId; setSession(next);
     });
-    return () => subscription.subscription.unsubscribe();
+    return () => { mounted = false; subscription.subscription.unsubscribe(); };
   }, [data]);
-  return <DataContext.Provider value={data}><SessionContext.Provider value={{ session, loading }}><PersistQueryClientProvider client={queryClient} persistOptions={{ persister, buster: 'tawreed-v1', dehydrateOptions: { shouldDehydrateQuery: (query) => ['categories', 'products', 'product', 'orders'].includes(String(query.queryKey[0])) } }}>{children}</PersistQueryClientProvider></SessionContext.Provider></DataContext.Provider>;
+  return <DataContext.Provider value={data}><SessionContext.Provider value={{ session, loading }}><PersistQueryClientProvider client={queryClient} persistOptions={{ persister, buster: 'tawreed-motion-v3', dehydrateOptions: { shouldDehydrateQuery: (query) => query.state.status === 'success' && ['categories', 'products', 'product', 'orders', 'profile'].includes(String(query.queryKey[0])) } }}>{children}</PersistQueryClientProvider></SessionContext.Provider></DataContext.Provider>;
 }
 
 export const useData = () => useContext(DataContext);

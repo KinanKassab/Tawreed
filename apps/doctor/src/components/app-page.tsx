@@ -10,4 +10,4 @@ export function AppPage({ children, scroll = true }: { children: ReactNode; scro
   const body = <View style={styles.content}>{children}</View>;
   return <View style={styles.page}><AppHeader />{!online ? <OfflineBanner /> : null}{scroll ? <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">{body}</ScrollView> : body}</View>;
 }
-const styles = StyleSheet.create({ page: { flex: 1, backgroundColor: colors.soft }, scroll: { flexGrow: 1, paddingBottom: 96 }, content: { width: '100%', maxWidth: 1200, alignSelf: 'center', padding: spacing.md, gap: spacing.xl } });
+const styles = StyleSheet.create({ page: { flex: 1, backgroundColor: colors.backgroundSubtle }, scroll: { flexGrow: 1, paddingBottom: 124 }, content: { width: '100%', maxWidth: 1200, alignSelf: 'center', padding: spacing.md, gap: spacing.xl } });

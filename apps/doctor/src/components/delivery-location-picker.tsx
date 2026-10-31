@@ -62,14 +62,14 @@ export function DeliveryLocationPicker({ value, error, onChange }: { value: Deli
   return (
     <View style={styles.container}>
       <Button label="استخدام موقعي الحالي" onPress={useCurrentLocation} loading={loading} />
-      <AppText variant="small" color={colors.muted}>سنستخدم الموقع فقط لتحديد عنوان التوصيل، ويمكنك تعديله قبل إكمال الحساب.</AppText>
+      <AppText variant="small" color={colors.textMuted}>سنستخدم الموقع فقط لتحديد عنوان التوصيل، ويمكنك تعديله قبل إكمال الحساب.</AppText>
       <Field label="عنوان التوصيل" multiline value={value.address} onChangeText={(address) => onChange({ ...value, address })} error={error} />
       <Pressable accessibilityRole="button" onPress={() => setShowMap((visible) => !visible)} style={({ pressed }) => [styles.mapToggle, pressed && styles.pressed]}>
-        <MaterialCommunityIcons name="map-marker-outline" size={23} color={colors.green} />
-        <AppText color={colors.green}>{showMap ? 'إغلاق الخريطة' : 'الموقع غير صحيح؟ حدده على الخريطة'}</AppText>
+        <MaterialCommunityIcons name="map-marker-outline" size={23} color={colors.primary} />
+        <AppText color={colors.primary}>{showMap ? 'إغلاق الخريطة' : 'الموقع غير صحيح؟ حدده على الخريطة'}</AppText>
       </Pressable>
-      {showMap ? <View style={styles.mapArea}>{!point ? <View style={styles.hint}><AppText color={colors.muted}>اختر النقطة على الخريطة، أو استخدم موقعك الحالي لتحديدها تلقائياً.</AppText></View> : null}<MapSelector point={mapPoint} onSelect={updatePoint} /></View> : null}
-      {point ? <AppText variant="caption" color={colors.muted}>إحداثيات التوصيل: {point.latitude.toFixed(6)}، {point.longitude.toFixed(6)}</AppText> : null}
+      {showMap ? <View style={styles.mapArea}>{!point ? <View style={styles.hint}><AppText color={colors.textMuted}>اختر النقطة على الخريطة، أو استخدم موقعك الحالي لتحديدها تلقائياً.</AppText></View> : null}<MapSelector point={mapPoint} onSelect={updatePoint} /></View> : null}
+      {point ? <AppText variant="caption" color={colors.textMuted}>إحداثيات التوصيل: {point.latitude.toFixed(6)}، {point.longitude.toFixed(6)}</AppText> : null}
       {message ? <AppText accessibilityRole="alert" color={message.startsWith('تم ') ? colors.successText : colors.warningText}>{message}</AppText> : null}
     </View>
   );
@@ -77,8 +77,8 @@ export function DeliveryLocationPicker({ value, error, onChange }: { value: Deli
 
 const styles = StyleSheet.create({
   container: { gap: spacing.md },
-  mapToggle: { minHeight: 48, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.green, borderRadius: 14, paddingHorizontal: spacing.md },
-  hint: { padding: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 14, backgroundColor: colors.pale },
+  mapToggle: { minHeight: 48, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 2, borderColor: colors.primary, borderRadius: 14, paddingHorizontal: spacing.md },
+  hint: { padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.primarySoft },
   mapArea: { gap: spacing.sm },
   pressed: { opacity: 0.68 },
 });

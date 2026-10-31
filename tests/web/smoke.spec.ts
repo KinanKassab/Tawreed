@@ -4,7 +4,7 @@ test('lets a configured signed-out visitor browse the Arabic catalog', async ({ 
   await page.goto('/');
 
   await expect(page).not.toHaveURL(/\/login$/);
-  await expect(page.getByText('المستلزمات الطبية في مكان واحد.', { exact: true })).toBeVisible();
+  await expect(page.getByText('مستلزماتك الطبية، واصلة لعندك.', { exact: true })).toBeVisible();
   await page.goto('/catalog');
   await expect(page.getByText('المستلزمات الطبية', { exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
@@ -21,10 +21,10 @@ test('prompts signed-out visitors before opening orders or account', async ({ pa
   await expect(page).toHaveURL(/\/$/);
   await ordersDialog.getByRole('button', { name: 'ليس الآن' }).click();
 
-  await page.getByRole('tab', { name: 'الحساب' }).or(page.getByRole('button', { name: 'الحساب' })).click();
+  await page.getByRole('tab', { name: 'حسابي' }).or(page.getByRole('button', { name: 'حسابي' })).click();
   const accountDialog = page.getByRole('dialog', { name: 'تسجيل الدخول مطلوب' });
   await expect(accountDialog).toBeVisible();
-  await expect(accountDialog).toContainText('قسم الحساب مرتبط بحسابك');
+  await expect(accountDialog).toContainText('قسم حسابي مرتبط بحسابك');
   await accountDialog.getByRole('button', { name: 'تسجيل الدخول' }).click();
 
   await expect(page).toHaveURL(/\/login\?returnTo=%2Faccount/);
@@ -34,16 +34,16 @@ test('prompts signed-out visitors before opening orders or account', async ({ pa
 test('renders the RTL sign-in surface without horizontal overflow', async ({ page }) => {
   await page.goto('/login');
 
-  await expect(page.getByText('توريد', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('توريد')).toBeVisible();
   await expect(page.getByLabel('البريد الإلكتروني')).toBeVisible();
   await expect(page.getByLabel('كلمة المرور')).toBeVisible();
   await expect(page.getByRole('button', { name: 'تسجيل الدخول' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'الدخول عبر واتساب' })).toHaveCount(0);
 
-  const fontFamily = await page.getByText('توريد', { exact: true }).evaluate((element) =>
+  const fontFamily = await page.getByText('تسجيل الدخول', { exact: true }).first().evaluate((element) =>
     window.getComputedStyle(element).fontFamily,
   );
-  expect(fontFamily).toContain('Segoe UI');
+  expect(fontFamily).toContain('NotoKufiArabic');
 
   const overflow = await page.evaluate(() =>
     Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
@@ -83,7 +83,7 @@ test('offers account setup after unsuccessful sign-in', async ({ page }) => {
   await expect(page).toHaveURL(/\/register/);
   await expect(page.getByLabel('الاسم الأول')).toBeVisible();
   await expect(page.getByLabel('الاسم الثاني')).toBeVisible();
-  await expect(page.getByText('الخطوة ١ من ٣')).toBeVisible();
+  await expect(page.getByText('الخطوة 1 من 3')).toBeVisible();
 });
 
 test('allows dismissing the account setup popup', async ({ page }) => {

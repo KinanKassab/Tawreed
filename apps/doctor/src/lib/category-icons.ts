@@ -4,6 +4,23 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 export type CategoryIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export const categoryIcons: Record<string, CategoryIconName> = {
+  liquids: 'bottle-tonic-plus-outline',
+  cements: 'cup-outline',
+  restorative: 'tooth-outline',
+  composite: 'palette-outline',
+  burs: 'screwdriver',
+  equipment: 'tools',
+  'metal-instruments': 'wrench-outline',
+  'infection-control': 'shield-check-outline',
+  surgery: 'medical-bag',
+  prosthodontics: 'tooth',
+  endodontics: 'needle',
+  stethoscopes: 'stethoscope',
+  dental: 'tooth-outline',
+  laboratory: 'flask-outline',
+  syringes: 'needle',
+  scrubs: 'tshirt-crew-outline',
+  capsules: 'pill',
   'dental-01': 'tooth-outline',
   'dental-02': 'needle',
   'dental-03': 'face-mask-outline',

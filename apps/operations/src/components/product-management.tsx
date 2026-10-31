@@ -6,19 +6,23 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
-import { formatMoney, getAvailabilityLabel, normalizeAppError, type Availability, type OperationsProduct } from '@tawreed/domain';
+import { formatMoney, getAvailabilityLabel, normalizeAppError, roundSypTo50, type Availability, type OperationsProduct } from '@tawreed/domain';
 import { AppText, Button, Field, StateView, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
 import { ProductImageEditor, type CroppedProductImage } from './product-image-editor';
 
-const optionalMoney = z.string().trim().refine((value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10_000_000), 'أدخل سعراً موجباً أو اتركه فارغاً.');
+const optionalMoney = z.string().trim().refine((value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10_000_000_000), 'أدخل سعراً موجباً أو اتركه فارغاً.');
 const productSchema = z.object({
   nameAr: z.string().trim().min(2, 'اسم المنتج قصير جداً.').max(200, 'اسم المنتج طويل جداً.'),
+  manufacturer: z.string().max(200, 'اسم الشركة طويل جداً.'),
+  unitLabelAr: z.string().trim().min(1, 'أدخل وحدة البيع.').max(80, 'وحدة البيع طويلة جداً.'),
+  packageLabelAr: z.string().max(120, 'وصف العبوة طويل جداً.'),
   sellingPrice: optionalMoney,
   cost: optionalMoney,
   onHand: z.string().trim().refine((value) => Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100_000_000, 'أدخل كمية صحيحة غير سالبة.'),
   lowStockThreshold: z.string().trim().refine((value) => Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 1_000_000, 'أدخل حداً صحيحاً غير سالب.'),
   descriptionAr: z.string().max(5000, 'الوصف طويل جداً.'),
+  specificationsAr: z.string().max(5000, 'المواصفات طويلة جداً.'),
   inventoryNotes: z.string().max(500, 'ملاحظة المخزون طويلة جداً.'),
   availability: z.enum(['available', 'limited', 'unavailable']),
 });
@@ -35,7 +39,8 @@ interface ProductManagementProps {
   onFeedback: (message: string, error?: boolean) => void;
 }
 
-const moneyText = (value: OperationsProduct['price']) => value ? String(value.amountMinor / 10 ** value.decimalPlaces) : '';
+const moneyText = (value: OperationsProduct['price']) => value?.currency === 'NEW_SYP' ? String(value.amountMinor) : '';
+const sypText = (value: number) => formatMoney({ amountMinor: roundSypTo50(value), currency: 'NEW_SYP', decimalPlaces: 0 });
 const stockState = (product: Pick<OperationsProduct, 'onHand' | 'reserved' | 'lowStockThreshold'>) => {
   const available = product.onHand - product.reserved;
   if (available <= 0) return { label: 'نافد', icon: 'close-circle-outline' as const, background: colors.unavailableSurface, color: colors.danger };
@@ -52,7 +57,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   const [visibleCount, setVisibleCount] = useState(40);
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
-    defaultValues: { nameAr: '', sellingPrice: '', cost: '', onHand: '0', lowStockThreshold: '5', descriptionAr: '', inventoryNotes: '', availability: 'unavailable' },
+    defaultValues: { nameAr: '', manufacturer: '', unitLabelAr: 'قطعة', packageLabelAr: '', sellingPrice: '', cost: '', onHand: '0', lowStockThreshold: '5', descriptionAr: '', specificationsAr: '', inventoryNotes: '', availability: 'unavailable' },
   });
   const watchedSelling = useWatch({ control: form.control, name: 'sellingPrice' });
   const watchedCost = useWatch({ control: form.control, name: 'cost' });
@@ -63,11 +68,15 @@ export function ProductManagement({ products, loading, compact, phone, search, o
     if (image?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(image.previewUrl);
     form.reset({
       nameAr: product.nameAr,
+      manufacturer: product.manufacturer ?? '',
+      unitLabelAr: product.unitLabelAr,
+      packageLabelAr: product.packageLabelAr ?? '',
       sellingPrice: moneyText(product.price),
       cost: moneyText(product.cost),
       onHand: String(product.onHand),
       lowStockThreshold: String(product.lowStockThreshold),
       descriptionAr: product.descriptionAr ?? '',
+      specificationsAr: product.specificationsAr ?? '',
       inventoryNotes: '',
       availability: product.availability,
     });
@@ -89,13 +98,17 @@ export function ProductManagement({ products, loading, compact, phone, search, o
       await data.operations.updateProduct({
         productId: editing.id,
         nameAr: values.nameAr,
+        manufacturer: values.manufacturer,
+        unitLabelAr: values.unitLabelAr,
+        packageLabelAr: values.packageLabelAr,
         descriptionAr: values.descriptionAr,
+        specificationsAr: values.specificationsAr,
         availability: values.availability,
         lowStockThreshold: Number(values.lowStockThreshold),
-        sellingPriceMinor: values.sellingPrice === '' ? null : Math.round(Number(values.sellingPrice) * 100),
-        costMinor: values.cost === '' ? null : Math.round(Number(values.cost) * 100),
-        currency: 'USD',
-        decimalPlaces: 2,
+        sellingPriceMinor: values.sellingPrice === '' ? null : roundSypTo50(Number(values.sellingPrice)),
+        costMinor: values.cost === '' ? null : roundSypTo50(Number(values.cost)),
+        currency: 'NEW_SYP',
+        decimalPlaces: 0,
         onHand,
         inventoryNotes: values.inventoryNotes,
         image: image ? { bytes: image.bytes, mimeType: image.mimeType, extension: image.extension, width: image.width, height: image.height } : undefined,
@@ -150,17 +163,23 @@ export function ProductManagement({ products, loading, compact, phone, search, o
             <View style={[styles.formGrid, compact && styles.formGridCompact]}>
               <View style={styles.formColumn}>
                 <Controller control={form.control} name="nameAr" render={({ field, fieldState }) => <Field label="اسم المنتج" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
+                <Controller control={form.control} name="manufacturer" render={({ field, fieldState }) => <Field label="الشركة المصنعة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
                 <View style={styles.twoColumns}>
-                  <View style={styles.flexField}><Controller control={form.control} name="sellingPrice" render={({ field, fieldState }) => <Field label="سعر البيع (USD)" keyboardType="decimal-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
-                  <View style={styles.flexField}><Controller control={form.control} name="cost" render={({ field, fieldState }) => <Field label="سعر التكلفة (USD)" keyboardType="decimal-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
+                  <View style={styles.flexField}><Controller control={form.control} name="unitLabelAr" render={({ field, fieldState }) => <Field label="وحدة البيع" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
+                  <View style={styles.flexField}><Controller control={form.control} name="packageLabelAr" render={({ field, fieldState }) => <Field label="النوع أو العبوة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
                 </View>
-                <View style={[styles.profit, profit !== null && profit < 0 && styles.profitLoss]}><AppText variant="small" color={profit !== null && profit < 0 ? colors.danger : colors.successText}>الربح لكل قطعة: {profit === null ? 'أدخل السعر والتكلفة' : `${profit.toFixed(2)} USD`}</AppText></View>
+                <View style={styles.twoColumns}>
+                  <View style={styles.flexField}><Controller control={form.control} name="sellingPrice" render={({ field, fieldState }) => <Field label="سعر البيع (SYP)" keyboardType="number-pad" value={field.value} onChangeText={field.onChange} onBlur={() => { field.onBlur(); if (field.value !== '') field.onChange(String(roundSypTo50(Number(field.value)))); }} error={fieldState.error?.message} />} /></View>
+                  <View style={styles.flexField}><Controller control={form.control} name="cost" render={({ field, fieldState }) => <Field label="سعر التكلفة (SYP)" keyboardType="number-pad" value={field.value} onChangeText={field.onChange} onBlur={() => { field.onBlur(); if (field.value !== '') field.onChange(String(roundSypTo50(Number(field.value)))); }} error={fieldState.error?.message} />} /></View>
+                </View>
+                <View style={[styles.profit, profit !== null && profit < 0 && styles.profitLoss]}><AppText variant="small" color={profit !== null && profit < 0 ? colors.danger : colors.successText}>الربح لكل قطعة: {profit === null ? 'أدخل السعر والتكلفة' : sypText(profit)}</AppText><AppText variant="caption" color={colors.muted}>تُجبر الأسعار تلقائياً إلى أقرب 50 ليرة.</AppText></View>
                 <View style={styles.twoColumns}>
                   <View style={styles.flexField}><Controller control={form.control} name="onHand" render={({ field, fieldState }) => <Field label="الكمية الموجودة" keyboardType="number-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
                   <View style={styles.flexField}><Controller control={form.control} name="lowStockThreshold" render={({ field, fieldState }) => <Field label="حد التنبيه" keyboardType="number-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
                 </View>
                 {editing ? <AppText variant="caption" color={colors.muted}>المحجوز حالياً: {editing.reserved.toLocaleString('ar-SY')} — لا يمكن خفض الموجود عن المحجوز.</AppText> : null}
                 <Controller control={form.control} name="descriptionAr" render={({ field, fieldState }) => <Field label="الوصف الظاهر في تطبيق الدكتور" multiline numberOfLines={5} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
+                <Controller control={form.control} name="specificationsAr" render={({ field, fieldState }) => <Field label="المواصفات والخيارات" multiline numberOfLines={4} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
                 <Controller control={form.control} name="inventoryNotes" render={({ field, fieldState }) => <Field label="سبب تعديل المخزون (عند تغيير الكمية)" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
                 <Controller control={form.control} name="availability" render={({ field }) => <View style={styles.fieldGroup}><AppText variant="small">حالة العرض</AppText><View style={styles.availability}>{(['available', 'limited', 'unavailable'] as const).map((item) => <Button key={item} label={getAvailabilityLabel(item)} variant={field.value === item ? 'primary' : 'secondary'} onPress={() => field.onChange(item)} />)}</View></View>} />
               </View>
@@ -186,7 +205,7 @@ function ProductTableRow({ product, compact, imageUrl, onEdit, onPreview }: { pr
   const profit = product.price && product.cost ? product.price.amountMinor - product.cost.amountMinor : null;
   if (compact) return <Surface style={styles.mobileCard}>
     <View style={styles.mobileTitle}>{imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><MaterialCommunityIcons name="image-outline" size={24} color={colors.muted} /></View>}<View style={styles.productName}><AppText style={styles.semibold}>{product.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{product.sku}</AppText></View><StockBadge {...stock} /></View>
-    <View style={styles.mobileMetrics}><Metric label="البيع" value={product.price ? formatMoney(product.price) : '—'} /><Metric label="التكلفة" value={product.cost ? formatMoney(product.cost) : '—'} /><Metric label="الربح" value={profit === null ? '—' : `${(profit / 100).toFixed(2)} USD`} /><Metric label="المتاح / التنبيه" value={`${product.onHand - product.reserved} / ${product.lowStockThreshold}`} /></View>
+    <View style={styles.mobileMetrics}><Metric label="البيع" value={product.price ? formatMoney(product.price) : '—'} /><Metric label="التكلفة" value={product.cost ? formatMoney(product.cost) : '—'} /><Metric label="الربح" value={profit === null || !product.price ? '—' : formatMoney({ amountMinor: profit, currency: product.price.currency, decimalPlaces: product.price.decimalPlaces })} /><Metric label="المتاح / التنبيه" value={`${product.onHand - product.reserved} / ${product.lowStockThreshold}`} /></View>
     <AppText variant="small" color={colors.muted} numberOfLines={2}>{product.descriptionAr || 'لا يوجد وصف بعد.'}</AppText>
     <View style={styles.rowActions}><Button label="تعديل" onPress={onEdit} style={styles.cardAction} /><Button label="معاينة المنتج" variant="secondary" onPress={onPreview} style={styles.cardAction} /></View>
   </Surface>;
@@ -194,7 +213,7 @@ function ProductTableRow({ product, compact, imageUrl, onEdit, onPreview }: { pr
     <View style={[styles.cell, styles.productColumn, styles.productCell]}>{imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><MaterialCommunityIcons name="image-outline" size={24} color={colors.muted} /></View>}<View style={styles.productName}><AppText variant="small" style={styles.semibold} numberOfLines={2}>{product.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{product.sku}</AppText></View></View>
     <View style={styles.cell}><AppText variant="small">{product.price ? formatMoney(product.price) : '—'}</AppText></View>
     <View style={styles.cell}><AppText variant="small">{product.cost ? formatMoney(product.cost) : '—'}</AppText></View>
-    <View style={styles.cell}><AppText variant="small" color={profit !== null && profit < 0 ? colors.danger : colors.successText}>{profit === null ? '—' : `${(profit / 100).toFixed(2)} USD`}</AppText></View>
+    <View style={styles.cell}><AppText variant="small" color={profit !== null && profit < 0 ? colors.danger : colors.successText}>{profit === null || !product.price ? '—' : formatMoney({ amountMinor: profit, currency: product.price.currency, decimalPlaces: product.price.decimalPlaces })}</AppText></View>
     <View style={styles.cell}><StockBadge {...stock} /><AppText variant="caption" color={colors.muted}>متاح {product.onHand - product.reserved} · حد {product.lowStockThreshold}</AppText></View>
     <View style={[styles.cell, styles.descriptionColumn]}><AppText variant="small" color={colors.muted} numberOfLines={2}>{product.descriptionAr || 'لا يوجد وصف بعد.'}</AppText></View>
     <View style={[styles.cell, styles.actionColumn, styles.rowActions]}><Button label="تعديل" onPress={onEdit} /><Button label="معاينة" variant="secondary" onPress={onPreview} /></View>
@@ -208,7 +227,7 @@ function ProductPreview({ product, imageUrl, onClose, phone }: { product: Operat
 
 function DraftProductPreview({ product, values, imageUrl, onClose, phone }: { product: OperationsProduct | null; values: ProductForm | null; imageUrl: string | null; onClose: () => void; phone: boolean }) {
   if (!product || !values) return null;
-  const price = values.sellingPrice === '' ? 'السعر غير متوفر' : `${Number(values.sellingPrice).toFixed(2)} USD`;
+  const price = values.sellingPrice === '' ? 'السعر غير متوفر' : sypText(Number(values.sellingPrice));
   return <PreviewModal visible imageUrl={imageUrl} name={values.nameAr} price={price} description={values.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={values.availability} onClose={onClose} draft phone={phone} />;
 }
 

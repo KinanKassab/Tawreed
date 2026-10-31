@@ -49,13 +49,16 @@ try {
   if (categories.some((category) => !category.name_ar)) throw new Error('One or more categories lost its Arabic name');
   if (products.length !== 167 || active.length !== 167) throw new Error(`Expected 167 publicly visible active rows, received ${products.length}/${active.length}`);
   if (visibleGroups.size !== 109) throw new Error(`Expected 109 visible grouped products, received ${visibleGroups.size}`);
-  if (active.some((product) => product.availability !== 'unavailable' || product.product_prices.length !== 1 || product.product_prices[0].currency !== 'USD')) {
-    throw new Error('Every active row must have exactly one explicit USD price while remaining unavailable until stock is verified');
+  if (active.some((product) => {
+    const sypPrices = product.product_prices.filter((price) => price.active && price.currency === 'NEW_SYP');
+    return product.availability !== 'unavailable' || sypPrices.length !== 1 || sypPrices[0].amount_minor % 50 !== 0;
+  })) {
+    throw new Error('Every active row must have one SYP price rounded to 50 while remaining unavailable until stock is verified');
   }
   if (!arabicSearch.length) throw new Error('Arabic product-name search failed');
   if (!skuSearch.some((product) => product.sku === 'TWD-USD-0202')) throw new Error('SKU search failed');
 
-  console.log('Verified public catalog API: 11 categories, 109 grouped products, 167 active priced rows, explicit USD prices only.');
+  console.log('Verified public catalog API: 11 categories, 109 grouped products, 167 active rows with SYP prices rounded to 50.');
 } finally {
   if (userId) {
     const response = await fetch(`${local.API_URL}/auth/v1/admin/users/${userId}`, {

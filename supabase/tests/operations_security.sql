@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(40);
 
 select ok((select relrowsecurity from pg_class where oid = 'public.staff_accounts'::regclass), 'staff accounts has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.audit_events'::regclass), 'audit events has RLS');
@@ -33,7 +33,7 @@ select is((select rank::text from public.operations_get_my_context()), 'owner', 
 select is((select count(*)::integer from public.products), 202, 'Owner inherits Operations catalog access');
 
 select public.operations_set_product_price('20000000-0000-0000-0000-000000000001'::uuid, 2500::bigint, 'USD'::public.currency_code, 2::smallint);
-select is((select count(*)::integer from public.product_prices where product_id = '20000000-0000-0000-0000-000000000001' and active), 1, 'Operations creates one active selling price');
+select is((select count(*)::integer from public.product_prices where product_id = '20000000-0000-0000-0000-000000000001' and currency = 'USD' and active), 1, 'Operations creates one active USD accounting price');
 select ok((select count(*) from public.audit_events where table_name = 'product_prices') > 0, 'Selling price change is audited');
 
 select public.operations_set_exchange_rate('USD'::public.currency_code, 'NEW_SYP'::public.currency_code, 125::numeric);
@@ -47,13 +47,17 @@ select is((select count(*)::integer from public.inventory_movements where produc
 select public.operations_update_product(
   '20000000-0000-0000-0000-000000000001'::uuid,
   'منتج محرر للاختبار',
+  'شركة اختبار',
+  'علبة',
+  'عبوة 10 قطع',
   'وصف يظهر للطبيب بعد الحفظ',
+  'مواصفات قابلة للتعديل من العمليات',
   'available'::public.product_availability,
   3,
   3000,
   1800,
-  'USD'::public.currency_code,
-  2::smallint,
+  'NEW_SYP'::public.currency_code,
+  0::smallint,
   12,
   'تسوية اختبار شاشة المنتجات',
   'products/20000000-0000-0000-0000-000000000001/10000000-0000-0000-0000-000000000001.webp',
@@ -63,10 +67,12 @@ select public.operations_update_product(
 );
 select is((select name_ar from public.products where id = '20000000-0000-0000-0000-000000000001'), 'منتج محرر للاختبار', 'Product management updates Doctor-visible name');
 select is((select description_ar from public.products where id = '20000000-0000-0000-0000-000000000001'), 'وصف يظهر للطبيب بعد الحفظ', 'Product management updates Doctor-visible description');
+select is((select manufacturer from public.products where id = '20000000-0000-0000-0000-000000000001'), 'شركة اختبار', 'Product management updates manufacturer');
+select is((select specifications_ar from public.products where id = '20000000-0000-0000-0000-000000000001'), 'مواصفات قابلة للتعديل من العمليات', 'Product management updates specifications');
 select is((select low_stock_threshold from public.products where id = '20000000-0000-0000-0000-000000000001'), 3, 'Product management stores low-stock threshold');
 select is((select on_hand from public.inventory_balances where product_id = '20000000-0000-0000-0000-000000000001'), 12, 'Product management safely sets exact on-hand quantity');
-select is((select amount_minor from public.product_prices where product_id = '20000000-0000-0000-0000-000000000001' and active), 3000::bigint, 'Product management replaces selling price');
-select is((select amount_minor from public.product_costs where product_id = '20000000-0000-0000-0000-000000000001' and active), 1800::bigint, 'Product management stores protected cost');
+select is((select amount_minor from public.product_prices where product_id = '20000000-0000-0000-0000-000000000001' and currency = 'NEW_SYP' and active), 3000::bigint, 'Product management replaces SYP selling price');
+select is((select amount_minor from public.product_costs where product_id = '20000000-0000-0000-0000-000000000001' and currency = 'NEW_SYP' and active), 1800::bigint, 'Product management stores protected SYP cost');
 select is((select count(*)::integer from public.product_media where product_id = '20000000-0000-0000-0000-000000000001' and is_primary), 1, 'Product management binds one primary image');
 select ok((select count(*) from public.audit_events where table_name = 'product_costs') > 0, 'Cost change is audited');
 

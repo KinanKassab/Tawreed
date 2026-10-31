@@ -1,4 +1,4 @@
-# Tawreed Doctor | توريد — تطبيق الطبيب
+# توريد | Tawreed — مستلزماتك الطبية
 
 Production-oriented Expo application for Doctor purchasing across Android and Web. The app is Arabic-first and RTL, uses Supabase for authentication and commerce data, and keeps checkout pricing authoritative in Postgres.
 
