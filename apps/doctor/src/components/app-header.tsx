@@ -1,10 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
 import { formatNumber } from '@tawreed/domain';
-import { AppText } from '@tawreed/ui';
+import { AppText, Icon } from '@tawreed/ui';
 import { BrandLogo } from './brand-logo';
 import { GuestAuthPrompt } from './guest-auth-prompt';
 import { useSession } from '@/providers/app-providers';
@@ -35,10 +34,10 @@ export function AppHeader() {
       <View style={styles.header}>
         <View style={styles.inner}>
           <View style={styles.actions}>
-            {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="رجوع" hitSlop={4} onPress={goBack} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><MaterialCommunityIcons name="arrow-right" color={colors.text} size={24} /></Pressable> : null}
-            <Pressable accessibilityRole="button" accessibilityLabel="الإشعارات" hitSlop={4} onPress={() => router.push('/notifications')} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>{mobile ? <MaterialCommunityIcons name="bell-outline" color={colors.text} size={24} /> : <AppText variant="small">الإشعارات</AppText>}</Pressable>
+            {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="رجوع" hitSlop={4} onPress={goBack} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><Icon name="arrow-right" color={colors.text} size={24} /></Pressable> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="الإشعارات" hitSlop={4} onPress={() => router.push('/notifications')} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>{mobile ? <Icon name="bell-outline" color={colors.text} size={24} /> : <AppText variant="small">الإشعارات</AppText>}</Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`السلة، ${formatNumber(count)} منتجات`} hitSlop={4} onPress={() => router.push('/cart')} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
-              {mobile ? <View><MaterialCommunityIcons name="cart-outline" color={colors.text} size={25} />{count ? <View style={styles.cartBadge}><AppText variant="caption" color={colors.onPrimary} style={styles.cartBadgeText}>{formatNumber(count)}</AppText></View> : null}</View> : <AppText variant="small">السلة {count ? `(${formatNumber(count)})` : ''}</AppText>}
+              {mobile ? <View><Icon name="cart-outline" color={colors.text} size={25} />{count ? <View style={styles.cartBadge}><AppText variant="caption" color={colors.onPrimary} style={styles.cartBadgeText}>{formatNumber(count)}</AppText></View> : null}</View> : <AppText variant="small">السلة {count ? `(${formatNumber(count)})` : ''}</AppText>}
             </Pressable>
           </View>
           {!mobile ? <View style={styles.nav}>{navigation.map((destination) => <Pressable key={destination.href} accessibilityRole="button" onPress={() => { if ('returnTo' in destination && !session) setPrompt({ label: destination.label, returnTo: destination.returnTo }); else router.push(destination.href); }} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><AppText variant="small">{destination.label}</AppText></Pressable>)}</View> : null}

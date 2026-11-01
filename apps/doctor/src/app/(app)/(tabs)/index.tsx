@@ -1,8 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
 import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
-import { AppText, Button, ContentFade, HomeSkeleton, MotionPressable, StateView, Surface } from '@tawreed/ui';
+import { AppText, Button, ContentFade, HomeSkeleton, Icon, MotionPressable, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { CatalogGrid } from '@/components/catalog-grid';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
@@ -30,7 +29,7 @@ export default function HomeScreen() {
         <AppText variant="h1">{ar.welcomeTitle}</AppText>
         <AppText variant="large" color={colors.textMuted}>{ar.welcomeBody}</AppText>
         <SwipeExclusion><View style={styles.searchShell}>
-          <MaterialCommunityIcons name="magnify" size={24} color={colors.textMuted} />
+          <Icon name="magnify" size={24} color={colors.textMuted} />
           <TextInput accessibilityLabel={ar.searchPlaceholder} placeholder={ar.searchPlaceholder} placeholderTextColor={colors.textDisabled} style={styles.search} returnKeyType="search" onSubmitEditing={(event) => router.push({ pathname: '/(app)/(tabs)/catalog', params: { query: event.nativeEvent.text } })} />
         </View></SwipeExclusion>
         <View style={styles.heroActions}><Button label="اطلب الآن" variant="accent" onPress={() => router.push('/(app)/(tabs)/catalog')} style={styles.heroButton} /><Button label="تصفّح الأقسام" variant="outline" onPress={() => router.push('/(app)/(tabs)/catalog')} style={styles.heroButton} /></View>
@@ -50,7 +49,7 @@ export default function HomeScreen() {
               style={styles.category}
             >
               <View style={styles.categoryVisual} accessible={false} importantForAccessibility="no-hide-descendants">
-                <MaterialCommunityIcons name={categoryIcons[category.slug] ?? 'medical-bag'} size={36} color={colors.primaryPressed} />
+                <Icon name={categoryIcons[category.slug] ?? 'medical-bag'} size={36} color={colors.primaryPressed} />
               </View>
               <AppText variant="small" style={styles.categoryLabel}>{category.nameAr}</AppText>
             </MotionPressable>

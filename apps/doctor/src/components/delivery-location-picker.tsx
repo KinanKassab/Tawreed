@@ -1,9 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Location from 'expo-location';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
-import { AppText, Button, Field } from '@tawreed/ui';
+import { AppText, Button, Field, Icon } from '@tawreed/ui';
 import { MapSelector, reverseGeocodePoint, type MapPoint } from './map-selector';
 
 export interface DeliveryLocationValue {
@@ -65,7 +64,7 @@ export function DeliveryLocationPicker({ value, error, onChange }: { value: Deli
       <AppText variant="small" color={colors.textMuted}>سنستخدم الموقع فقط لتحديد عنوان التوصيل، ويمكنك تعديله قبل إكمال الحساب.</AppText>
       <Field label="عنوان التوصيل" multiline value={value.address} onChangeText={(address) => onChange({ ...value, address })} error={error} />
       <Pressable accessibilityRole="button" onPress={() => setShowMap((visible) => !visible)} style={({ pressed }) => [styles.mapToggle, pressed && styles.pressed]}>
-        <MaterialCommunityIcons name="map-marker-outline" size={23} color={colors.primary} />
+        <Icon name="map-marker-outline" size={23} color={colors.primary} />
         <AppText color={colors.primary}>{showMap ? 'إغلاق الخريطة' : 'الموقع غير صحيح؟ حدده على الخريطة'}</AppText>
       </Pressable>
       {showMap ? <View style={styles.mapArea}>{!point ? <View style={styles.hint}><AppText color={colors.textMuted}>اختر النقطة على الخريطة، أو استخدم موقعك الحالي لتحديدها تلقائياً.</AppText></View> : null}<MapSelector point={mapPoint} onSelect={updatePoint} /></View> : null}

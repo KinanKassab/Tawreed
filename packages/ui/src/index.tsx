@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Icon } from './icon';
 import { Image } from 'expo-image';
 import {
   ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput,
@@ -8,6 +8,7 @@ import {
 import Animated, { cancelAnimation, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { border, colors, controlHeight, layout, motion, radius, shadows, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Availability, type Product } from '@tawreed/domain';
+export { Icon, type IconName } from './icon';
 
 type TextVariant = 'caption' | 'small' | 'body' | 'button' | 'large' | 'h3' | 'h2' | 'h1' | 'display';
 
@@ -201,7 +202,7 @@ export function ProductCard({ product, imageUrl, onPress, onAdd }: {
       <MotionPressable accessibilityRole="link" accessibilityLabel={`عرض ${product.nameAr}`} onPress={onPress} style={styles.productImage}>
         {imageUrl && imageState !== 'error' ? <Image source={imageUrl} cachePolicy="memory-disk" contentFit="contain" style={StyleSheet.absoluteFill} accessibilityLabel={product.media?.altTextAr ?? product.nameAr} onLoadStart={() => setImageState('loading')} onLoad={() => setImageState('loaded')} onError={() => setImageState('error')} /> : null}
         {imageState === 'loading' ? <View accessibilityLabel="جارٍ تحميل صورة المنتج" style={styles.imageStatus}><ActivityIndicator color={colors.primary} /></View> : null}
-        {imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.imageStatus}><MaterialCommunityIcons name="image-off-outline" size={38} color={colors.textMuted} /><AppText variant="caption" color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
+        {imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.imageStatus}><Icon name="image-off-outline" size={38} color={colors.textMuted} /><AppText variant="caption" color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
       </MotionPressable>
       {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSoft }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>السعر والتوفر قيد التأكيد</AppText></View>}
       <AppText variant="body" style={styles.productTitle}>{product.nameAr}</AppText>

@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, spacing, typography } from '@tawreed/design-tokens';
 import { formatNumber, normalizeAppError } from '@tawreed/domain';
-import { AppText, Button, Field, Surface } from '@tawreed/ui';
+import { AppText, Button, Field, Icon, Surface } from '@tawreed/ui';
 import { registerSchema, type RegisterInput } from '@tawreed/validation';
 import { DeliveryLocationPicker } from '@/components/delivery-location-picker';
 import { useData } from '@/providers/app-providers';
@@ -78,7 +77,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <Surface style={styles.card}>
           <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => step ? setStep(step - 1) : router.back()} style={styles.back}><MaterialCommunityIcons name="arrow-right" size={24} color={colors.text} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => step ? setStep(step - 1) : router.back()} style={styles.back}><Icon name="arrow-right" size={24} color={colors.text} /></Pressable>
             <View style={styles.heading}><AppText variant="h2">تجهيز حسابك</AppText><AppText color={colors.textMuted}>الخطوة {formatNumber(step + 1)} من {formatNumber(steps.length)}</AppText></View>
           </View>
           <View accessibilityLabel={`الخطوة ${step + 1} من ${steps.length}`} style={styles.progress}>
@@ -97,7 +96,7 @@ export default function RegisterScreen() {
             <Controller control={control} name="email" render={({ field }) => <Field label="البريد الإلكتروني" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} error={errors.email?.message} />} />
             <Controller control={control} name="phone" render={({ field }) => <Field label="رقم الهاتف" autoComplete="tel" keyboardType="phone-pad" value={field.value} onChangeText={field.onChange} error={errors.phone?.message} />} />
             <Controller control={control} name="password" render={({ field }) => <Field label="كلمة المرور" secureTextEntry autoComplete="new-password" value={field.value} onChangeText={field.onChange} error={errors.password?.message} />} />
-            <View style={styles.contactGroup}><AppText variant="small">كيف تفضّل أن نتابع معك؟</AppText><Controller control={control} name="preferredContact" render={({ field }) => <View style={styles.contactOptions}>{contactOptions.map((option) => { const selected = field.value === option.value; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => field.onChange(option.value)} style={[styles.contactOption, selected && styles.contactOptionSelected]}><MaterialCommunityIcons name={option.icon} size={21} color={selected ? colors.onPrimary : colors.textMuted} /><AppText variant="small" color={selected ? colors.onPrimary : colors.text}>{option.label}</AppText></Pressable>; })}</View>} /></View>
+            <View style={styles.contactGroup}><AppText variant="small">كيف تفضّل أن نتابع معك؟</AppText><Controller control={control} name="preferredContact" render={({ field }) => <View style={styles.contactOptions}>{contactOptions.map((option) => { const selected = field.value === option.value; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => field.onChange(option.value)} style={[styles.contactOption, selected && styles.contactOptionSelected]}><Icon name={option.icon} size={21} color={selected ? colors.onPrimary : colors.textMuted} /><AppText variant="small" color={selected ? colors.onPrimary : colors.text}>{option.label}</AppText></Pressable>; })}</View>} /></View>
             <Button label="التالي" onPress={next} />
           </View> : null}
 

@@ -6,7 +6,7 @@ import type { Product } from '@tawreed/domain';
 import { AvailabilityBadge, ProductCard } from './index';
 
 vi.mock('expo-image', () => ({ Image: 'ExpoImage' }));
-vi.mock('@expo/vector-icons/MaterialCommunityIcons', () => ({ default: 'MaterialCommunityIcon' }));
+vi.mock('react-native-svg', () => ({ default: 'Svg', Path: 'Path' }));
 
 beforeAll(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -1,10 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { formatMoney, formatNumber, getOrderStatusLabel, type DoctorOrderStatus } from '@tawreed/domain';
-import { AppText, OrdersSkeleton, StateView, Surface } from '@tawreed/ui';
+import { AppText, Icon, OrdersSkeleton, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { useData, useSession } from '@/providers/app-providers';
 
@@ -39,7 +38,7 @@ export default function OrderDetailScreen() {
                   <View key={step} style={styles.step}>
                     {index < steps.length - 1 ? <View style={[styles.connector, done && styles.connectorDone]} /> : null}
                     <View style={[styles.dot, done && styles.dotDone, active && styles.dotCurrent]}>
-                      {done ? <MaterialCommunityIcons name="check" size={15} color={colors.onPrimary} /> : null}
+                      {done ? <Icon name="check" size={15} color={colors.onPrimary} /> : null}
                     </View>
                     <View style={styles.stepCopy}>
                       <AppText variant="body" color={done || active ? colors.text : colors.textMuted}>{getOrderStatusLabel(step)}</AppText>

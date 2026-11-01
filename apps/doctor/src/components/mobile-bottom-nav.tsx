@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -6,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import { colors, motion, spacing, typography } from '@tawreed/design-tokens';
-import { AppText, MotionPressable } from '@tawreed/ui';
+import { AppText, Icon, MotionPressable } from '@tawreed/ui';
 import { GuestAuthPrompt } from './guest-auth-prompt';
 import { mainDestinations, mainPathIndex } from '@/lib/main-navigation';
 import { useSession } from '@/providers/app-providers';
@@ -53,7 +52,7 @@ export function MobileBottomNav() {
           <AnimatedPath animatedProps={pathProps} fill={colors.surface} stroke={colors.border} strokeWidth={1} />
         </Svg>
         <Animated.View pointerEvents="none" style={[styles.activeBubble, bubbleStyle]}>
-          <MaterialCommunityIcons name={mainDestinations[activeIndex].activeIcon} color={colors.onPrimary} size={27} />
+          <Icon name={mainDestinations[activeIndex].activeIcon} color={colors.onPrimary} size={27} />
           <View style={styles.signature} />
         </Animated.View>
         <View style={[styles.items, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
@@ -72,7 +71,7 @@ export function MobileBottomNav() {
                 style={styles.item}
               >
                 <View style={[styles.staticIcon, active && styles.hiddenIcon]}>
-                  <MaterialCommunityIcons name={destination.icon} color={colors.textMuted} size={24} />
+                  <Icon name={destination.icon} color={colors.textMuted} size={24} />
                 </View>
                 <AppText variant="caption" color={active ? colors.primary : colors.textMuted} style={active ? styles.activeLabel : styles.label}>{destination.label}</AppText>
               </MotionPressable>
