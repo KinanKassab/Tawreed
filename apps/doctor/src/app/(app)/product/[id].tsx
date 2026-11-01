@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { colors, motion, radius, spacing } from '@tawreed/design-tokens';
 import { formatMoney, formatNumber } from '@tawreed/domain';
-import { AppText, AvailabilityBadge, Button, MotionPressable, ProductDetailSkeleton, StateView, Surface } from '@tawreed/ui';
+import { AppText, AvailabilityBadge, Button, Icon, MotionPressable, ProductDetailSkeleton, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { useProduct } from '@/hooks/use-catalog';
 import { useData } from '@/providers/app-providers';
@@ -42,7 +41,7 @@ export default function ProductScreen() {
       <Surface style={styles.visual}>
         {image && imageState !== 'error' ? <Image source={image} cachePolicy="memory-disk" contentFit="contain" style={styles.image} accessibilityLabel={details.media?.altTextAr ?? details.nameAr} onLoadStart={() => setImageState('loading')} onLoad={() => setImageState('loaded')} onError={() => setImageState('error')} /> : null}
         {image && imageState === 'loading' ? <ActivityIndicator accessibilityLabel="جارٍ تحميل صورة المنتج" size="large" color={colors.primary} style={styles.imageStatus} /> : null}
-        {!image || imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.fallback}><MaterialCommunityIcons name="image-off-outline" size={64} color={colors.textMuted} /><AppText color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
+        {!image || imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.fallback}><Icon name="image-off-outline" size={64} color={colors.textMuted} /><AppText color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
       </Surface>
       <View style={styles.copy}>
         {selectedPrice ? <AvailabilityBadge value={selectedAvailability} /> : <AppText variant="small" color={colors.warningText}>بانتظار التحقق من السعر والتوفر</AppText>}
@@ -59,8 +58,8 @@ export default function ProductScreen() {
       </View>
     </Animated.View>
     <Animated.View key={`info-${selectedId}`} entering={transition} style={styles.sections}>
-      <Surface style={styles.section}><View style={styles.sectionTitle}><MaterialCommunityIcons name="information-outline" size={24} color={colors.primary} /><AppText variant="h2">عن المنتج</AppText></View><AppText color={colors.textMuted}>{details.descriptionAr ?? 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'}</AppText>{details.specificationsAr ? <><View style={styles.sectionTitle}><MaterialCommunityIcons name="clipboard-list-outline" size={22} color={colors.primary} /><AppText variant="h3">المواصفات والخيارات</AppText></View><AppText color={colors.textMuted}>{details.specificationsAr}</AppText></> : null}</Surface>
-      <Surface style={styles.section}><View style={styles.sectionTitle}><MaterialCommunityIcons name="package-variant-closed" size={24} color={colors.primary} /><AppText variant="h2">معلومات المنتج</AppText></View><AppText color={colors.textMuted}>وحدة البيع: {details.packageLabelAr ?? details.unitLabelAr}</AppText><AppText color={colors.textMuted}>رمز المنتج: {selectedVariant?.sku ?? item.sku}</AppText>{!selectedPrice ? <AppText color={colors.textMuted}>سيُتاح الطلب بعد تأكيد السعر والتوفر.</AppText> : null}</Surface>
+      <Surface style={styles.section}><View style={styles.sectionTitle}><Icon name="information-outline" size={24} color={colors.primary} /><AppText variant="h2">عن المنتج</AppText></View><AppText color={colors.textMuted}>{details.descriptionAr ?? 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'}</AppText>{details.specificationsAr ? <><View style={styles.sectionTitle}><Icon name="clipboard-list-outline" size={22} color={colors.primary} /><AppText variant="h3">المواصفات والخيارات</AppText></View><AppText color={colors.textMuted}>{details.specificationsAr}</AppText></> : null}</Surface>
+      <Surface style={styles.section}><View style={styles.sectionTitle}><Icon name="package-variant-closed" size={24} color={colors.primary} /><AppText variant="h2">معلومات المنتج</AppText></View><AppText color={colors.textMuted}>وحدة البيع: {details.packageLabelAr ?? details.unitLabelAr}</AppText><AppText color={colors.textMuted}>رمز المنتج: {selectedVariant?.sku ?? item.sku}</AppText>{!selectedPrice ? <AppText color={colors.textMuted}>سيُتاح الطلب بعد تأكيد السعر والتوفر.</AppText> : null}</Surface>
     </Animated.View>
   </AppPage>;
 }

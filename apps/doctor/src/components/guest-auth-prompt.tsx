@@ -1,8 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
 import { Modal, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
-import { AppText, Button, Surface } from '@tawreed/ui';
+import { AppText, Button, Icon, Surface } from '@tawreed/ui';
 
 type GuestAuthPromptProps = {
   onClose: () => void;
@@ -32,7 +31,7 @@ export function GuestAuthPrompt({ onClose, returnTo, sectionLabel, visible }: Gu
           role="dialog"
           style={styles.dialog}>
           <View style={styles.icon}>
-            <MaterialCommunityIcons name="account-lock-outline" size={30} color={colors.primary} />
+            <Icon name="account-lock-outline" size={30} color={colors.primary} />
           </View>
           <View style={styles.copy}>
             <AppText variant="h2" style={styles.center}>سجّل دخولك للمتابعة</AppText>

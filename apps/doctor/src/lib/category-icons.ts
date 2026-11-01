@@ -1,7 +1,6 @@
-import type { ComponentProps } from 'react';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { type IconName } from '@tawreed/ui';
 
-export type CategoryIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+export type CategoryIconName = IconName;
 
 export const categoryIcons: Record<string, CategoryIconName> = {
   liquids: 'bottle-tonic-plus-outline',

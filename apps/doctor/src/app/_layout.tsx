@@ -12,11 +12,13 @@ import { AppProviders } from '@/providers/app-providers';
 
 I18nManager.allowRTL(true); I18nManager.forceRTL(true);
 void SplashScreen.preventAutoHideAsync();
+// Web gets subset WOFF2 files via @font-face in index.html (font-display: swap), so rendering never waits on fonts there.
+const nativeFonts = Platform.OS === 'web' ? {} : {
+  NotoKufiArabic: require('../../assets/fonts/kufi.ttf'),
+  Manrope: require('../../assets/fonts/manrope.ttf'),
+};
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    NotoKufiArabic: require('../../assets/fonts/kufi.ttf'),
-    Manrope: require('../../assets/fonts/manrope.ttf'),
-  });
+  const [fontsLoaded, fontError] = useFonts(nativeFonts);
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.documentElement.lang = 'ar';

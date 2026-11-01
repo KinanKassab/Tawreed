@@ -235,7 +235,7 @@ otp_length = 6
 otp_expiry = 3600
 
 [auth.email.template.confirmation]
-subject = "رمز تفعيل حساب توريد"
+subject = "رمز تفعيل حسابك | توريد"
 content_path = "./supabase/templates/confirmation.html"
 
 # Use a production-ready SMTP server

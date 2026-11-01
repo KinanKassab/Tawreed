@@ -1,10 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { Image, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
-import { AppText, Button, Surface } from '@tawreed/ui';
+import { AppText, Button, Icon, Surface } from '@tawreed/ui';
 
 export interface CroppedProductImage {
   bytes: ArrayBuffer;
@@ -101,13 +100,13 @@ export function ProductImageEditor({ currentImageUrl, value, onChange, onError }
   return (
     <Surface style={styles.card}>
       <View style={styles.heading}>
-        <View style={styles.icon}><MaterialCommunityIcons name="image-edit-outline" size={22} color={colors.ink} /></View>
+        <View style={styles.icon}><Icon name="image-edit-outline" size={22} color={colors.ink} /></View>
         <View style={styles.copy}>
           <AppText variant="h3">صورة المنتج</AppText>
           <AppText variant="small" color={colors.muted}>قص مربع موحّد 1200×1200 بكسل يحافظ على تناسق العرض.</AppText>
         </View>
       </View>
-      {preview ? <Image source={{ uri: preview }} resizeMode="contain" style={styles.preview} accessibilityLabel="معاينة صورة المنتج" /> : <View style={styles.empty}><MaterialCommunityIcons name="image-outline" size={44} color={colors.muted} /><AppText color={colors.muted}>لا توجد صورة حالياً</AppText></View>}
+      {preview ? <Image source={{ uri: preview }} resizeMode="contain" style={styles.preview} accessibilityLabel="معاينة صورة المنتج" /> : <View style={styles.empty}><Icon name="image-outline" size={44} color={colors.muted} /><AppText color={colors.muted}>لا توجد صورة حالياً</AppText></View>}
       <Button label="اختيار صورة من الجهاز" variant="secondary" onPress={chooseImage} />
       {source ? <>
         <View style={styles.cropArea} accessibilityLabel="منطقة قص الصورة">
