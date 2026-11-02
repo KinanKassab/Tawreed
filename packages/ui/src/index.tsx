@@ -154,7 +154,14 @@ export function ContentFade({ children, style }: { children: ReactNode; style?: 
   return <Animated.View entering={reducedMotion || !animate ? undefined : FadeIn.duration(motion.duration.normal)} style={style}>{children}</Animated.View>;
 }
 
-export function SkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
+// Pages can show well over a hundred blocks while loading; on web the sheen is a CSS animation, which costs the main
+// thread nothing (a JS-driven one per block kept it busy every frame and slowed the page becoming usable). Reduced
+// motion is left to the page's CSS, as a JS check could differ from the pre-rendered markup.
+function WebSkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
+  return <View accessible={false} style={[styles.skeleton, { height, width, borderRadius: circle ? height / 2 : radius.md }, style]}><View style={[styles.skeletonSheen, styles.skeletonSheenWeb]} /></View>;
+}
+
+function NativeSkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
   const reducedMotion = useReducedMotion();
   const progress = useSharedValue(0);
   useEffect(() => {
@@ -164,6 +171,8 @@ export function SkeletonBlock({ height, width = '100%', circle = false, style }:
   const sheen = useAnimatedStyle(() => ({ transform: [{ translateX: -140 + progress.value * 520 }], opacity: reducedMotion ? 0 : 0.72 }));
   return <View accessible={false} style={[styles.skeleton, { height, width, borderRadius: circle ? height / 2 : radius.md }, style]}><Animated.View style={[styles.skeletonSheen, sheen]} /></View>;
 }
+
+export const SkeletonBlock = Platform.OS === 'web' ? WebSkeletonBlock : NativeSkeletonBlock;
 
 export function ProductCardSkeleton() {
   return <Surface style={styles.productCard}><SkeletonBlock height={180} /><SkeletonBlock height={22} width="42%" /><SkeletonBlock height={24} width="82%" /><SkeletonBlock height={20} width="58%" /><SkeletonBlock height={24} width="48%" /><SkeletonBlock height={44} /></Surface>;
@@ -257,6 +266,8 @@ const styles = StyleSheet.create({
   addButton: { minHeight: 44, borderRadius: 10 },
   skeleton: { position: 'relative', overflow: 'hidden', backgroundColor: colors.surfaceMuted },
   skeletonSheen: { position: 'absolute', top: 0, bottom: 0, width: '28%', backgroundColor: colors.primarySoft },
+  // react-native-web compiles these to a CSS @keyframes animation; same path and timing as the native sheen.
+  skeletonSheenWeb: { opacity: 0.72, animationKeyframes: [{ '0%': { transform: [{ translateX: -140 }] }, '100%': { transform: [{ translateX: 380 }] } }], animationDuration: '1450ms', animationTimingFunction: 'ease-in-out', animationIterationCount: 'infinite' } as ViewStyle,
   skeletonStack: { gap: spacing.md },
   skeletonTile: { minHeight: 132, padding: spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   skeletonTileVisual: { borderRadius: radius.xl },

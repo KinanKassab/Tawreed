@@ -19,7 +19,7 @@ body{background:var(--color-bg-subtle);font-family:${typography.family.web};marg
 .tawreed-splash-done #tawreed-splash{animation:tawreed-splash-out .3s ease forwards}
 @keyframes tawreed-splash-in{from{opacity:0;transform:scale(.92)}}
 @keyframes tawreed-splash-out{to{opacity:0;visibility:hidden}}
-@media (prefers-reduced-motion:reduce){#tawreed-splash svg{animation:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
 `;
 
 // Brand splash for the first page load of a browser session. It continues the installed app's own splash (the same
