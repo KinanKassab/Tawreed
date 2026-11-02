@@ -1,13 +1,14 @@
 import 'react-native-gesture-handler';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { I18nManager, Platform, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors } from '@tawreed/design-tokens';
+import { markPageHydrated, pageHydrated } from '@/hooks/use-hydration';
 import { AppProviders } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
 
@@ -20,7 +21,12 @@ const nativeFonts: Parameters<typeof useFonts>[0] = Platform.OS === 'web' ? {} :
 };
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(nativeFonts);
-  useEffect(() => { if (Platform.OS === 'web') void useCart.persist.rehydrate(); }, []);
+  // The web cart is pre-rendered empty; restore it once the page has hydrated so the badge cannot break hydration.
+  useEffect(() => { if (Platform.OS === 'web') void pageHydrated.then(() => useCart.persist.rehydrate()); }, []);
+  // Pages without AppPage (sign-in) never signal hydration; any navigation away from the first URL means it is done.
+  const pathname = usePathname();
+  const firstPathname = useRef(pathname);
+  useEffect(() => { if (pathname !== firstPathname.current) markPageHydrated(); }, [pathname]);
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.documentElement.lang = 'ar';

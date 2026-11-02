@@ -7,12 +7,17 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { Platform } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { createTawreedDataLayer, type TawreedDataLayer } from '@tawreed/data';
+import { pageHydrated } from '@/hooks/use-hydration';
 import { clientConfig } from '@/lib/runtime';
 
 const DataContext = createContext<TawreedDataLayer | null>(null);
 const SessionContext = createContext<{ session: Session | null; loading: boolean }>({ session: null, loading: true });
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, gcTime: 86_400_000, retry: 1, networkMode: 'offlineFirst', refetchOnMount: 'always', refetchOnReconnect: 'always' }, mutations: { retry: 0, networkMode: 'online' } } });
-const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'tawreed-query-cache-v1' });
+const storedCache = createAsyncStoragePersister({ storage: AsyncStorage, key: 'tawreed-query-cache-v1' });
+// Pre-rendered web pages show skeletons for query data. Restoring the stored cache before the page has hydrated would
+// render cached data instead and break hydration (React #418) on every return visit. Queries stay paused while
+// restoring, so the skeletons hold until then.
+const persister: typeof storedCache = { ...storedCache, restoreClient: async () => { await pageHydrated; return storedCache.restoreClient(); } };
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const data = useMemo(() => clientConfig ? createTawreedDataLayer(clientConfig) : null, []);

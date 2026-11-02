@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
+import { useIsHydrated } from '@/hooks/use-hydration';
 
 const serverViewport = { width: 0, height: 0, scale: 1, fontScale: 1 };
-let hydrated = Platform.OS !== 'web';
 
-// Web pages are pre-rendered at build time, where there is no window (width 0, the phone layout). The first browser
-// render must produce the same markup to hydrate, so report that size until mounted; screens mounted later get the
-// real size straight away.
+// Pre-rendered web pages have no window at build time (width 0, the phone layout); report that size while hydrating.
 export function useViewport() {
   const window = useWindowDimensions();
-  const [ready, setReady] = useState(hydrated);
-  useEffect(() => { hydrated = true; setReady(true); }, []);
-  return ready ? window : serverViewport;
+  return useIsHydrated() ? window : serverViewport;
 }
