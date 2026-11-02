@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tawreed-brand-v5';
+const CACHE_NAME = 'tawreed-brand-v6';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/app-icon-192.png', '/app-icon-512.png', '/maskable-512.png'];
 // Content-hashed build output never changes for a given URL, so it is served cache-first.
 const IMMUTABLE_PREFIXES = ['/_expo/static/', '/assets/'];

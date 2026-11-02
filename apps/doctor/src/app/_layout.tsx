@@ -42,7 +42,7 @@ export default function RootLayout() {
         if (!element) { element = document.createElement('link'); element.rel = rel; element.href = href; document.head.appendChild(element); }
         if (type) element.type = type;
       };
-      ensureMeta('theme-color', colors.primary);
+      ensureMeta('theme-color', colors.surface);
       ensureMeta('application-name', 'توريد');
       ensureMeta('apple-mobile-web-app-title', 'توريد');
       ensureLink('manifest', '/manifest.webmanifest');
@@ -57,4 +57,4 @@ export default function RootLayout() {
   return <GestureHandlerRootView style={styles.root}><SafeAreaProvider><AppProviders><StatusBar style="dark" /><SafeAreaView edges={['top', 'left', 'right']} style={styles.safe}><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.backgroundSubtle }, animation: 'fade' }} /></SafeAreaView></AppProviders></SafeAreaProvider></GestureHandlerRootView>;
 }
 
-const styles = StyleSheet.create({ root: { flex: 1 }, safe: { flex: 1, backgroundColor: colors.backgroundSubtle } });
+const styles = StyleSheet.create({ root: { flex: 1 }, safe: { flex: 1, backgroundColor: colors.surface } });

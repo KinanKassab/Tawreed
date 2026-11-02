@@ -35,7 +35,7 @@ await page.waitForTimeout(1500);
 const serviceWorker = await page.evaluate(async () => Boolean(navigator.serviceWorker && (await navigator.serviceWorker.getRegistrations()).length));
 
 const required = {
-  lang: 'ar', dir: 'rtl', title: 'توريد | مستلزماتك الطبية', themeColor: '#0E5245', manifestHref: '/manifest.webmanifest',
+  lang: 'ar', dir: 'rtl', title: 'توريد | مستلزماتك الطبية', themeColor: '#FFFFFF', manifestHref: '/manifest.webmanifest',
 };
 for (const [key, value] of Object.entries(required)) {
   if (documentState[key] !== value) throw new Error(`${key} expected ${value}, received ${documentState[key]}`);

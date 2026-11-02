@@ -169,8 +169,8 @@ export function ProductCardSkeleton() {
   return <Surface style={styles.productCard}><SkeletonBlock height={180} /><SkeletonBlock height={22} width="42%" /><SkeletonBlock height={24} width="82%" /><SkeletonBlock height={20} width="58%" /><SkeletonBlock height={24} width="48%" /><SkeletonBlock height={44} /></Surface>;
 }
 
-export function CatalogSkeleton({ count = 4 }: { count?: number }) {
-  return <View accessibilityLabel="جارٍ تحميل المنتجات" style={styles.skeletonGrid}>{Array.from({ length: count }, (_, index) => <View key={index} style={styles.skeletonCell}><ProductCardSkeleton /></View>)}</View>;
+export function CatalogSkeleton({ columns = 2, count = columns * 2 }: { columns?: number; count?: number }) {
+  return <View accessibilityLabel="جارٍ تحميل المنتجات" style={styles.skeletonGrid}>{Array.from({ length: count }, (_, index) => <View key={index} style={[styles.skeletonCell, { width: `${100 / columns}%` }]}><ProductCardSkeleton /></View>)}</View>;
 }
 
 export function CategoryTilesSkeleton({ columns = 2 }: { columns?: number }) {

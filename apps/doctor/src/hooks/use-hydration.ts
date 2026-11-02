@@ -15,7 +15,11 @@ export function useIsHydrated() {
 
 let resolveHydrated: () => void = () => undefined;
 export const pageHydrated = Platform.OS === 'web' ? new Promise<void>((resolve) => { resolveHydrated = resolve; }) : Promise.resolve();
-export const markPageHydrated = () => resolveHydrated();
+export const markPageHydrated = () => {
+  resolveHydrated();
+  // Lets the brand splash in +html leave as soon as the page is live.
+  if (Platform.OS === 'web' && typeof window !== 'undefined') (window as { __tawreedSplashDone?: () => void }).__tawreedSplashDone?.();
+};
 
 // Called by AppPage, which every store screen renders inside its own route: once a pre-rendered one has hydrated, the
 // page is live. Screens mounted only on the client (swipe neighbours) must not signal it early.

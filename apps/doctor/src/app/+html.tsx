@@ -9,7 +9,24 @@ html{background:var(--color-bg-subtle);color:var(--color-text)}
 body{background:var(--color-bg-subtle);font-family:${typography.family.web};margin:0}
 *{box-sizing:border-box}button,input,textarea{font:inherit}
 *:focus-visible{outline:3px solid var(--color-focus-ring);outline-offset:2px}
+[data-viewport]{display:contents!important}
+@media (max-width:680px),(max-width:900px) and (max-height:500px){[data-viewport=tablet],[data-viewport=desktop]{display:none!important}}
+@media (min-width:681px) and (max-width:900px) and (min-height:501px){[data-viewport=phone],[data-viewport=desktop]{display:none!important}}
+@media (min-width:901px){[data-viewport=phone],[data-viewport=tablet]{display:none!important}}
+#tawreed-splash{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#FFFFFF;animation:tawreed-splash-out .35s ease 2.4s forwards}
+#tawreed-splash svg{width:clamp(96px,28vmin,160px);height:auto;animation:tawreed-splash-in .45s ease-out both}
+.tawreed-splash-seen #tawreed-splash{display:none}
+.tawreed-splash-done #tawreed-splash{animation:tawreed-splash-out .3s ease forwards}
+@keyframes tawreed-splash-in{from{opacity:0;transform:scale(.92)}}
+@keyframes tawreed-splash-out{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){#tawreed-splash svg{animation:none}}
 `;
+
+// Brand splash for the first page load of a browser session. It continues the installed app's own splash (the same
+// logo on the same white), then fades to the pre-rendered header, bottom bar and skeletons. It leaves once the page has
+// hydrated (after at least 0.9s) and by CSS alone after 2.4s, so a slow network never keeps the page hidden.
+const splashScript = `(function(d){var start=Date.now();try{if(sessionStorage.getItem('tawreed-splash'))d.classList.add('tawreed-splash-seen');else sessionStorage.setItem('tawreed-splash','1');}catch(e){}window.__tawreedSplashDone=function(){setTimeout(function(){d.classList.add('tawreed-splash-done');},Math.max(0,900-(Date.now()-start)));};})(document.documentElement);`;
+const splashLogo = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="توريد"><path fill="#0E5245" d="M24,94V136A76,76 0 0 0 100,212H156A76,76 0 0 0 232,136V94A19.0,19.0 0 0 0 194,94V136A38,38 0 0 1 156,174H100A38,38 0 0 1 62,136V94A19.0,19.0 0 0 0 24,94Z"/><path fill="#F4A62A" d="M112.97,54.97L96.95,64.22A24.0,24.0 0 0 0 120.95,105.78L136.97,96.53Z"/><path fill="#F4A62A" d="M119.03,51.47L135.05,42.22A24.0,24.0 0 0 1 159.05,83.78L143.03,93.03Z"/></svg>';
 
 // With cached or fast-arriving bundles the browser runs every deferred script straight after parsing, before its
 // first paint, so the pre-rendered page would stay blank until ~3MB of JS has run. Start the bundles (in order; the
@@ -35,12 +52,13 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <title>توريد | مستلزماتك الطبية</title>
         <meta name="description" content="مستلزماتك الطبية، واصلة لعندك. منصة تربط الأطباء والطلاب والعيادات بموردين موثوقين." />
-        <meta name="theme-color" content={colors.primary} />
+        {/* Matches the white header (and the splash), so the browser bar and status bar never show a different-coloured edge. */}
+        <meta name="theme-color" content={colors.surface} />
         <meta name="apple-mobile-web-app-title" content="توريد" />
         <meta name="application-name" content="توريد" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta property="og:title" content="توريد | Tawreed" />
         <meta property="og:description" content="احتياجك، واصل لعندك." />
         <meta property="og:image" content="/og-tawreed.png" />
@@ -54,10 +72,12 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="preload" href="/fonts/kufi.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
         {headNodes}
       </head>
       <body {...bodyAttributes}>
         {children}
+        <div id="tawreed-splash" dangerouslySetInnerHTML={{ __html: splashLogo }} />
         {deferUntilPainted(bodyNodes)}
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>undefined));}` }} />
       </body>
