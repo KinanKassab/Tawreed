@@ -16,7 +16,7 @@ export default function HomeScreen() {
   const categoryColumns = width <= 680 ? 2 : width <= 900 ? 3 : 4;
 
   if (categories.isLoading || products.isLoading) {
-    return <AppPage><HomeSkeleton /></AppPage>;
+    return <AppPage><HomeSkeleton categoryColumns={categoryColumns} /></AppPage>;
   }
   if (categories.error || products.error) {
     return <AppPage><StateView title="تعذر تحميل المتجر" message="تحقق من الاتصال وحاول مجدداً." actionLabel={ar.retry} onAction={() => { categories.refetch(); products.refetch(); }} /></AppPage>;
