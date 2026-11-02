@@ -19,8 +19,8 @@
   ],
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/product/:id", "destination": "/product/[id].html" },
-    { "source": "/order/:id", "destination": "/order/[id].html" },
-    { "source": "/(.*)", "destination": "/+not-found.html" }
+    { "source": "/product/:id", "destination": "/product/%5Bid%5D" },
+    { "source": "/order/:id", "destination": "/order/%5Bid%5D" },
+    { "source": "/(.*)", "destination": "/+not-found" }
   ]
 }
