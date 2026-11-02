@@ -19,7 +19,7 @@ export function BrandLogo({ variant = 'horizontal', width = 132, style }: {
   const safeSpace = Math.max(4, Math.round(width * 0.04));
   return (
     <View accessible accessibilityRole="image" accessibilityLabel="توريد" style={{ padding: safeSpace }}>
-      <Image source={assets[variant]} contentFit="contain" style={[styles.image, { width, height: width / ratio }, style]} />
+      <Image source={assets[variant]} accessibilityLabel="توريد" contentFit="contain" style={[styles.image, { width, height: width / ratio }, style]} />
     </View>
   );
 }
