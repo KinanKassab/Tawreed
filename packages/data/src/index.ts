@@ -19,6 +19,7 @@ import type {
 
 export interface AuthRepository {
   getSession(): Promise<Session | null>;
+  validateSession(): Promise<{ session: Session | null; invalidated: boolean }>;
   signInWithPassword(email: string, password: string): Promise<void>;
   signUpWithPassword(input: {
     email: string;
@@ -222,6 +223,42 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       flowType: 'pkce',
     },
   });
+
+  const authFailure = (error: unknown) => {
+    if (!error || typeof error !== 'object') return false;
+    const status = 'status' in error ? Number(error.status) : 0;
+    const message = 'message' in error ? String(error.message).toLowerCase() : '';
+    return status === 401 || status === 403
+      || /invalid.*jwt|jwt.*expired|refresh.*token|session.*(missing|expired|invalid)|user.*not.*found/.test(message);
+  };
+
+  const validateSession = async (): Promise<{ session: Session | null; invalidated: boolean }> => {
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    if (sessionError) throw sessionError;
+    const session = sessionData.session;
+    if (!session) return { session: null, invalidated: false };
+
+    const { data: userData, error: userError } = await client.auth.getUser();
+    if (userError || !userData.user || userData.user.id !== session.user.id) {
+      if (!userError || authFailure(userError)) {
+        await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
+        return { session: null, invalidated: true };
+      }
+      // Do not destroy an otherwise usable session because the network is briefly unavailable.
+      return { session, invalidated: false };
+    }
+
+    const { data: profile, error: profileError } = await client.from('profiles').select('id').eq('id', userData.user.id).maybeSingle();
+    if (!profileError && !profile) {
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      return { session: null, invalidated: true };
+    }
+    if (profileError && authFailure(profileError)) {
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      return { session: null, invalidated: true };
+    }
+    return { session, invalidated: false };
+  };
 
   if (Platform.OS !== 'web') {
     AppState.addEventListener('change', (state) => {
@@ -456,6 +493,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         if (error) throw error;
         return data.session;
       },
+      validateSession,
       async signInWithPassword(email, password) {
         const { error } = await client.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -580,6 +618,8 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         };
       },
       async createOrder(input) {
+        const validation = await validateSession();
+        if (!validation.session || validation.invalidated) throw new Error('SESSION_INVALID');
         const { data, error } = await client.rpc('create_doctor_order', {
           p_idempotency_key: input.idempotencyKey,
           p_display_currency: input.displayCurrency,

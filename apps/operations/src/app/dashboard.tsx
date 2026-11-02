@@ -37,7 +37,13 @@ export default function DashboardScreen() {
   const [productSearch, setProductSearch] = useState('');
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const context = useQuery({ queryKey: ['operations-context', session?.user.id], queryFn: () => data!.operations.getMyContext(), enabled: Boolean(data && session) });
-  const orders = useQuery({ queryKey: ['operations-orders'], queryFn: () => data!.operations.listOrders(), enabled: Boolean(data && context.data) });
+  const orders = useQuery({
+    queryKey: ['operations-orders'],
+    queryFn: () => data!.operations.listOrders(),
+    enabled: Boolean(data && context.data),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+  });
   const products = useQuery({ queryKey: ['operations-products'], queryFn: () => data!.operations.listProducts(), enabled: Boolean(data && context.data) });
   const exchangeRate = useQuery({ queryKey: ['operations-exchange-rate'], queryFn: () => data!.operations.getActiveExchangeRate(), enabled: Boolean(data && context.data) });
 

@@ -22,10 +22,9 @@ describe('Doctor input validation', () => {
     expect(profileSchema.safeParse({ fullName: 'ط', clinicName: null, defaultAddress: 'قصير' }).success).toBe(false);
   });
 
-  it('blocks checkout until terms and complete delivery details are provided', () => {
-    const valid = { recipientName: 'طبيب الاختبار', recipientPhone: '+963900000000', deliveryAddress: 'دمشق، شارع الاختبار', deliveryNotes: '', acceptedTerms: true };
+  it('requires complete delivery details at checkout', () => {
+    const valid = { recipientName: 'طبيب الاختبار', recipientPhone: '+963900000000', deliveryAddress: 'دمشق، شارع الاختبار', deliveryNotes: '' };
     expect(checkoutSchema.safeParse(valid).success).toBe(true);
-    expect(checkoutSchema.safeParse({ ...valid, acceptedTerms: false }).success).toBe(false);
     expect(checkoutSchema.safeParse({ ...valid, deliveryAddress: 'قصير' }).success).toBe(false);
   });
 });

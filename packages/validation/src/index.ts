@@ -27,7 +27,6 @@ export const checkoutSchema = z.object({
   recipientPhone: z.string().trim().min(7, 'أدخل رقم هاتف صحيحاً').max(25),
   deliveryAddress: z.string().trim().min(8, 'أدخل عنوان التوصيل').max(300),
   deliveryNotes: z.string().trim().max(500).optional(),
-  acceptedTerms: z.boolean().refine((value) => value, 'يجب الموافقة على شروط الطلب والتوصيل'),
 });
 
 export type EmailPasswordInput = z.infer<typeof emailPasswordSchema>;

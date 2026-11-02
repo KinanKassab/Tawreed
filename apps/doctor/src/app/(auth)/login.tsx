@@ -8,7 +8,7 @@ import { normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Surface } from '@tawreed/ui';
 import { emailPasswordSchema, type EmailPasswordInput } from '@tawreed/validation';
 import { ar } from '@/locales/ar';
-import { useData } from '@/providers/app-providers';
+import { useData, useSession } from '@/providers/app-providers';
 import { BrandLogo } from '@/components/brand-logo';
 
 export default function LoginScreen() {
@@ -16,6 +16,7 @@ export default function LoginScreen() {
   const returnTo = ['/checkout', '/orders', '/account', '/notifications', '/support'].includes(params.returnTo ?? '') ? params.returnTo! : '/(app)/(tabs)';
   const [showAccountSetup, setShowAccountSetup] = useState(false);
   const data = useData();
+  const { authNotice, clearAuthNotice } = useSession();
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<EmailPasswordInput>({
     resolver: zodResolver(emailPasswordSchema),
     defaultValues: { email: '', password: '' },
@@ -31,6 +32,7 @@ export default function LoginScreen() {
     closeAccountSetup();
     try {
       await data.auth.signInWithPassword(values.email, values.password);
+      clearAuthNotice();
       router.replace(returnTo as never);
     } catch (error) {
       const normalized = normalizeAppError(error);
@@ -49,6 +51,7 @@ export default function LoginScreen() {
         <Surface style={styles.card}>
           <AppText variant="h2">{ar.login}</AppText>
           <AppText color={colors.textMuted}>أدخل بيانات حسابك للمتابعة.</AppText>
+          {authNotice ? <View accessibilityRole="alert" style={styles.sessionNotice}><AppText variant="small" color={colors.warningText}>{authNotice}</AppText></View> : null}
           <Controller control={control} name="email" render={({ field }) => <Field label={ar.email} autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.email?.message} />} />
           <Controller control={control} name="password" render={({ field }) => <Field label={ar.password} secureTextEntry autoComplete="current-password" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.password?.message} />} />
           {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.error}>{errors.root.message}</AppText> : null}
@@ -92,6 +95,7 @@ const styles = StyleSheet.create({
   page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.backgroundSubtle },
   brand: { alignItems: 'center', marginBottom: spacing.xl },
   card: { width: '100%', maxWidth: 480, gap: spacing.md },
+  sessionNotice: { backgroundColor: colors.warningSoft, borderColor: colors.warning, borderWidth: 1, borderRadius: 12, padding: spacing.md },
   modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.overlay },
   accountDialog: { width: '100%', maxWidth: 440, gap: spacing.md, borderColor: colors.primary, elevation: 2, shadowColor: colors.text, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 18 },
   dialogActions: { gap: spacing.sm, marginTop: spacing.xs },

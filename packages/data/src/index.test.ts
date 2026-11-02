@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   getPublicUrl: vi.fn(),
   upload: vi.fn(),
   remove: vi.fn(),
+  getSession: vi.fn(),
+  getUser: vi.fn(),
+  signOut: vi.fn(),
+  maybeSingle: vi.fn(),
 }));
 
 vi.mock('@supabase/supabase-js', () => ({
@@ -16,12 +20,15 @@ vi.mock('@supabase/supabase-js', () => ({
       signUp: mocks.signUp,
       verifyOtp: mocks.verifyOtp,
       resend: mocks.resend,
+      getSession: mocks.getSession,
+      getUser: mocks.getUser,
+      signOut: mocks.signOut,
       startAutoRefresh: vi.fn(),
       stopAutoRefresh: vi.fn(),
     },
     rpc: mocks.rpc,
     storage: { from: vi.fn(() => ({ getPublicUrl: mocks.getPublicUrl, upload: mocks.upload, remove: mocks.remove })) },
-    from: vi.fn(),
+    from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mocks.maybeSingle })) })) })),
   })),
 }));
 
@@ -40,7 +47,14 @@ const config = {
 };
 
 describe('Supabase repository adapter contracts', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const user = { id: 'doctor-1' };
+    mocks.getSession.mockResolvedValue({ data: { session: { access_token: 'token', user } }, error: null });
+    mocks.getUser.mockResolvedValue({ data: { user }, error: null });
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.maybeSingle.mockResolvedValue({ data: { id: user.id }, error: null });
+  });
 
   it('reports an active session after password registration', async () => {
     mocks.signUp.mockResolvedValue({ data: { session: { access_token: 'token' } }, error: null });
@@ -117,6 +131,14 @@ describe('Supabase repository adapter contracts', () => {
     }));
     expect(JSON.stringify(mocks.rpc.mock.calls[0])).not.toContain('unitPrice');
     expect(result).toEqual({ orderId: 'order-1', orderNumber: 'TWD-1001' });
+  });
+
+  it('clears a deleted or invalid account session before checkout', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: { status: 401, message: 'User not found' } });
+    const data = createTawreedDataLayer(config);
+
+    await expect(data.auth.validateSession()).resolves.toEqual({ session: null, invalidated: true });
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
   it('rejects an incomplete checkout response', async () => {
