@@ -25,7 +25,7 @@ export default function ProductScreen() {
     ?? item?.variants.find((variant) => variant.id === item.id)
     ?? item?.variants[0];
 
-  if (product.isLoading) return <AppPage><ProductDetailSkeleton /></AppPage>;
+  if (product.isPending) return <AppPage><ProductDetailSkeleton /></AppPage>;
   if (!item) return <AppPage><StateView title="المنتج غير موجود" message="قد يكون المنتج غير متاح أو تم إيقافه." actionLabel="العودة للمنتجات" onAction={() => router.replace('/(app)/(tabs)/catalog')} /></AppPage>;
 
   const selectedId = selectedVariant?.id ?? item.id;

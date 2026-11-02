@@ -1,23 +1,24 @@
 import { router } from 'expo-router';
-import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { useViewport } from '@/hooks/use-viewport';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
-import { AppText, Button, ContentFade, HomeSkeleton, Icon, MotionPressable, StateView, Surface } from '@tawreed/ui';
+import { AppText, Button, CategoryTilesSkeleton, ContentFade, Icon, MotionPressable, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
-import { CatalogGrid } from '@/components/catalog-grid';
+import { CatalogGrid, CatalogGridSkeleton } from '@/components/catalog-grid';
+import { Responsive } from '@/components/responsive';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
 import { useCategories, useProducts } from '@/hooks/use-catalog';
 import { ar } from '@/locales/ar';
 import { categoryIcons } from '@/lib/category-icons';
 
+const columnsFor = (width: number) => width <= 680 ? 2 : width <= 900 ? 3 : 4;
+
 export default function HomeScreen() {
   const categories = useCategories();
   const products = useProducts({ limit: 6 });
-  const { width } = useWindowDimensions();
-  const categoryColumns = width <= 680 ? 2 : width <= 900 ? 3 : 4;
+  const { width } = useViewport();
+  const categoryColumns = columnsFor(width);
 
-  if (categories.isLoading || products.isLoading) {
-    return <AppPage><HomeSkeleton categoryColumns={categoryColumns} /></AppPage>;
-  }
   if (categories.error || products.error) {
     return <AppPage><StateView title="تعذر تحميل المتجر" message="تحقق من الاتصال وحاول مجدداً." actionLabel={ar.retry} onAction={() => { categories.refetch(); products.refetch(); }} /></AppPage>;
   }
@@ -39,7 +40,7 @@ export default function HomeScreen() {
         <MotionPressable onPress={() => router.push('/(app)/(tabs)/catalog')}><AppText variant="small" color={colors.primary}>{ar.seeAll}</AppText></MotionPressable>
         <AppText variant="h2">{ar.categories}</AppText>
       </View>
-      <View style={styles.categories}>
+      {categories.isPending ? <Responsive>{(viewport) => <CategoryTilesSkeleton columns={columnsFor(viewport.width)} />}</Responsive> : <View style={styles.categories}>
         {(categories.data ?? []).map((category) => (
           <View key={category.id} style={[styles.categoryCell, { width: `${100 / categoryColumns}%` }]}>
             <MotionPressable
@@ -55,13 +56,13 @@ export default function HomeScreen() {
             </MotionPressable>
           </View>
         ))}
-      </View>
+      </View>}
 
       <View style={styles.heading}>
         <MotionPressable onPress={() => router.push('/(app)/(tabs)/catalog')}><AppText variant="small" color={colors.primary}>{ar.seeAll}</AppText></MotionPressable>
         <AppText variant="h2">{ar.featured}</AppText>
       </View>
-      <CatalogGrid products={products.data ?? []} />
+      {products.isPending ? <CatalogGridSkeleton /> : <CatalogGrid products={products.data} />}
     </ContentFade></AppPage>
   );
 }
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   welcome: { backgroundColor: colors.backgroundSubtle, borderWidth: 0, gap: spacing.md, paddingVertical: spacing.xxl },
   pageContent: { gap: spacing.xl },
   searchShell: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: spacing.md },
-  search: { flex: 1, minHeight: 48, color: colors.text, fontFamily: typography.family.regular, fontSize: typography.size.body, textAlign: 'right' },
+  search: { flex: 1, minWidth: 0, minHeight: 48, color: colors.text, fontFamily: typography.family.regular, fontSize: typography.size.body, textAlign: 'right' },
   heroActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
   heroButton: { minWidth: 150 },
   heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -14,6 +14,7 @@ import CartScreen from '@/app/(app)/cart';
 import OrdersScreen from '@/app/(app)/(tabs)/orders';
 import AccountScreen from '@/app/(app)/(tabs)/account';
 import { isMainSwipePath, mainDestinations, mainPathIndex } from '@/lib/main-navigation';
+import { useIsHydrated } from '@/hooks/use-hydration';
 import { useSession } from '@/providers/app-providers';
 
 const SwipeLockContext = createContext<SharedValue<boolean> | null>(null);
@@ -34,6 +35,9 @@ export function SwipeTabNavigator({ children }: { children: ReactNode }) {
   const viewportWidth = useSharedValue(375);
   const activeIndex = mainPathIndex(pathname);
   const swipeEnabled = activeIndex >= 0 && isMainSwipePath(pathname);
+  // Neighbours are swipe previews only. The server cannot know the screen width, so pre-rendering them at a guessed
+  // offset would let one peek in at the side until hydration; they mount right after it instead.
+  const hydrated = useIsHydrated();
   const [prompt, setPrompt] = useState<{ label: string; returnTo: '/orders' | '/account' } | null>(null);
 
   useEffect(() => {
@@ -91,8 +95,8 @@ export function SwipeTabNavigator({ children }: { children: ReactNode }) {
   const nextPage = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value - viewportWidth.value }] }));
   const previous = activeIndex > 0 ? mainDestinations[activeIndex - 1] : null;
   const next = activeIndex < mainDestinations.length - 1 ? mainDestinations[activeIndex + 1] : null;
-  const PreviousScene = previous ? scenes[activeIndex - 1] : null;
-  const NextScene = next ? scenes[activeIndex + 1] : null;
+  const PreviousScene = previous && hydrated ? scenes[activeIndex - 1] : null;
+  const NextScene = next && hydrated ? scenes[activeIndex + 1] : null;
   const canPreviewPrevious = PreviousScene && (!('returnTo' in previous!) || Boolean(session));
   const canPreviewNext = NextScene && (!('returnTo' in next!) || Boolean(session));
 

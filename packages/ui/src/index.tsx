@@ -143,12 +143,25 @@ export function StateView({ title, message, actionLabel, onAction, loading = fal
   );
 }
 
+// Reanimated renders `entering` views as visibility:hidden until their animation starts in JS, which would hide
+// pre-rendered web pages until the bundle runs. Content already present at hydration skips the fade; later mounts fade in.
+let pageHydrated = Platform.OS !== 'web';
+
 export function ContentFade({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const reducedMotion = useReducedMotion();
-  return <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(motion.duration.normal)} style={style}>{children}</Animated.View>;
+  const [animate] = useState(pageHydrated);
+  useEffect(() => { pageHydrated = true; }, []);
+  return <Animated.View entering={reducedMotion || !animate ? undefined : FadeIn.duration(motion.duration.normal)} style={style}>{children}</Animated.View>;
 }
 
-export function SkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
+// Pages can show well over a hundred blocks while loading; on web the sheen is a CSS animation, which costs the main
+// thread nothing (a JS-driven one per block kept it busy every frame and slowed the page becoming usable). Reduced
+// motion is left to the page's CSS, as a JS check could differ from the pre-rendered markup.
+function WebSkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
+  return <View accessible={false} style={[styles.skeleton, { height, width, borderRadius: circle ? height / 2 : radius.md }, style]}><View style={[styles.skeletonSheen, styles.skeletonSheenWeb]} /></View>;
+}
+
+function NativeSkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
   const reducedMotion = useReducedMotion();
   const progress = useSharedValue(0);
   useEffect(() => {
@@ -159,31 +172,18 @@ export function SkeletonBlock({ height, width = '100%', circle = false, style }:
   return <View accessible={false} style={[styles.skeleton, { height, width, borderRadius: circle ? height / 2 : radius.md }, style]}><Animated.View style={[styles.skeletonSheen, sheen]} /></View>;
 }
 
+export const SkeletonBlock = Platform.OS === 'web' ? WebSkeletonBlock : NativeSkeletonBlock;
+
 export function ProductCardSkeleton() {
   return <Surface style={styles.productCard}><SkeletonBlock height={180} /><SkeletonBlock height={22} width="42%" /><SkeletonBlock height={24} width="82%" /><SkeletonBlock height={20} width="58%" /><SkeletonBlock height={24} width="48%" /><SkeletonBlock height={44} /></Surface>;
 }
 
-export function CatalogSkeleton({ count = 4 }: { count?: number }) {
-  return <View accessibilityLabel="جارٍ تحميل المنتجات" style={styles.skeletonGrid}>{Array.from({ length: count }, (_, index) => <View key={index} style={styles.skeletonCell}><ProductCardSkeleton /></View>)}</View>;
+export function CatalogSkeleton({ columns = 2, count = columns * 2 }: { columns?: number; count?: number }) {
+  return <View accessibilityLabel="جارٍ تحميل المنتجات" style={styles.skeletonGrid}>{Array.from({ length: count }, (_, index) => <View key={index} style={[styles.skeletonCell, { width: `${100 / columns}%` }]}><ProductCardSkeleton /></View>)}</View>;
 }
 
-// Mirrors the home screen block for block (welcome, search, actions, category tiles, featured grid) so content replaces it without a jump.
-// Keep in sync with the static boot skeleton in apps/doctor/scripts/fix-web-html.mjs.
-export function HomeSkeleton({ categoryColumns = 2 }: { categoryColumns?: number }) {
-  const heading = <View style={styles.skeletonHeading}><SkeletonBlock height={32} width="34%" /><SkeletonBlock height={20} width="16%" /></View>;
-  return <View accessibilityLabel="جارٍ تحميل الصفحة الرئيسية" style={styles.skeletonHome}>
-    <View style={styles.skeletonWelcome}>
-      <SkeletonBlock height={20} width="44%" />
-      <SkeletonBlock height={48} width="80%" />
-      <SkeletonBlock height={30} width="94%" />
-      <SkeletonBlock height={52} style={styles.skeletonField} />
-      <View style={styles.skeletonActions}><SkeletonBlock height={controlHeight.regular} width={150} /><SkeletonBlock height={controlHeight.regular} width={150} /></View>
-    </View>
-    {heading}
-    <View style={styles.skeletonGrid}>{Array.from({ length: categoryColumns * 2 }, (_, index) => <View key={index} style={[styles.skeletonCell, { width: `${100 / categoryColumns}%` }]}><View style={styles.skeletonTile}><SkeletonBlock height={64} width={64} style={styles.skeletonTileVisual} /><SkeletonBlock height={18} width="56%" /></View></View>)}</View>
-    {heading}
-    <CatalogSkeleton />
-  </View>;
+export function CategoryTilesSkeleton({ columns = 2 }: { columns?: number }) {
+  return <View accessibilityLabel="جارٍ تحميل الأقسام" style={styles.skeletonGrid}>{Array.from({ length: columns * 2 }, (_, index) => <View key={index} style={[styles.skeletonCell, { width: `${100 / columns}%` }]}><View style={styles.skeletonTile}><SkeletonBlock height={64} width={64} style={styles.skeletonTileVisual} /><SkeletonBlock height={18} width="56%" /></View></View>)}</View>;
 }
 
 export function AccountSkeleton() {
@@ -266,12 +266,9 @@ const styles = StyleSheet.create({
   addButton: { minHeight: 44, borderRadius: 10 },
   skeleton: { position: 'relative', overflow: 'hidden', backgroundColor: colors.surfaceMuted },
   skeletonSheen: { position: 'absolute', top: 0, bottom: 0, width: '28%', backgroundColor: colors.primarySoft },
+  // react-native-web compiles these to a CSS @keyframes animation; same path and timing as the native sheen.
+  skeletonSheenWeb: { opacity: 0.72, animationKeyframes: [{ '0%': { transform: [{ translateX: -140 }] }, '100%': { transform: [{ translateX: 380 }] } }], animationDuration: '1450ms', animationTimingFunction: 'ease-in-out', animationIterationCount: 'infinite' } as ViewStyle,
   skeletonStack: { gap: spacing.md },
-  skeletonHome: { gap: spacing.xl },
-  skeletonWelcome: { gap: spacing.md, paddingVertical: spacing.xxl, paddingHorizontal: spacing.xl },
-  skeletonField: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg },
-  skeletonActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
-  skeletonHeading: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
   skeletonTile: { minHeight: 132, padding: spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   skeletonTileVisual: { borderRadius: radius.xl },
   skeletonRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },

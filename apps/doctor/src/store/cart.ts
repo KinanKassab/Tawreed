@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -8,4 +9,6 @@ export const useCart = create<CartState>()(persist((set) => ({
   add: (productId, quantity = 1) => set((state) => ({ items: { ...state.items, [productId]: (state.items[productId] ?? 0) + quantity } })),
   setQuantity: (productId, quantity) => set((state) => { const items = { ...state.items }; if (quantity <= 0) delete items[productId]; else items[productId] = quantity; return { items }; }),
   remove: (productId) => set((state) => { const items = { ...state.items }; delete items[productId]; return { items }; }), clear: () => set({ items: {} }),
-}), { name: 'tawreed-cart-v1', storage: createJSONStorage(() => AsyncStorage), partialize: (state) => ({ items: state.items }) }));
+}), { name: 'tawreed-cart-v1', storage: createJSONStorage(() => AsyncStorage), partialize: (state) => ({ items: state.items }),
+  // Web pages are pre-rendered with an empty cart; the root layout rehydrates once the page has hydrated.
+  skipHydration: Platform.OS === 'web' }));

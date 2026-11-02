@@ -17,10 +17,10 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     }
   ],
+  "cleanUrls": true,
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/product/:id", "destination": "/product/[id].html" },
+    { "source": "/order/:id", "destination": "/order/[id].html" },
+    { "source": "/(.*)", "destination": "/+not-found.html" }
   ]
 }

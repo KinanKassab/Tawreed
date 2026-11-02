@@ -1,11 +1,12 @@
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
 import { formatNumber } from '@tawreed/domain';
 import { AppText, Icon } from '@tawreed/ui';
 import { BrandLogo } from './brand-logo';
 import { GuestAuthPrompt } from './guest-auth-prompt';
+import { Responsive, screenClass } from './responsive';
 import { useSession } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
 
@@ -17,9 +18,7 @@ const navigation = [
 ] as const;
 
 export function AppHeader() {
-  const { width, height } = useWindowDimensions();
   const pathname = usePathname();
-  const mobile = width <= 680 || (width <= 900 && height <= 500);
   const showBack = !['/', '/catalog', '/orders', '/account'].includes(pathname);
   const { session } = useSession();
   const [prompt, setPrompt] = useState<{ label: string; returnTo: '/orders' | '/account' } | null>(null);
@@ -32,6 +31,7 @@ export function AppHeader() {
   return (
     <>
       <View style={styles.header}>
+        <Responsive>{(viewport) => { const mobile = screenClass(viewport) === 'phone'; return (
         <View style={styles.inner}>
           <View style={styles.actions}>
             {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="رجوع" hitSlop={4} onPress={goBack} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><Icon name="arrow-right" color={colors.text} size={24} /></Pressable> : null}
@@ -43,6 +43,7 @@ export function AppHeader() {
           {!mobile ? <View style={styles.nav}>{navigation.map((destination) => <Pressable key={destination.href} accessibilityRole="button" onPress={() => { if ('returnTo' in destination && !session) setPrompt({ label: destination.label, returnTo: destination.returnTo }); else router.push(destination.href); }} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><AppText variant="small">{destination.label}</AppText></Pressable>)}</View> : null}
           <Pressable accessibilityRole="link" accessibilityLabel="توريد، الرئيسية" onPress={() => router.replace('/(app)/(tabs)')} style={({ pressed }) => [styles.logoButton, pressed && styles.pressed]}><BrandLogo variant={mobile ? 'symbolSmall' : 'horizontal'} width={mobile ? 32 : 132} /></Pressable>
         </View>
+        ); }}</Responsive>
       </View>
       <GuestAuthPrompt visible={Boolean(prompt)} sectionLabel={prompt?.label ?? ''} returnTo={prompt?.returnTo ?? '/account'} onClose={() => setPrompt(null)} />
     </>

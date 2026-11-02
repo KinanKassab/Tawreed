@@ -9,7 +9,7 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#0E5245",
+  "theme_color": "#FFFFFF",
   "background_color": "#FFFFFF",
   "categories": ["shopping", "medical"],
   "icons": [

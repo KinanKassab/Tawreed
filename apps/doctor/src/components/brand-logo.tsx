@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { StyleSheet, type ImageStyle, type StyleProp, View } from 'react-native';
+import { Platform, StyleSheet, type ImageStyle, type StyleProp, View } from 'react-native';
 
 const assets = {
   horizontal: require('../../assets/brand/tawreed-horizontal-color.svg'),
@@ -19,7 +19,10 @@ export function BrandLogo({ variant = 'horizontal', width = 132, style }: {
   const safeSpace = Math.max(4, Math.round(width * 0.04));
   return (
     <View accessible accessibilityRole="image" accessibilityLabel="توريد" style={{ padding: safeSpace }}>
-      <Image source={assets[variant]} contentFit="contain" style={[styles.image, { width, height: width / ratio }, style]} />
+      {/* expo-image only adds its <img> once JS runs; a plain one is already in the pre-rendered page (web assets resolve to { uri }). */}
+      {Platform.OS === 'web' && !style
+        ? <img src={(assets[variant] as { uri: string }).uri} alt="توريد" width={width} height={width / ratio} style={{ display: 'block', flexShrink: 0 }} />
+        : <Image source={assets[variant]} accessibilityLabel="توريد" contentFit="contain" style={[styles.image, { width, height: width / ratio }, style]} />}
     </View>
   );
 }

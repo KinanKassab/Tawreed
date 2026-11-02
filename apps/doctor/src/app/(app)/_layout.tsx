@@ -3,14 +3,17 @@ import { StyleSheet, View } from 'react-native';
 import { StateView } from '@tawreed/ui';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { SwipeTabNavigator } from '@/components/swipe-tab-navigator';
-import { useSession } from '@/providers/app-providers';
+import { useData, useSession } from '@/providers/app-providers';
 import { ar } from '@/locales/ar';
 
 export default function AppLayout() {
+  const data = useData();
   const { session, loading } = useSession();
   const pathname = usePathname();
   const publicPage = pathname === '/' || pathname === '/catalog' || pathname === '/cart' || pathname.startsWith('/product/');
-  if (loading) return <StateView loading title={ar.loading} message={ar.loadingMessage} />;
+  if (!data) return <StateView title={ar.configurationTitle} message={ar.configurationMessage} />;
+  // Public pages render straight away (and at static build time) instead of waiting for the stored session.
+  if (loading && !publicPage) return <StateView loading title={ar.loading} message={ar.loadingMessage} />;
   if (!session && !publicPage) return <Redirect href={{ pathname: '/(auth)/login', params: { returnTo: pathname } }} />;
   return <View style={styles.shell}><View style={styles.content}><SwipeTabNavigator><Stack screenOptions={{ headerShown: false, animation: 'slide_from_left' }} /></SwipeTabNavigator></View><MobileBottomNav /></View>;
 }
