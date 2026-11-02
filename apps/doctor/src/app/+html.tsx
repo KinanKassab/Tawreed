@@ -1,5 +1,5 @@
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
-import type { PropsWithChildren } from 'react';
+import { Children, isValidElement, type PropsWithChildren, type ReactNode } from 'react';
 import { colors, cssVariables, typography } from '@tawreed/design-tokens';
 
 const globalStyles = `${cssVariables}
@@ -10,6 +10,19 @@ body{background:var(--color-bg-subtle);font-family:${typography.family.web};marg
 *{box-sizing:border-box}button,input,textarea{font:inherit}
 *:focus-visible{outline:3px solid var(--color-focus-ring);outline-offset:2px}
 `;
+
+// With cached or fast-arriving bundles the browser runs every deferred script straight after parsing, before its
+// first paint, so the pre-rendered page would stay blank until ~3MB of JS has run. Start the bundles (in order; the
+// head preloads them) only after a frame has been painted. Hidden tabs never paint, so they load at once.
+function deferUntilPainted(nodes: ReactNode) {
+  const sources: string[] = [];
+  const others = Children.toArray(nodes).filter((node) => {
+    if (isValidElement<{ src?: string }>(node) && node.type === 'script' && node.props.src) { sources.push(node.props.src); return false; }
+    return true;
+  });
+  const loader = `(function(s){function go(){s.forEach(function(src){var e=document.createElement('script');e.src=src;e.async=false;document.body.appendChild(e);});}if(document.visibilityState==='hidden')go();else requestAnimationFrame(function(){setTimeout(go,0);});})(${JSON.stringify(sources)});`;
+  return <>{others}{sources.length ? <script dangerouslySetInnerHTML={{ __html: loader }} /> : null}</>;
+}
 
 // Static rendering (app.json web.output "static") passes the JS bundles, React Native Web styles and fonts
 // through headNodes/bodyNodes; without them the pre-rendered pages never hydrate.
@@ -45,7 +58,7 @@ export default function Root({ children }: PropsWithChildren) {
       </head>
       <body {...bodyAttributes}>
         {children}
-        {bodyNodes}
+        {deferUntilPainted(bodyNodes)}
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>undefined));}` }} />
       </body>
     </html>

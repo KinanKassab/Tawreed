@@ -143,9 +143,15 @@ export function StateView({ title, message, actionLabel, onAction, loading = fal
   );
 }
 
+// Reanimated renders `entering` views as visibility:hidden until their animation starts in JS, which would hide
+// pre-rendered web pages until the bundle runs. Content already present at hydration skips the fade; later mounts fade in.
+let pageHydrated = Platform.OS !== 'web';
+
 export function ContentFade({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const reducedMotion = useReducedMotion();
-  return <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(motion.duration.normal)} style={style}>{children}</Animated.View>;
+  const [animate] = useState(pageHydrated);
+  useEffect(() => { pageHydrated = true; }, []);
+  return <Animated.View entering={reducedMotion || !animate ? undefined : FadeIn.duration(motion.duration.normal)} style={style}>{children}</Animated.View>;
 }
 
 export function SkeletonBlock({ height, width = '100%', circle = false, style }: { height: number; width?: ViewStyle['width']; circle?: boolean; style?: StyleProp<ViewStyle> }) {
