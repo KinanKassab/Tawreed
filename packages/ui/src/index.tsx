@@ -167,8 +167,23 @@ export function CatalogSkeleton({ count = 4 }: { count?: number }) {
   return <View accessibilityLabel="جارٍ تحميل المنتجات" style={styles.skeletonGrid}>{Array.from({ length: count }, (_, index) => <View key={index} style={styles.skeletonCell}><ProductCardSkeleton /></View>)}</View>;
 }
 
-export function HomeSkeleton() {
-  return <View accessibilityLabel="جارٍ تحميل الصفحة الرئيسية" style={styles.skeletonStack}><Surface style={styles.skeletonStack}><SkeletonBlock height={20} width="44%" /><SkeletonBlock height={42} width="80%" /><SkeletonBlock height={24} width="94%" /><SkeletonBlock height={52} /><View style={styles.skeletonRow}><SkeletonBlock height={48} width="48%" /><SkeletonBlock height={48} width="48%" /></View></Surface><SkeletonBlock height={32} width="38%" /><CatalogSkeleton /></View>;
+// Mirrors the home screen block for block (welcome, search, actions, category tiles, featured grid) so content replaces it without a jump.
+// Keep in sync with the static boot skeleton in apps/doctor/scripts/fix-web-html.mjs.
+export function HomeSkeleton({ categoryColumns = 2 }: { categoryColumns?: number }) {
+  const heading = <View style={styles.skeletonHeading}><SkeletonBlock height={32} width="34%" /><SkeletonBlock height={20} width="16%" /></View>;
+  return <View accessibilityLabel="جارٍ تحميل الصفحة الرئيسية" style={styles.skeletonHome}>
+    <View style={styles.skeletonWelcome}>
+      <SkeletonBlock height={20} width="44%" />
+      <SkeletonBlock height={48} width="80%" />
+      <SkeletonBlock height={30} width="94%" />
+      <SkeletonBlock height={52} style={styles.skeletonField} />
+      <View style={styles.skeletonActions}><SkeletonBlock height={controlHeight.regular} width={150} /><SkeletonBlock height={controlHeight.regular} width={150} /></View>
+    </View>
+    {heading}
+    <View style={styles.skeletonGrid}>{Array.from({ length: categoryColumns * 2 }, (_, index) => <View key={index} style={[styles.skeletonCell, { width: `${100 / categoryColumns}%` }]}><View style={styles.skeletonTile}><SkeletonBlock height={64} width={64} style={styles.skeletonTileVisual} /><SkeletonBlock height={18} width="56%" /></View></View>)}</View>
+    {heading}
+    <CatalogSkeleton />
+  </View>;
 }
 
 export function AccountSkeleton() {
@@ -252,6 +267,13 @@ const styles = StyleSheet.create({
   skeleton: { position: 'relative', overflow: 'hidden', backgroundColor: colors.surfaceMuted },
   skeletonSheen: { position: 'absolute', top: 0, bottom: 0, width: '28%', backgroundColor: colors.primarySoft },
   skeletonStack: { gap: spacing.md },
+  skeletonHome: { gap: spacing.xl },
+  skeletonWelcome: { gap: spacing.md, paddingVertical: spacing.xxl, paddingHorizontal: spacing.xl },
+  skeletonField: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg },
+  skeletonActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
+  skeletonHeading: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
+  skeletonTile: { minHeight: 132, padding: spacing.sm, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  skeletonTileVisual: { borderRadius: radius.xl },
   skeletonRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   skeletonGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', marginHorizontal: -6 },
   skeletonCell: { width: '50%', padding: 6 },

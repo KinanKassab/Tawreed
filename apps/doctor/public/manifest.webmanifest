@@ -10,7 +10,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0E5245",
-  "background_color": "#0E5245",
+  "background_color": "#FFFFFF",
   "categories": ["shopping", "medical"],
   "icons": [
     { "src": "/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
