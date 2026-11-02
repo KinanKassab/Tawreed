@@ -327,8 +327,8 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       return (data ?? []).map((row) => {
         const priceRows = (row.product_prices ?? []).filter((candidate: { active: boolean }) => candidate.active);
         const costRows = (row.product_costs ?? []).filter((candidate: { active: boolean }) => candidate.active);
-        const price = priceRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'NEW_SYP') ?? priceRows[0];
-        const cost = costRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'NEW_SYP') ?? costRows[0];
+        const price = priceRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'USD') ?? priceRows[0];
+        const cost = costRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'USD') ?? costRows[0];
         const balance = row.inventory_balances?.[0];
         const mediaLink = (row.product_media ?? []).find((candidate: { is_primary: boolean }) => candidate.is_primary) ?? row.product_media?.[0];
         const mediaValue = mediaLink?.media_assets;
