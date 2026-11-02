@@ -211,8 +211,10 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
 }
 
 export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
+  // Static web rendering runs in Node with no localStorage: keep that client sessionless; the browser builds its own.
+  const server = Platform.OS === 'web' && typeof window === 'undefined';
   const client = createClient(config.supabaseUrl, config.supabasePublishableKey, {
-    auth: {
+    auth: server ? { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } : {
       storage: AsyncStorage,
       autoRefreshToken: true,
       persistSession: true,

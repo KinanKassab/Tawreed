@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { useViewport } from '@/hooks/use-viewport';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
-import { AppText, Button, ContentFade, HomeSkeleton, Icon, MotionPressable, StateView, Surface } from '@tawreed/ui';
+import { AppText, Button, CatalogSkeleton, CategoryTilesSkeleton, ContentFade, Icon, MotionPressable, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { CatalogGrid } from '@/components/catalog-grid';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
@@ -12,12 +13,9 @@ import { categoryIcons } from '@/lib/category-icons';
 export default function HomeScreen() {
   const categories = useCategories();
   const products = useProducts({ limit: 6 });
-  const { width } = useWindowDimensions();
+  const { width } = useViewport();
   const categoryColumns = width <= 680 ? 2 : width <= 900 ? 3 : 4;
 
-  if (categories.isLoading || products.isLoading) {
-    return <AppPage><HomeSkeleton categoryColumns={categoryColumns} /></AppPage>;
-  }
   if (categories.error || products.error) {
     return <AppPage><StateView title="تعذر تحميل المتجر" message="تحقق من الاتصال وحاول مجدداً." actionLabel={ar.retry} onAction={() => { categories.refetch(); products.refetch(); }} /></AppPage>;
   }
@@ -39,7 +37,7 @@ export default function HomeScreen() {
         <MotionPressable onPress={() => router.push('/(app)/(tabs)/catalog')}><AppText variant="small" color={colors.primary}>{ar.seeAll}</AppText></MotionPressable>
         <AppText variant="h2">{ar.categories}</AppText>
       </View>
-      <View style={styles.categories}>
+      {categories.isPending ? <CategoryTilesSkeleton columns={categoryColumns} /> : <View style={styles.categories}>
         {(categories.data ?? []).map((category) => (
           <View key={category.id} style={[styles.categoryCell, { width: `${100 / categoryColumns}%` }]}>
             <MotionPressable
@@ -55,13 +53,13 @@ export default function HomeScreen() {
             </MotionPressable>
           </View>
         ))}
-      </View>
+      </View>}
 
       <View style={styles.heading}>
         <MotionPressable onPress={() => router.push('/(app)/(tabs)/catalog')}><AppText variant="small" color={colors.primary}>{ar.seeAll}</AppText></MotionPressable>
         <AppText variant="h2">{ar.featured}</AppText>
       </View>
-      <CatalogGrid products={products.data ?? []} />
+      {products.isPending ? <CatalogSkeleton /> : <CatalogGrid products={products.data} />}
     </ContentFade></AppPage>
   );
 }

@@ -1,6 +1,7 @@
 import { router, usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useViewport } from '@/hooks/use-viewport';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -24,7 +25,7 @@ function notchPath(width: number, center: number, height: number) {
 }
 
 export function MobileBottomNav() {
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useViewport();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
@@ -35,9 +36,13 @@ export function MobileBottomNav() {
   const centerX = useSharedValue(barWidth - (barWidth / mainDestinations.length) * (activeIndex + 0.5));
   const totalHeight = NAV_HEIGHT + Math.max(insets.bottom, spacing.xs);
 
+  const animatedIndex = useRef(activeIndex);
   useEffect(() => {
     const target = barWidth - (barWidth / mainDestinations.length) * (activeIndex + 0.5);
-    centerX.value = reducedMotion ? target : withSpring(target, motion.springGentle);
+    // Only a tab change animates; a new bar width (first layout after hydration, rotation) jumps straight to place.
+    const tabChanged = animatedIndex.current !== activeIndex;
+    animatedIndex.current = activeIndex;
+    centerX.value = reducedMotion || !tabChanged ? target : withSpring(target, motion.springGentle);
   }, [activeIndex, barWidth, centerX, reducedMotion]);
 
   const pathProps = useAnimatedProps(() => ({ d: notchPath(barWidth, centerX.value, totalHeight) }));

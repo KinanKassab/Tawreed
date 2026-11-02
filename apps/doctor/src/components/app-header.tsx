@@ -1,6 +1,7 @@
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useViewport } from '@/hooks/use-viewport';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
 import { formatNumber } from '@tawreed/domain';
 import { AppText, Icon } from '@tawreed/ui';
@@ -17,7 +18,7 @@ const navigation = [
 ] as const;
 
 export function AppHeader() {
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useViewport();
   const pathname = usePathname();
   const mobile = width <= 680 || (width <= 900 && height <= 500);
   const showBack = !['/', '/catalog', '/orders', '/account'].includes(pathname);

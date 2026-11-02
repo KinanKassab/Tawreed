@@ -9,6 +9,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors } from '@tawreed/design-tokens';
 import { AppProviders } from '@/providers/app-providers';
+import { useCart } from '@/store/cart';
 
 I18nManager.allowRTL(true); I18nManager.forceRTL(true);
 void SplashScreen.preventAutoHideAsync();
@@ -19,6 +20,7 @@ const nativeFonts: Parameters<typeof useFonts>[0] = Platform.OS === 'web' ? {} :
 };
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(nativeFonts);
+  useEffect(() => { if (Platform.OS === 'web') void useCart.persist.rehydrate(); }, []);
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.documentElement.lang = 'ar';

@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useViewport } from '@/hooks/use-viewport';
 import type { Product } from '@tawreed/domain';
 import { ProductCard, Toast } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
 
 export function CatalogGrid({ products }: { products: Product[] }) {
-  const { width } = useWindowDimensions(); const data = useData(); const add = useCart((state) => state.add);
+  const { width } = useViewport(); const data = useData(); const add = useCart((state) => state.add);
   const [showToast, setShowToast] = useState(false);
   const columns = width < 375 ? 1 : width <= 900 ? 2 : 3;
   useEffect(() => { if (!showToast) return; const timer = setTimeout(() => setShowToast(false), 3200); return () => clearTimeout(timer); }, [showToast]);

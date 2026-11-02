@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tawreed-brand-v4';
+const CACHE_NAME = 'tawreed-brand-v5';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/app-icon-192.png', '/app-icon-512.png', '/maskable-512.png'];
 // Content-hashed build output never changes for a given URL, so it is served cache-first.
 const IMMUTABLE_PREFIXES = ['/_expo/static/', '/assets/'];
@@ -26,9 +26,10 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Pages: network-first so a new deploy is picked up at once; cached shell only when offline.
+  // Pages: network-first so a new deploy is picked up at once. Each route is its own pre-rendered HTML file,
+  // so it is cached under its own URL; offline, fall back to that page, then to the home page.
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then((response) => store('/', response)).catch(() => caches.match('/')));
+    event.respondWith(fetch(request).then((response) => store(request, response)).catch(() => caches.match(request).then((cached) => cached ?? caches.match('/'))));
     return;
   }
 

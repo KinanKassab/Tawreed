@@ -20,7 +20,7 @@
       "predictiveBackGestureEnabled": true
     },
     "web": {
-      "output": "single",
+      "output": "static",
       "favicon": "./assets/images/favicon-tawreed.png"
     },
     "plugins": [
