@@ -10,7 +10,7 @@ for (const page of ['index.html', 'catalog.html', 'product/[id].html']) {
 }
 
 const home = await readFile(new URL('index.html', distUrl), 'utf8');
-for (const required of ['<html lang="ar" dir="rtl">', '/manifest.webmanifest', '/service-worker.js', '/favicon.svg', '/fonts/kufi.woff2', 'توريد | مستلزماتك الطبية', 'منصة توريد للمستلزمات الطبية']) {
+for (const required of ['<html lang="ar" dir="rtl">', '/manifest.webmanifest', '/service-worker.js', '/favicon.svg', '/fonts/kufi.woff2', 'توريد | مستلزماتك الطبية', 'مستلزماتك الطبية، واصلة لعندك']) {
   if (!home.includes(required)) throw new Error(`Missing exported web metadata or content in index.html: ${required}`);
 }
 
