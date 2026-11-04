@@ -1,16 +1,30 @@
 -- Generated from data/catalogs/tawreed_priced_catalog_usd.json by scripts/generate-catalog-seed.mjs.
 -- USD was explicitly confirmed by the product owner. Missing/on-request prices remain archived.
 
+-- Migration 20261102172718_restore_commerce_checkout.sql already upserts the authoritative
+-- currency_settings rows (USD base, NEW_SYP as the customer-facing default); this insert only
+-- needs to cover a database that somehow lacks them, never overwrite that later, correct state.
 insert into public.currency_settings(code, display_label_ar, decimal_places, enabled, is_base, is_default_display) values
   ('USD', 'دولار أمريكي', 2, true, true, true),
-  ('NEW_SYP', 'ليرة سورية جديدة', 2, false, false, false);
+  ('NEW_SYP', 'ليرة سورية جديدة', 2, false, false, false)
+on conflict (code) do nothing;
 
+-- Same as currency_settings above: migration 20261102172718_restore_commerce_checkout.sql
+-- already upserts this row.
 insert into public.financial_settings(id, delivery_fee_minor, delivery_fee_currency, tax_rate_bps)
-values (true, 0, 'USD', 0);
+values (true, 0, 'USD', 0)
+on conflict (id) do nothing;
 
 insert into public.warehouses(code, name_ar)
 select 'CENTRAL', 'المستودع المركزي لتوريد'
 where not exists (select 1 from public.warehouses where active);
+
+-- Must exist before any USD product_prices row is inserted below: the
+-- sync_product_price_to_syp trigger derives each product's NEW_SYP price from
+-- the active USD->NEW_SYP rate the moment its USD price commits.
+insert into public.exchange_rates(base_currency, quote_currency, rate, active)
+values ('USD', 'NEW_SYP', 100, true)
+on conflict do nothing;
 
 insert into public.categories(id, slug, name_ar, name_en, sort_order, active) values
   ('11000000-0000-0000-0000-000000000001', 'liquids', 'سوائل', null, 1, true),
@@ -400,16 +414,23 @@ insert into public.product_prices(product_id, currency, amount_minor, decimal_pl
   ('20000000-0000-0000-0000-000000000201', 'USD', 2800, 2, true),
   ('20000000-0000-0000-0000-000000000202', 'USD', 50, 2, true);
 
-insert into public.exchange_rates(base_currency, quote_currency, rate, active)
-values ('USD', 'NEW_SYP', 100, true)
-on conflict do nothing;
-
-insert into public.product_prices(product_id, currency, amount_minor, decimal_places, active)
-select product_id, 'NEW_SYP', (ceil(((amount_minor / 100.0) * 100) / 50.0) * 50)::bigint, 0, true
-from public.product_prices
-where currency = 'USD' and active;
+-- NEW_SYP prices are not inserted here: the sync_product_price_to_syp trigger
+-- (fired for each row by the USD insert above, with the exchange rate already
+-- in place) already derived every one of them.
 
 insert into public.inventory_balances(warehouse_id, product_id, on_hand, reserved)
 select w.id, p.id, 0, 0
 from public.warehouses w cross join public.products p
 where w.id = (select id from public.warehouses where active order by created_at limit 1);
+
+-- Mirrors the one-time backfill in migration 20261104120000_operations_variant_management.sql.
+-- That backfill only has rows to act on when migrations run against an already-seeded database
+-- (true on hosted and any incrementally-upgraded environment); on a from-scratch `db reset`,
+-- migrations run before this file loads any products, so repeat it here too.
+with ordered as (
+  select id, (row_number() over (partition by variant_group_key order by variant_label_ar, sku) - 1)::integer as position
+  from public.products
+  where variant_group_key is not null
+)
+update public.products p set variant_sort_order = ordered.position
+from ordered where ordered.id = p.id;
