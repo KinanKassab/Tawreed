@@ -612,6 +612,9 @@ isOneToOne: false
 "operations_set_product_active":
 { Args: { "p_active": boolean,"p_product_id": string }; Returns: undefined
                            },
+"operations_set_product_category":
+{ Args: { "p_category_id": string,"p_product_ids": (string)[] }; Returns: number
+                           },
 "operations_set_product_option":
 { Args: { "p_group_key": string,"p_label_ar": string,"p_product_id": string }; Returns: undefined
                            },

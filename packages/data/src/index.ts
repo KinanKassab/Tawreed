@@ -130,6 +130,8 @@ export interface OperationsRepository {
   setProductActive(productId: string, active: boolean): Promise<void>;
   /** Sets the sales unit of several products (e.g. every option of a group); returns how many changed. */
   setUnitLabel(productIds: string[], unitLabelAr: string): Promise<number>;
+  /** Moves products (e.g. every option of a group) to a category; returns how many changed. */
+  setProductCategory(productIds: string[], categoryId: string): Promise<number>;
   addProductImage(productId: string, image: ProductImageUpload, makePrimary: boolean): Promise<string>;
   setPrimaryProductImage(productId: string, mediaAssetId: string): Promise<void>;
   reorderProductImages(productId: string, mediaAssetIds: string[]): Promise<void>;
@@ -575,6 +577,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     async setUnitLabel(productIds, unitLabelAr) {
       const { data, error } = await client.rpc('operations_set_unit_label', { p_product_ids: productIds, p_unit_label_ar: unitLabelAr });
+      if (error) throw error;
+      return data as number;
+    },
+    async setProductCategory(productIds, categoryId) {
+      const { data, error } = await client.rpc('operations_set_product_category', { p_product_ids: productIds, p_category_id: categoryId });
       if (error) throw error;
       return data as number;
     },
