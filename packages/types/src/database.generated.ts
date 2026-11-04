@@ -618,6 +618,9 @@ isOneToOne: false
 "operations_set_product_price":
 { Args: { "p_amount_minor": number,"p_currency": Database["public"]['Enums']["currency_code"],"p_decimal_places": number,"p_product_id": string }; Returns: string
                            },
+"operations_set_unit_label":
+{ Args: { "p_product_ids": (string)[],"p_unit_label_ar": string }; Returns: number
+                           },
 "operations_update_group_details":
 { Args: { "p_category_id": string,"p_description_ar": string,"p_group_key": string,"p_manufacturer": string,"p_name_ar": string,"p_specifications_ar": string }; Returns: undefined
                            },

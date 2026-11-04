@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(32);
+select plan(37);
 
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -21,6 +21,10 @@ select throws_ok(
 select throws_ok(
   $$select public.operations_set_product_active('20000000-0000-0000-0000-000000000001'::uuid, false)$$,
   '42501', 'STAFF_REQUIRED', 'Doctor cannot archive products'
+);
+select throws_ok(
+  $$select public.operations_set_unit_label(array['20000000-0000-0000-0000-000000000001'::uuid], 'علبة')$$,
+  '42501', 'STAFF_REQUIRED', 'Doctor cannot change the sales unit'
 );
 
 set local "request.jwt.claim.sub" = '94000000-0000-0000-0000-000000000001';
@@ -129,6 +133,16 @@ select public.operations_update_product(
   'products/' || (select id from test_ids where name = 'created') || '/aaaaaaaa-0000-0000-0000-000000000003.webp', 'image/webp', 1200, 1200
 );
 select is((select count(*)::integer from public.product_media where product_id = (select id from test_ids where name = 'created')), 2, 'Editor upload adds a primary image without wiping the gallery');
+
+-- Sales unit for a whole group.
+select is(public.operations_set_unit_label(
+  (select array_agg(id) from public.products where variant_group_key = 'priced-liquids-725d4bace9eb'), '  علبة  '), 3, 'Sales unit changes for every option of a group');
+select is((select count(*)::integer from public.products where variant_group_key = 'priced-liquids-725d4bace9eb' and unit_label_ar = 'علبة'), 3, 'Sales unit is trimmed and stored');
+select is(public.operations_set_unit_label(array['20000000-0000-0000-0000-000000000007'::uuid], 'علبة'), 0, 'Unchanged unit reports no updated rows');
+select throws_ok(
+  $$select public.operations_set_unit_label(array['20000000-0000-0000-0000-000000000007'::uuid], '  ')$$,
+  '22023', 'INVALID_UNIT_LABEL', 'Empty sales unit is rejected'
+);
 
 select * from finish();
 rollback;

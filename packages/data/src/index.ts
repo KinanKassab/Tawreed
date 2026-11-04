@@ -128,6 +128,8 @@ export interface OperationsRepository {
   reorderProductOptions(groupKey: string, productIds: string[]): Promise<void>;
   updateGroupDetails(input: { groupKey: string; nameAr: string; manufacturer: string; descriptionAr: string; specificationsAr: string; categoryId: string }): Promise<void>;
   setProductActive(productId: string, active: boolean): Promise<void>;
+  /** Sets the sales unit of several products (e.g. every option of a group); returns how many changed. */
+  setUnitLabel(productIds: string[], unitLabelAr: string): Promise<number>;
   addProductImage(productId: string, image: ProductImageUpload, makePrimary: boolean): Promise<string>;
   setPrimaryProductImage(productId: string, mediaAssetId: string): Promise<void>;
   reorderProductImages(productId: string, mediaAssetIds: string[]): Promise<void>;
@@ -570,6 +572,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     async setProductActive(productId, active) {
       const { error } = await client.rpc('operations_set_product_active', { p_product_id: productId, p_active: active });
       if (error) throw error;
+    },
+    async setUnitLabel(productIds, unitLabelAr) {
+      const { data, error } = await client.rpc('operations_set_unit_label', { p_product_ids: productIds, p_unit_label_ar: unitLabelAr });
+      if (error) throw error;
+      return data as number;
     },
     async addProductImage(productId, image, makePrimary) {
       const objectKey = await uploadProductImage(productId, image);

@@ -29,6 +29,7 @@ const errorMessages: Record<string, string> = {
   PRODUCT_IMAGE_NOT_FOUND: 'الصورة غير موجودة.',
   CATEGORY_NOT_FOUND: 'الفئة غير موجودة.',
   STAFF_REQUIRED: 'صلاحياتك لا تسمح بهذا التعديل.',
+  INVALID_UNIT_LABEL: 'اكتب وحدة البيع (حتى 80 حرفاً).',
 };
 
 export function operationsErrorMessage(error: unknown) {
@@ -47,6 +48,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
   const [newLabel, setNewLabel] = useState('');
   const [sourceLabel, setSourceLabel] = useState(lead?.packageLabelAr ?? '');
   const [galleryOptionId, setGalleryOptionId] = useState<string | null>(null);
+  const [unit, setUnit] = useState(lead?.unitLabelAr ?? '');
   const [image, setImage] = useState<CroppedProductImage | null>(null);
   const labelOf = (option: OperationsProduct) => labelDrafts[option.id] ?? option.variantLabelAr ?? '';
 
@@ -61,6 +63,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
   const operations = data.operations;
   const galleryOption = group.options.find((option) => option.id === galleryOptionId) ?? group.options[0];
   const activeOptions = group.options.filter((option) => option.active);
+  const distinctUnits = [...new Set(group.options.map((option) => option.unitLabelAr))];
 
   const move = (index: number, direction: -1 | 1) => {
     const order = group.options.map((option) => option.id);
@@ -117,6 +120,12 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
             </View>}
           </Section>
 
+          <Section title="وحدة البيع" hint={grouped ? 'الوحدة التي يُسعَّر ويُطلب بها كل خيار. تُطبّق هنا على كل الخيارات، ويمكن تغييرها لخيار واحد من "تعديل السعر والمخزون".' : 'الوحدة التي يُسعَّر ويُطلب بها المنتج.'}>
+            {distinctUnits.length > 1 ? <AppText variant="caption" color={colors.warningText}>الخيارات حالياً بوحدات مختلفة: {distinctUnits.join('، ')}</AppText> : null}
+            <UnitPicker value={unit} onChange={setUnit} />
+            <Button label={grouped ? 'تطبيق الوحدة على كل الخيارات' : 'حفظ وحدة البيع'} loading={run.isPending} disabled={!unit.trim() || (distinctUnits.length === 1 && distinctUnits[0] === unit.trim())} onPress={() => perform(() => operations.setUnitLabel(group.options.map((option) => option.id), unit), grouped ? 'تم تغيير وحدة البيع لكل الخيارات.' : 'تم تغيير وحدة البيع.')} />
+          </Section>
+
           <Section title="الخيارات (النوع / العبوة / الحجم)" hint="كل خيار له سعره وتكلفته ومخزونه وصوره. الطبيب يختار بينها داخل نفس المنتج.">
             {grouped ? group.options.map((option, index) => <View key={option.id} style={[styles.optionRow, !option.active && styles.optionArchived, compact && styles.optionRowCompact]}>
               <Thumb url={data.media.resolve(option.media)} />
@@ -126,6 +135,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
               </View>
               <View style={styles.optionMetrics}>
                 <Metric label="البيع" value={option.price ? formatMoney(option.price) : 'بدون سعر'} warn={!option.price} />
+                <Metric label="الوحدة" value={option.unitLabelAr} />
                 <Metric label="التكلفة" value={option.cost ? formatMoney(option.cost) : '—'} />
                 <Metric label="المتاح" value={(option.onHand - option.reserved).toLocaleString('ar-SY')} />
                 <Metric label="العرض" value={getAvailabilityLabel(option.availability)} />
@@ -184,6 +194,16 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
       </Surface>
     </View>
   </Modal>;
+}
+
+const commonUnits = ['قطعة', 'علبة', 'عبوة', 'باكيت', 'كرتونة', 'طقم', 'زوج', 'لفة', 'ليتر', 'كيلو'];
+
+/** Free-text sales unit with one-tap common choices. */
+export function UnitPicker({ value, onChange, error }: { value: string; onChange: (value: string) => void; error?: string }) {
+  return <View style={styles.fieldGroup}>
+    <Field label="وحدة البيع" placeholder="مثال: قطعة، علبة 50 قطعة" value={value} onChangeText={onChange} error={error} />
+    <View style={styles.chips}>{commonUnits.map((unit) => { const selected = value.trim() === unit; return <Pressable key={unit} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onChange(unit)} style={[styles.chip, selected && styles.chipSelected]}><AppText variant="small" color={selected ? colors.white : colors.ink}>{unit}</AppText></Pressable>; })}</View>
+  </View>;
 }
 
 export function CategoryPicker({ categories, value, onChange }: { categories: Category[]; value: string; onChange: (id: string) => void }) {

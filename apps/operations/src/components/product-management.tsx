@@ -8,7 +8,7 @@ import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, groupOperationsProducts, normalizeAppError, type Availability, type OperationsProduct, type OperationsProductGroup } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, StateView, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
-import { CategoryPicker, operationsErrorMessage, ProductGroupEditor } from './product-group-editor';
+import { CategoryPicker, operationsErrorMessage, ProductGroupEditor, UnitPicker } from './product-group-editor';
 import { ProductImageEditor, type CroppedProductImage } from './product-image-editor';
 
 const optionalMoney = z.string().trim().refine((value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10_000_000_000), 'أدخل سعراً موجباً أو اتركه فارغاً.');
@@ -217,7 +217,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
           <View style={styles.modalHeader}><AppText variant="h2">منتج جديد</AppText><Pressable accessibilityRole="button" accessibilityLabel="إغلاق" onPress={() => setCreating(false)} style={styles.iconButton}><Icon name="close" size={24} color={colors.ink} /></Pressable></View>
           <ScrollView contentContainerStyle={styles.createContent} keyboardShouldPersistTaps="handled">
             <Field label="اسم المنتج" value={newProduct.nameAr} onChangeText={(nameAr) => setNewProduct((current) => ({ ...current, nameAr }))} />
-            <Field label="وحدة البيع" value={newProduct.unitLabelAr} onChangeText={(unitLabelAr) => setNewProduct((current) => ({ ...current, unitLabelAr }))} />
+            <UnitPicker value={newProduct.unitLabelAr} onChange={(unitLabelAr) => setNewProduct((current) => ({ ...current, unitLabelAr }))} />
             <CategoryPicker categories={categories.data ?? []} value={newProduct.categoryId} onChange={(categoryId) => setNewProduct((current) => ({ ...current, categoryId }))} />
             <AppText variant="caption" color={colors.muted}>يُنشأ المنتج بدون سعر ومخفياً عن الأطباء، ثم تضيف سعره وصوره وخياراته من شاشة إدارة المنتج.</AppText>
           </ScrollView>
@@ -240,7 +240,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
                 <Controller control={form.control} name="nameAr" render={({ field, fieldState }) => <Field label="اسم المنتج" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
                 <Controller control={form.control} name="manufacturer" render={({ field, fieldState }) => <Field label="الشركة المصنعة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
                 <View style={styles.twoColumns}>
-                  <View style={styles.flexField}><Controller control={form.control} name="unitLabelAr" render={({ field, fieldState }) => <Field label="وحدة البيع" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
+                  <View style={styles.flexField}><Controller control={form.control} name="unitLabelAr" render={({ field, fieldState }) => <UnitPicker value={field.value} onChange={field.onChange} error={fieldState.error?.message} />} /></View>
                   <View style={styles.flexField}><Controller control={form.control} name="packageLabelAr" render={({ field, fieldState }) => <Field label="النوع أو العبوة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
                 </View>
                 <View style={styles.twoColumns}>
@@ -285,7 +285,7 @@ function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview }: { gr
   const stock = stockState({ onHand: active.reduce((sum, option) => sum + option.onHand, 0), reserved: active.reduce((sum, option) => sum + option.reserved, 0), lowStockThreshold: lead.lowStockThreshold });
   const missing = [!active.length ? 'مؤرشف' : null, active.some((option) => !option.price) ? 'خيار بدون سعر' : null, active.some((option) => !option.media) ? 'خيار بدون صورة' : null].filter(Boolean).join(' · ');
   const optionsText = group.variantGroupKey ? group.options.map((option) => option.variantLabelAr ?? option.sku).join('، ') : 'بدون خيارات';
-  const title = <View style={styles.productName}><AppText variant={compact ? 'body' : 'small'} style={styles.semibold} numberOfLines={2}>{lead.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{lead.category?.nameAr ?? 'بدون فئة'} · {group.options.length > 1 ? `${group.options.length.toLocaleString('ar-SY')} خيارات` : lead.sku}</AppText></View>;
+  const title = <View style={styles.productName}><AppText variant={compact ? 'body' : 'small'} style={styles.semibold} numberOfLines={2}>{lead.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{lead.category?.nameAr ?? 'بدون فئة'} · {lead.unitLabelAr} · {group.options.length > 1 ? `${group.options.length.toLocaleString('ar-SY')} خيارات` : lead.sku}</AppText></View>;
   const thumbnail = imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><Icon name="image-outline" size={24} color={colors.muted} /></View>;
   if (compact) return <Surface style={styles.mobileCard}>
     <View style={styles.mobileTitle}>{thumbnail}{title}<StockBadge {...stock} /></View>
