@@ -5,7 +5,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
-import { formatMoney, getAvailabilityLabel, groupOperationsProducts, normalizeAppError, type Availability, type OperationsProduct, type OperationsProductGroup } from '@tawreed/domain';
+import { formatMoney, getAvailabilityLabel, groupOperationsProducts, normalizeAppError, pickDisplayedOption, type Availability, type OperationsProduct, type OperationsProductGroup } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, StateView, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
 import { CategoryPicker, operationsErrorMessage, ProductGroupEditor, UnitPicker } from './product-group-editor';
@@ -205,7 +205,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
           <HeaderCell label="الحالة" />
           <HeaderCell label="الإجراءات" style={styles.actionColumn} />
         </View> : null}
-        {visibleGroups.map((group) => <ProductGroupRow key={group.key} group={group} compact={compact} imageUrl={data?.media.resolve(group.options.find((option) => option.media)?.media ?? null) ?? null} onManage={() => setOpenGroupKey(group.key)} onPreview={() => setPreviewing(group)} />)}
+        {visibleGroups.map((group) => <ProductGroupRow key={group.key} group={group} compact={compact} imageUrl={data?.media.resolve(pickDisplayedOption(group.options)?.media ?? null) ?? null} onManage={() => setOpenGroupKey(group.key)} onPreview={() => setPreviewing(group)} />)}
         {!filteredGroups.length ? <StateView title="لا توجد نتائج" message="جرّب تغيير عبارة البحث." /> : null}
       </View>
     </ScrollView>
@@ -313,8 +313,7 @@ function GroupPreview({ group, resolve, exchangeRate, onClose, phone }: { group:
   // Mirrors the Doctor app: only active, priced options are offered and the cheapest is preselected.
   const offered = group.options.filter((option) => option.active && option.price);
   const options = group.variantGroupKey ? offered : [];
-  const fallback = [...offered].sort((left, right) => left.price!.amountMinor - right.price!.amountMinor)[0] ?? group.options[0];
-  const selected = options.find((option) => option.id === selectedId) ?? fallback;
+  const selected = options.find((option) => option.id === selectedId) ?? pickDisplayedOption(group.options) ?? group.options[0];
   const sypText = (value: OperationsProduct['price']) => value?.currency === 'USD' ? convertedSypText(value.amountMinor / 100, exchangeRate) : value ? formatMoney(value) : 'السعر غير متوفر';
   const close = () => { setSelectedId(null); onClose(); };
   return <PreviewModal visible imageUrl={resolve(selected.media)} name={selected.nameAr} price={sypText(selected.price)} description={selected.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={selected.availability} onClose={close} phone={phone}
