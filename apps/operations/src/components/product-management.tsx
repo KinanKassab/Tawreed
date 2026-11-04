@@ -9,7 +9,7 @@ import { formatMoney, getAvailabilityLabel, groupOperationsProducts, normalizeAp
 import { AppText, Button, Field, Icon, StateView, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
 import { CategoryPicker, operationsErrorMessage, ProductGroupEditor, UnitPicker } from './product-group-editor';
-import { ProductImageEditor, type CroppedProductImage } from './product-image-editor';
+import { ProductImageEditor, type ProductImageFile } from './product-image-editor';
 
 const optionalMoney = z.string().trim().refine((value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 10_000_000_000), 'أدخل سعراً موجباً أو اتركه فارغاً.');
 const productSchema = z.object({
@@ -91,7 +91,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   const [newProduct, setNewProduct] = useState({ nameAr: '', unitLabelAr: 'قطعة', categoryId: '' });
   const categories = useQuery({ queryKey: ['operations-categories'], queryFn: () => data!.catalog.listCategories(), enabled: Boolean(data) });
   const [draftPreview, setDraftPreview] = useState<ProductForm | null>(null);
-  const [image, setImage] = useState<CroppedProductImage | null>(null);
+  const [image, setImage] = useState<ProductImageFile | null>(null);
   const [visibleCount, setVisibleCount] = useState(40);
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),

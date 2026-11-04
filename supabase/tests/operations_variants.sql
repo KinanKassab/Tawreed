@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(37);
+select plan(39);
 
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -142,6 +142,15 @@ select is(public.operations_set_unit_label(array['20000000-0000-0000-0000-000000
 select throws_ok(
   $$select public.operations_set_unit_label(array['20000000-0000-0000-0000-000000000007'::uuid], '  ')$$,
   '22023', 'INVALID_UNIT_LABEL', 'Empty sales unit is rejected'
+);
+
+-- Uncropped uploads keep their own dimensions.
+select isnt(public.operations_add_product_image(
+  (select id from test_ids where name = 'created'),
+  'products/' || (select id from test_ids where name = 'created') || '/aaaaaaaa-0000-0000-0000-000000000004.jpg', 'image/jpeg', 1600, 900, false), null, 'Non-square images are accepted');
+select throws_ok(
+  format($$select public.operations_add_product_image(%L::uuid, %L, 'image/jpeg', 9000, 900)$$, (select id from test_ids where name = 'created'), 'products/' || (select id from test_ids where name = 'created') || '/aaaaaaaa-0000-0000-0000-000000000005.jpg'),
+  '22023', 'INVALID_PRODUCT_IMAGE', 'Oversized image dimensions are rejected'
 );
 
 select * from finish();
