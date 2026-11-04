@@ -182,6 +182,19 @@ export function groupOperationsProducts(products: OperationsProduct[]): Operatio
   return [...groups.values()];
 }
 
+/**
+ * The option a Doctor-facing group card actually represents: the cheapest active, priced
+ * option (matching the Doctor catalog's own selection). Falls back to the first active option,
+ * then the first option, so a group with nothing priced yet still has something to show.
+ * Operations surfaces must use this for a group's price/image summary instead of ad-hoc
+ * "first option" picks, or they can silently disagree with what Doctors actually see.
+ */
+export function pickDisplayedOption(options: OperationsProduct[]): OperationsProduct | null {
+  const priced = options.filter((option) => option.active && option.price);
+  const cheapest = [...priced].sort((left, right) => left.price!.amountMinor - right.price!.amountMinor)[0];
+  return cheapest ?? options.find((option) => option.active) ?? options[0] ?? null;
+}
+
 export interface OperationsExchangeRate {
   id: string;
   baseCurrency: CurrencyCode;
