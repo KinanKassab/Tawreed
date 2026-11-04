@@ -175,3 +175,11 @@
 - Decision: when a signed-out visitor selects Orders or Account from primary navigation, keep the visitor on the current page and show an accessible sign-in prompt that preserves the requested return path. Configure Google Maps with separate Web, Android, and iOS keys.
 - Reason: protected destinations should explain why authentication is required without abruptly discarding browsing context, and Google application restrictions are platform-specific.
 - Consequence: the Web key is restricted by HTTP referrer and Maps JavaScript API; Android is restricted by `com.tawreed.doctor` plus the signing SHA-1 and Maps SDK for Android; iOS is restricted by `com.tawreed.doctor` and Maps SDK for iOS.
+
+## ADR-022 — Operations manages options as grouped rows
+
+- Date: 2026-11-04
+- Status: accepted
+- Decision: keep every option as its own product/price row linked by `variant_group_key`, and give Operations RPCs to create products, add/rename/move/detach/reorder/archive options, edit shared group details once, and manage a per-option gallery. The Operations catalog lists one row per Doctor-facing product and edits options inside it.
+- Reason: the product owner needs to control every option, however small or large, from the control center; previously options and galleries could only change through the catalog import script, and saving an image wiped the gallery.
+- Consequence: checkout and pricing stay server-authoritative per option; media assets can be shared across options, so removing an image unlinks it and leaves the storage object for a later cleanup job.

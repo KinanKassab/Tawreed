@@ -51,3 +51,15 @@ Future catalog CSV columns remain: `sku`, `name_ar`, `name_en`, `category_slug`,
 `products.low_stock_threshold` stores the alert boundary independently for each product. Current and historical purchase costs live in `product_costs`, which has explicit authenticated grants plus staff-only RLS; Doctor policies return no cost rows. Selling prices continue to use `product_prices` so Doctor reads and checkout use the same authoritative active price.
 
 `operations_update_product` validates staff rank and all numeric/text bounds, locks the product and single warehouse balance, refuses stock below reserved quantity, updates Doctor-visible product fields, versions selling price and purchase cost, records exact-stock movements, and binds an optional normalized primary image in one database transaction. The browser uploads a unique Storage object first and deletes it if the database call fails. The public `product-media` bucket permits public delivery but restricts insert/delete operations to authenticated Operations staff under RLS. Product image records remain provider-neutral in `media_assets` and `product_media`; the normalized size is 1200×1200 pixels.
+
+## Operations option (variant) and gallery management
+
+Migration `20261104120000_operations_variant_management.sql` lets staff manage options without the catalog import script. Options remain separate `products` rows sharing `variant_group_key`; `variant_sort_order` (backfilled per group by label) sets the order of the option chips in the Doctor app. Staff-only, audited, `security invoker` RPCs:
+
+- `operations_create_product(category, name, unit)` creates an unpriced, unavailable product with a generated `TWD-OPS-#####` SKU; it stays hidden from Doctors until priced.
+- `operations_add_product_option(source, label, source_label)` clones a product's shared details and gallery into a new unpriced option; a standalone source becomes the first option of a new `ops-…` group.
+- `operations_set_product_option` renames, moves (appends to the target group) or detaches an option; labels are 1–80 characters and unique among active options of a group.
+- `operations_reorder_product_options`, `operations_update_group_details` (name, manufacturer, description, specifications and category for every option), `operations_set_product_active` (refuses to archive a row with reserved stock).
+- Gallery: `operations_add_product_image`, `operations_set_primary_product_image`, `operations_reorder_product_images`, `operations_remove_product_image` (promotes the next image when the primary is removed; the asset and storage object are kept because other options may share them) and `operations_copy_product_images_to_group`.
+
+The 19-argument `operations_update_product` wrapper now adds an uploaded image as the new primary gallery image instead of deleting the whole gallery. The Doctor app shows the primary image (then gallery order) instead of an arbitrary first link. Tests live in `supabase/tests/operations_variants.sql`.

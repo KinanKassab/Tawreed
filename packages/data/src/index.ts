@@ -84,6 +84,14 @@ export interface MediaRepository {
   resolve(asset: MediaAsset | null): string | null;
 }
 
+export interface ProductImageUpload {
+  bytes: ArrayBuffer;
+  mimeType: 'image/webp' | 'image/png' | 'image/jpeg';
+  extension: 'webp' | 'png' | 'jpg';
+  width: number;
+  height: number;
+}
+
 export interface OperationsRepository {
   getMyContext(): Promise<{ userId: string; rank: StaffRank } | null>;
   listOrders(): Promise<OperationsOrder[]>;
@@ -109,14 +117,23 @@ export interface OperationsRepository {
     decimalPlaces: number;
     onHand: number;
     inventoryNotes: string;
-    image?: {
-      bytes: ArrayBuffer;
-      mimeType: 'image/webp' | 'image/png' | 'image/jpeg';
-      extension: 'webp' | 'png' | 'jpg';
-      width: number;
-      height: number;
-    };
+    image?: ProductImageUpload;
   }): Promise<void>;
+  /** Creates a standalone product without price or stock; it stays hidden from Doctors until priced. */
+  createProduct(input: { categoryId: string; nameAr: string; unitLabelAr: string }): Promise<string>;
+  /** Adds an option next to a product; a standalone source becomes the first option and needs sourceLabelAr. */
+  addProductOption(input: { sourceProductId: string; labelAr: string; sourceLabelAr?: string }): Promise<string>;
+  /** Renames an option, moves it to another group, or detaches it when groupKey is null. */
+  setProductOption(input: { productId: string; groupKey: string | null; labelAr: string | null }): Promise<void>;
+  reorderProductOptions(groupKey: string, productIds: string[]): Promise<void>;
+  updateGroupDetails(input: { groupKey: string; nameAr: string; manufacturer: string; descriptionAr: string; specificationsAr: string; categoryId: string }): Promise<void>;
+  setProductActive(productId: string, active: boolean): Promise<void>;
+  addProductImage(productId: string, image: ProductImageUpload, makePrimary: boolean): Promise<string>;
+  setPrimaryProductImage(productId: string, mediaAssetId: string): Promise<void>;
+  reorderProductImages(productId: string, mediaAssetIds: string[]): Promise<void>;
+  removeProductImage(productId: string, mediaAssetId: string): Promise<void>;
+  /** Replaces the gallery of every other option in the product's group; returns how many options changed. */
+  copyProductImagesToGroup(productId: string): Promise<number>;
   confirmOrder(orderId: string, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
   setOrderStatus(orderId: string, status: DoctorOrderStatus, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
 }
@@ -145,9 +162,10 @@ interface CatalogProductRow {
   availability: Product['availability'];
   variant_group_key: string | null;
   variant_label_ar: string | null;
+  variant_sort_order: number;
   categories: { id: string; slug: string; name_ar: string; name_en: string | null } | null;
   product_prices: { amount_minor: number; currency: CurrencyCode; decimal_places: number }[] | null;
-  product_media: { media_assets: {
+  product_media: { is_primary: boolean; sort_order: number; media_assets: {
     id: string;
     provider: MediaAsset['provider'];
     object_key: string | null;
@@ -158,6 +176,10 @@ interface CatalogProductRow {
   } | null }[] | null;
 }
 
+// Primary image first, then gallery order; the Doctor app shows the first one.
+const primaryMediaLink = <T extends { is_primary: boolean; sort_order: number }>(links: T[] | null | undefined) =>
+  [...(links ?? [])].sort((left, right) => Number(right.is_primary) - Number(left.is_primary) || left.sort_order - right.sort_order)[0];
+
 const displayPrice = (row: CatalogProductRow) => row.product_prices?.find((price) => price.currency === 'NEW_SYP') ?? row.product_prices?.[0];
 
 function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Product {
@@ -167,9 +189,9 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
     ?? rows[0];
   if (!selected?.categories) throw new Error('Incomplete catalog product');
   const price = displayPrice(selected);
-  const mediaRow = selected.product_media?.[0]?.media_assets;
+  const mediaRow = primaryMediaLink(selected.product_media)?.media_assets;
   const mapMedia = (row: CatalogProductRow): MediaAsset | null => {
-    const value = row.product_media?.[0]?.media_assets;
+    const value = primaryMediaLink(row.product_media)?.media_assets;
     return value ? { id: value.id, provider: value.provider, objectKey: value.object_key, externalUrl: value.external_url, altTextAr: value.alt_text_ar ?? row.name_ar, width: value.width, height: value.height } : null;
   };
   return {
@@ -189,6 +211,7 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
     variantLabelAr: selected.variant_label_ar,
     variants: pricedRows
       .filter((row) => row.variant_label_ar)
+      .sort((left, right) => left.variant_sort_order - right.variant_sort_order)
       .map((row) => ({
         id: row.id,
         sku: row.sku,
@@ -283,10 +306,10 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
 
   const productSelect = `
       id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
-      specifications_ar, availability, variant_group_key, variant_label_ar,
+      specifications_ar, availability, variant_group_key, variant_label_ar, variant_sort_order,
     categories!inner(id, slug, name_ar, name_en),
       product_prices!inner(amount_minor, currency, decimal_places),
-    product_media(media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
+    product_media(is_primary, sort_order, media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
   `;
 
   const catalog: CatalogRepository = {
@@ -319,10 +342,21 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         const selected = data as unknown as CatalogProductRow;
         if (!selected.variant_group_key) return mapProductGroup([selected], id);
         const { data: siblings, error: siblingsError } = await client.from('products').select(productSelect)
-          .eq('variant_group_key', selected.variant_group_key).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP').order('variant_label_ar');
+          .eq('variant_group_key', selected.variant_group_key).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP').order('variant_sort_order').order('variant_label_ar');
         if (siblingsError) throw siblingsError;
         return mapProductGroup(siblings as unknown as CatalogProductRow[], id);
     },
+  };
+
+  const uploadProductImage = async (productId: string, image: ProductImageUpload) => {
+    const objectKey = `products/${productId}/${crypto.randomUUID()}.${image.extension}`;
+    const { error } = await client.storage.from('product-media').upload(objectKey, image.bytes, {
+      cacheControl: '31536000',
+      contentType: image.mimeType,
+      upsert: false,
+    });
+    if (error) throw error;
+    return objectKey;
   };
 
   const operations: OperationsRepository = {
@@ -351,25 +385,58 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       })) as OperationsOrder[];
     },
     async listProducts(queryText) {
-      let query = client.from('products').select(`
+      const select = `
         id, sku, name_ar, manufacturer, unit_label_ar, package_label_ar, description_ar, specifications_ar, availability, active, low_stock_threshold,
+        variant_group_key, variant_label_ar, variant_sort_order,
+        categories(id, slug, name_ar, name_en),
         product_prices(amount_minor, currency, decimal_places, active),
         product_costs(amount_minor, currency, decimal_places, active),
         inventory_balances(on_hand, reserved),
-        product_media(is_primary, media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
-      `).order('name_ar').limit(200);
-      if (queryText?.trim()) query = query.ilike('search_text', `%${queryText.trim()}%`);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []).map((row) => {
+        product_media(is_primary, sort_order, media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
+      `;
+      const pageSize = 500;
+      const fetchAll = async (filter: (query: ReturnType<typeof base>) => ReturnType<typeof base>) => {
+        const rows: any[] = [];
+        for (let offset = 0; ; offset += pageSize) {
+          const { data, error } = await filter(base()).range(offset, offset + pageSize - 1);
+          if (error) throw error;
+          rows.push(...(data ?? []));
+          if (!data || data.length < pageSize) return rows;
+        }
+      };
+      const base = () => client.from('products').select(select).order('name_ar').order('id');
+      const search = queryText?.trim();
+      let rows = await fetchAll((query) => search ? query.ilike('search_text', `%${search}%`) : query);
+      if (search) {
+        // A match on one option brings its whole group so the editor always sees every option.
+        const groupKeys = [...new Set(rows.map((row) => row.variant_group_key).filter(Boolean))];
+        if (groupKeys.length) {
+          const seen = new Set(rows.map((row) => row.id));
+          const siblings = await fetchAll((query) => query.in('variant_group_key', groupKeys));
+          rows = [...rows, ...siblings.filter((row) => !seen.has(row.id))];
+        }
+      }
+      const mapAsset = (value: any, fallbackAlt: string): MediaAsset => ({
+        id: value.id,
+        provider: value.provider,
+        objectKey: value.object_key,
+        externalUrl: value.external_url,
+        altTextAr: value.alt_text_ar ?? fallbackAlt,
+        width: value.width,
+        height: value.height,
+      });
+      return rows.map((row) => {
         const priceRows = (row.product_prices ?? []).filter((candidate: { active: boolean }) => candidate.active);
         const costRows = (row.product_costs ?? []).filter((candidate: { active: boolean }) => candidate.active);
         const price = priceRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'USD') ?? priceRows[0];
         const cost = costRows.find((candidate: { currency: CurrencyCode }) => candidate.currency === 'USD') ?? costRows[0];
         const balance = row.inventory_balances?.[0];
-        const mediaLink = (row.product_media ?? []).find((candidate: { is_primary: boolean }) => candidate.is_primary) ?? row.product_media?.[0];
-        const mediaValue = mediaLink?.media_assets;
-        const mediaRow = Array.isArray(mediaValue) ? mediaValue[0] : mediaValue;
+        const gallery = [...(row.product_media ?? [])]
+          .map((link: { is_primary: boolean; sort_order: number; media_assets: unknown }) => ({ link, asset: Array.isArray(link.media_assets) ? link.media_assets[0] : link.media_assets }))
+          .filter((entry) => entry.asset)
+          .sort((left, right) => Number(right.link.is_primary) - Number(left.link.is_primary) || left.link.sort_order - right.link.sort_order)
+          .map(({ link, asset }) => ({ ...mapAsset(asset, row.name_ar), isPrimary: link.is_primary, sortOrder: link.sort_order }));
+        const category = Array.isArray(row.categories) ? row.categories[0] : row.categories;
         return {
           id: row.id,
           sku: row.sku,
@@ -383,15 +450,12 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           active: row.active,
           price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
           cost: cost ? { amountMinor: cost.amount_minor, currency: cost.currency, decimalPlaces: cost.decimal_places } : null,
-          media: mediaRow ? {
-            id: mediaRow.id,
-            provider: mediaRow.provider,
-            objectKey: mediaRow.object_key,
-            externalUrl: mediaRow.external_url,
-            altTextAr: mediaRow.alt_text_ar ?? row.name_ar,
-            width: mediaRow.width,
-            height: mediaRow.height,
-          } : null,
+          media: gallery[0] ?? null,
+          gallery,
+          category: category ? { id: category.id, slug: category.slug, nameAr: category.name_ar, nameEn: category.name_en } : null,
+          variantGroupKey: row.variant_group_key,
+          variantLabelAr: row.variant_label_ar,
+          variantSortOrder: row.variant_sort_order,
           onHand: balance?.on_hand ?? 0,
           reserved: balance?.reserved ?? 0,
           lowStockThreshold: row.low_stock_threshold,
@@ -434,17 +498,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       if (!updated) throw new Error('PRODUCT_NOT_FOUND_OR_FORBIDDEN');
     },
     async updateProduct(input) {
-      const objectKey = input.image
-        ? `products/${input.productId}/${crypto.randomUUID()}.${input.image.extension}`
-        : null;
-      if (input.image && objectKey) {
-        const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, input.image.bytes, {
-          cacheControl: '31536000',
-          contentType: input.image.mimeType,
-          upsert: false,
-        });
-        if (uploadError) throw uploadError;
-      }
+      const objectKey = input.image ? await uploadProductImage(input.productId, input.image) : null;
       const { error } = await client.rpc('operations_update_product', {
         p_product_id: input.productId,
         p_name_ar: input.nameAr,
@@ -470,6 +524,85 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         if (objectKey) await client.storage.from('product-media').remove([objectKey]);
         throw error;
       }
+    },
+    async createProduct(input) {
+      const { data, error } = await client.rpc('operations_create_product', {
+        p_category_id: input.categoryId,
+        p_name_ar: input.nameAr,
+        p_unit_label_ar: input.unitLabelAr,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    async addProductOption(input) {
+      const { data, error } = await client.rpc('operations_add_product_option', {
+        p_source_product_id: input.sourceProductId,
+        p_label_ar: input.labelAr,
+        p_source_label_ar: input.sourceLabelAr,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    async setProductOption(input) {
+      const { error } = await client.rpc('operations_set_product_option', {
+        p_product_id: input.productId,
+        // Generated RPC types cannot express SQL null for these text arguments.
+        p_group_key: input.groupKey as string,
+        p_label_ar: input.labelAr as string,
+      });
+      if (error) throw error;
+    },
+    async reorderProductOptions(groupKey, productIds) {
+      const { error } = await client.rpc('operations_reorder_product_options', { p_group_key: groupKey, p_product_ids: productIds });
+      if (error) throw error;
+    },
+    async updateGroupDetails(input) {
+      const { error } = await client.rpc('operations_update_group_details', {
+        p_group_key: input.groupKey,
+        p_name_ar: input.nameAr,
+        p_manufacturer: input.manufacturer,
+        p_description_ar: input.descriptionAr,
+        p_specifications_ar: input.specificationsAr,
+        p_category_id: input.categoryId,
+      });
+      if (error) throw error;
+    },
+    async setProductActive(productId, active) {
+      const { error } = await client.rpc('operations_set_product_active', { p_product_id: productId, p_active: active });
+      if (error) throw error;
+    },
+    async addProductImage(productId, image, makePrimary) {
+      const objectKey = await uploadProductImage(productId, image);
+      const { data, error } = await client.rpc('operations_add_product_image', {
+        p_product_id: productId,
+        p_object_key: objectKey,
+        p_mime_type: image.mimeType,
+        p_width: image.width,
+        p_height: image.height,
+        p_make_primary: makePrimary,
+      });
+      if (error) {
+        await client.storage.from('product-media').remove([objectKey]);
+        throw error;
+      }
+      return data as string;
+    },
+    async setPrimaryProductImage(productId, mediaAssetId) {
+      const { error } = await client.rpc('operations_set_primary_product_image', { p_product_id: productId, p_media_asset_id: mediaAssetId });
+      if (error) throw error;
+    },
+    async reorderProductImages(productId, mediaAssetIds) {
+      const { error } = await client.rpc('operations_reorder_product_images', { p_product_id: productId, p_media_asset_ids: mediaAssetIds });
+      if (error) throw error;
+    },
+    async removeProductImage(productId, mediaAssetId) {
+      const { error } = await client.rpc('operations_remove_product_image', { p_product_id: productId, p_media_asset_id: mediaAssetId });
+      if (error) throw error;
+    },
+    async copyProductImagesToGroup(productId) {
+      const { data, error } = await client.rpc('operations_copy_product_images_to_group', { p_product_id: productId });
+      if (error) throw error;
+      return data as number;
     },
     async confirmOrder(orderId, doctorMessageAr) {
       const { data, error } = await client.rpc('operations_confirm_order', { p_order_id: orderId, p_doctor_message_ar: doctorMessageAr ?? null });

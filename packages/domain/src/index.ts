@@ -144,9 +144,42 @@ export interface OperationsProduct {
   price: Money | null;
   cost: Money | null;
   media: MediaAsset | null;
+  gallery: OperationsProductImage[];
+  category: Category | null;
+  variantGroupKey: string | null;
+  variantLabelAr: string | null;
+  variantSortOrder: number;
   onHand: number;
   reserved: number;
   lowStockThreshold: number;
+}
+
+export interface OperationsProductImage extends MediaAsset {
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
+/** One Doctor-facing product: a standalone row, or every option sharing a variant group. */
+export interface OperationsProductGroup {
+  key: string;
+  variantGroupKey: string | null;
+  options: OperationsProduct[];
+}
+
+export function groupOperationsProducts(products: OperationsProduct[]): OperationsProductGroup[] {
+  const groups = new Map<string, OperationsProductGroup>();
+  for (const product of products) {
+    const key = product.variantGroupKey ?? product.id;
+    const group = groups.get(key) ?? { key, variantGroupKey: product.variantGroupKey, options: [] };
+    group.options.push(product);
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    group.options.sort((left, right) => Number(right.active) - Number(left.active)
+      || left.variantSortOrder - right.variantSortOrder
+      || (left.variantLabelAr ?? '').localeCompare(right.variantLabelAr ?? '', 'ar'));
+  }
+  return [...groups.values()];
 }
 
 export interface OperationsExchangeRate {
