@@ -2,6 +2,8 @@
 
 ## Current state
 
+Unified pricing + fresh-seed fix (2026-11-04, local only): migration `20261104180000_operations_unify_price.sql` adds a "توحيد السعر" button that sets one USD price across every option of a product group in one step. Fixed `seed.sql` so `supabase db reset --local` completes and its invariants (202 products, 167 USD/NEW_SYP prices, sequential `variant_sort_order`) hold from a cold start, not only on a database that had evolved incrementally. Neither has been applied to hosted Supabase.
+
 Operations product control (2026-11-04, local only): migration `20261104120000_operations_variant_management.sql` plus the regrouped Operations catalog let staff create products, add/rename/reorder/move/detach/archive options, edit shared details once per group, and manage a per-option gallery (primary image, order, remove, copy to all options) with a Doctor-style option preview. The Operations product list no longer stops at 200 rows. The migration is applied to the local stack and covered by `supabase/tests/operations_variants.sql`; it has **not** been applied to hosted Supabase.
 
 The catalog replacement is applied to hosted Supabase. Its source is `data/catalogs/tawreed_priced_catalog_usd.json`: 11 categories, 131 incoming product groups, 202 incoming product/option rows, 167 active rows with explicit USD prices, and 109 public grouped products. Hosted storage now has 123 archived rows after retaining current non-catalog and unpriced records. Product options use separate server-priced rows connected by `variant_group_key`; the Doctor UI groups them and adds the selected option ID to the cart. All imported availability remains unavailable because stock was not supplied.

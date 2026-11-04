@@ -63,3 +63,17 @@ Migration `20261104120000_operations_variant_management.sql` lets staff manage o
 - Gallery: `operations_add_product_image`, `operations_set_primary_product_image`, `operations_reorder_product_images`, `operations_remove_product_image` (promotes the next image when the primary is removed; the asset and storage object are kept because other options may share them) and `operations_copy_product_images_to_group`.
 
 The 19-argument `operations_update_product` wrapper now adds an uploaded image as the new primary gallery image instead of deleting the whole gallery. The Doctor app shows the primary image (then gallery order) instead of an arbitrary first link. Tests live in `supabase/tests/operations_variants.sql`.
+
+## Operations unified pricing (`operations_set_price_for_options`)
+
+`operations_set_price_for_options(product_ids uuid[], amount_minor bigint)` sets the same USD selling price on several products at once — used by the "توحيد السعر" button in the group editor to price every option of a product (e.g. every size/colour) in one step instead of editing each one. Staff-only; writes a USD `product_prices` row per product exactly like editing one option (same versioning, same `sync_product_price_to_syp` trigger deriving NEW_SYP), so prices set this way are indistinguishable from ones set individually. Returns how many products actually changed. Rejects a negative amount and any unknown product id.
+
+## `supabase db reset --local` / fresh-seed correctness
+
+`seed.sql` is older than several migrations that now upsert or derive some of the same state it inserts directly, which used to make a from-scratch `db reset` fail or (for `variant_sort_order`) silently leave stale defaults:
+
+- `currency_settings` and `financial_settings`: migration `20261102172718_restore_commerce_checkout.sql` already upserts these rows (`on conflict do nothing`/`do update`). `seed.sql`'s own inserts for them now carry `on conflict (…) do nothing` so they don't collide with a database that already has them (true for any environment where that migration ran before seeding, i.e. every fresh `db reset`).
+- `NEW_SYP` product prices: the `sync_product_price_to_syp` trigger (added by `20261102164815_dynamic_usd_syp_prices.sql`) derives each product's NEW_SYP price from its USD price the moment the USD row commits. `seed.sql` used to *also* insert NEW_SYP rows itself, colliding with the trigger-derived ones. The exchange rate insert now runs before any product price is inserted (the trigger needs it), and the redundant manual NEW_SYP insert was removed — the trigger is now the only thing that ever writes NEW_SYP prices, in seed data exactly as in production.
+- `variant_sort_order`: the one-time backfill in `20261104120000_operations_variant_management.sql` only has rows to act on when migrations run against an already-seeded database (true on hosted and any incrementally-upgraded environment). On a from-scratch reset, migrations run before `seed.sql` loads any products, so the same backfill is repeated at the end of `seed.sql`.
+
+With these, `supabase db reset --local` completes without manual intervention and pgTAP invariants (202 products, 167 USD/NEW_SYP price rows, sequential `variant_sort_order` per group) hold from a cold start, not only on a database that evolved incrementally alongside the migrations.

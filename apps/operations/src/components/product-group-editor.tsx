@@ -49,6 +49,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
   const [sourceLabel, setSourceLabel] = useState(lead?.packageLabelAr ?? '');
   const [galleryOptionId, setGalleryOptionId] = useState<string | null>(null);
   const [unit, setUnit] = useState(lead?.unitLabelAr ?? '');
+  const [unifiedPrice, setUnifiedPrice] = useState('');
   const [image, setImage] = useState<ProductImageFile | null>(null);
   const labelOf = (option: OperationsProduct) => labelDrafts[option.id] ?? option.variantLabelAr ?? '';
 
@@ -64,6 +65,15 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
   const galleryOption = group.options.find((option) => option.id === galleryOptionId) ?? group.options[0];
   const activeOptions = group.options.filter((option) => option.active);
   const distinctUnits = [...new Set(group.options.map((option) => option.unitLabelAr))];
+  const usdPrices = group.options.flatMap((option) => option.price?.currency === 'USD' ? [option.price.amountMinor / 100] : []);
+  const distinctUsdPrices = [...new Set(usdPrices)];
+  const unpricedCount = group.options.length - usdPrices.length;
+  const priceSpreadWarning = [
+    unpricedCount > 0 ? `${unpricedCount.toLocaleString('ar-SY')} خيار بدون سعر` : null,
+    distinctUsdPrices.length > 1 ? distinctUsdPrices.map(usdText).join('، ') : null,
+  ].filter(Boolean).join('، ');
+  const unifiedPriceValid = /^\d+(\.\d{1,2})?$/.test(unifiedPrice.trim()) && Number(unifiedPrice) <= 100_000_000;
+  const unifiedPriceUnchanged = unpricedCount === 0 && distinctUsdPrices.length === 1 && distinctUsdPrices[0] === Number(unifiedPrice);
 
   const move = (index: number, direction: -1 | 1) => {
     const order = group.options.map((option) => option.id);
@@ -129,6 +139,16 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
             <UnitPicker value={unit} onChange={setUnit} />
             <Button label={grouped ? 'تطبيق الوحدة على كل الخيارات' : 'حفظ وحدة البيع'} loading={run.isPending} disabled={!unit.trim() || (distinctUnits.length === 1 && distinctUnits[0] === unit.trim())} onPress={() => perform(() => operations.setUnitLabel(group.options.map((option) => option.id), unit), grouped ? 'تم تغيير وحدة البيع لكل الخيارات.' : 'تم تغيير وحدة البيع.')} />
           </Section>
+
+          {grouped ? <Section title="توحيد السعر" hint="يضبط نفس سعر البيع (USD) لكل خيارات هذا المنتج دفعة واحدة، بدل تعديل كل خيار لحاله.">
+            {priceSpreadWarning ? <AppText variant="caption" color={colors.warningText}>الخيارات حالياً بأسعار مختلفة: {priceSpreadWarning}</AppText> : null}
+            <Field label="السعر الموحّد (USD)" placeholder="مثال: 3.50" keyboardType="decimal-pad" value={unifiedPrice} onChangeText={setUnifiedPrice} />
+            <Button label="تطبيق السعر على كل الخيارات" loading={run.isPending} disabled={!unifiedPriceValid || unifiedPriceUnchanged} onPress={() => perform(async () => {
+              const count = await operations.setPriceForOptions(group.options.map((option) => option.id), Math.round(Number(unifiedPrice) * 100));
+              setUnifiedPrice('');
+              return count;
+            }, 'تم توحيد السعر لكل الخيارات.')} />
+          </Section> : null}
 
           <Section title="الخيارات (النوع / العبوة / الحجم)" hint="كل خيار له سعره وتكلفته ومخزونه وصوره. الطبيب يختار بينها داخل نفس المنتج.">
             {grouped ? group.options.map((option, index) => <View key={option.id} style={[styles.optionRow, !option.active && styles.optionArchived, compact && styles.optionRowCompact]}>
@@ -201,6 +221,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
 }
 
 const commonUnits = ['قطعة', 'علبة', 'عبوة', 'باكيت', 'كرتونة', 'طقم', 'زوج', 'لفة', 'ليتر', 'كيلو'];
+const usdText = (value: number) => formatMoney({ amountMinor: Math.round(value * 100), currency: 'USD', decimalPlaces: 2 });
 
 /** Free-text sales unit with one-tap common choices. */
 export function UnitPicker({ value, onChange, error }: { value: string; onChange: (value: string) => void; error?: string }) {

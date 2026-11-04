@@ -132,6 +132,8 @@ export interface OperationsRepository {
   setUnitLabel(productIds: string[], unitLabelAr: string): Promise<number>;
   /** Moves products (e.g. every option of a group) to a category; returns how many changed. */
   setProductCategory(productIds: string[], categoryId: string): Promise<number>;
+  /** Sets the same USD selling price on several products (e.g. every option of a group); returns how many changed. */
+  setPriceForOptions(productIds: string[], usdAmountMinor: number): Promise<number>;
   addProductImage(productId: string, image: ProductImageUpload, makePrimary: boolean): Promise<string>;
   setPrimaryProductImage(productId: string, mediaAssetId: string): Promise<void>;
   reorderProductImages(productId: string, mediaAssetIds: string[]): Promise<void>;
@@ -582,6 +584,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     async setProductCategory(productIds, categoryId) {
       const { data, error } = await client.rpc('operations_set_product_category', { p_product_ids: productIds, p_category_id: categoryId });
+      if (error) throw error;
+      return data as number;
+    },
+    async setPriceForOptions(productIds, usdAmountMinor) {
+      const { data, error } = await client.rpc('operations_set_price_for_options', { p_product_ids: productIds, p_amount_minor: usdAmountMinor });
       if (error) throw error;
       return data as number;
     },
