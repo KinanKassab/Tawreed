@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { StateView } from '@tawreed/ui';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { SwipeTabNavigator } from '@/components/swipe-tab-navigator';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 import { useData, useSession } from '@/providers/app-providers';
 import { ar } from '@/locales/ar';
 
@@ -15,7 +16,7 @@ export default function AppLayout() {
   // Public pages render straight away (and at static build time) instead of waiting for the stored session.
   if (loading && !publicPage) return <StateView loading title={ar.loading} message={ar.loadingMessage} />;
   if (!session && !publicPage) return <Redirect href={{ pathname: '/(auth)/login', params: { returnTo: pathname } }} />;
-  return <View style={styles.shell}><View style={styles.content}><SwipeTabNavigator><Stack screenOptions={{ headerShown: false, animation: 'slide_from_left' }} /></SwipeTabNavigator></View><MobileBottomNav /></View>;
+  return <View style={styles.shell}><View style={styles.content}><SwipeTabNavigator><Stack screenOptions={{ headerShown: false, animation: 'slide_from_left' }} /></SwipeTabNavigator></View><MobileBottomNav /><WhatsAppButton /></View>;
 }
 
 const styles = StyleSheet.create({ shell: { flex: 1 }, content: { flex: 1 } });
