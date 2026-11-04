@@ -2,6 +2,8 @@
 
 ## Current state
 
+Operations product control (2026-11-04, local only): migration `20261104120000_operations_variant_management.sql` plus the regrouped Operations catalog let staff create products, add/rename/reorder/move/detach/archive options, edit shared details once per group, and manage a per-option gallery (primary image, order, remove, copy to all options) with a Doctor-style option preview. The Operations product list no longer stops at 200 rows. The migration is applied to the local stack and covered by `supabase/tests/operations_variants.sql`; it has **not** been applied to hosted Supabase.
+
 The catalog replacement is applied to hosted Supabase. Its source is `data/catalogs/tawreed_priced_catalog_usd.json`: 11 categories, 131 incoming product groups, 202 incoming product/option rows, 167 active rows with explicit USD prices, and 109 public grouped products. Hosted storage now has 123 archived rows after retaining current non-catalog and unpriced records. Product options use separate server-priced rows connected by `variant_group_key`; the Doctor UI groups them and adds the selected option ID to the cart. All imported availability remains unavailable because stock was not supplied.
 
 Migration `20261029130000_product_variant_groups.sql` and the guarded catalog replacement were applied on 2026-10-29. Verification returned 167 active rows, 123 archived rows, and zero active rows without a price. The prior 102 archived rows were physically deleted.

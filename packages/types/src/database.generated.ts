@@ -37,7 +37,7 @@ isOneToOne: false
                     "action"?: string,"actor_user_id"?: string | null,"created_at"?: string,"id"?: never,"new_data"?: Json | null,"old_data"?: Json | null,"record_id"?: string | null,"table_name"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"categories": {
                   Row: {
@@ -51,7 +51,7 @@ isOneToOne: false
                     "active"?: boolean,"created_at"?: string,"id"?: string,"name_ar"?: string,"name_en"?: string | null,"slug"?: string,"sort_order"?: number,"updated_at"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"currency_settings": {
                   Row: {
@@ -405,14 +405,14 @@ isOneToOne: true
                   ]
                 },"products": {
                   Row: {
-                    "active": boolean,"availability": Database["public"]['Enums']["product_availability"],"category_id": string,"created_at": string,"description_ar": string | null,"id": string,"low_stock_threshold": number,"manufacturer": string | null,"name_ar": string,"name_en": string | null,"package_label_ar": string | null,"search_text": string | null,"sku": string,"specifications_ar": string | null,"unit_label_ar": string,"updated_at": string,"variant_group_key": string | null,"variant_label_ar": string | null
+                    "active": boolean,"availability": Database["public"]['Enums']["product_availability"],"category_id": string,"created_at": string,"description_ar": string | null,"id": string,"low_stock_threshold": number,"manufacturer": string | null,"name_ar": string,"name_en": string | null,"package_label_ar": string | null,"search_text": string | null,"sku": string,"specifications_ar": string | null,"unit_label_ar": string,"updated_at": string,"variant_group_key": string | null,"variant_label_ar": string | null,"variant_sort_order": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id": string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar": string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku": string,"specifications_ar"?: string | null,"unit_label_ar": string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null
+                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id": string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar": string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku": string,"specifications_ar"?: string | null,"unit_label_ar": string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null,"variant_sort_order"?: number
                   }
                   Update: {
-                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id"?: string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar"?: string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku"?: string,"specifications_ar"?: string | null,"unit_label_ar"?: string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null
+                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id"?: string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar"?: string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku"?: string,"specifications_ar"?: string | null,"unit_label_ar"?: string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null,"variant_sort_order"?: number
                   }
                   Relationships: [
                     {
@@ -501,7 +501,7 @@ isOneToOne: false
                     "active"?: boolean,"created_at"?: string,"invited_by"?: string | null,"rank"?: Database["public"]['Enums']["staff_rank"],"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"support_cases": {
                   Row: {
@@ -566,6 +566,12 @@ isOneToOne: false
               "order_id": string,"order_number": string
             }[]
                            },
+"operations_add_product_image":
+{ Args: { "p_height": number,"p_make_primary"?: boolean,"p_mime_type": string,"p_object_key": string,"p_product_id": string,"p_width": number }; Returns: string
+                           },
+"operations_add_product_option":
+{ Args: { "p_label_ar": string,"p_source_label_ar"?: string,"p_source_product_id": string }; Returns: string
+                           },
 "operations_adjust_inventory":
 { Args: { "p_notes": string,"p_product_id": string,"p_quantity_delta": number }; Returns: {
               "on_hand": number,"reserved": number
@@ -574,10 +580,25 @@ isOneToOne: false
 "operations_confirm_order":
 { Args: { "p_doctor_message_ar"?: string,"p_order_id": string }; Returns: Database["public"]['Enums']["order_status"]
                            },
+"operations_copy_product_images_to_group":
+{ Args: { "p_product_id": string }; Returns: number
+                           },
+"operations_create_product":
+{ Args: { "p_category_id": string,"p_name_ar": string,"p_unit_label_ar"?: string }; Returns: string
+                           },
 "operations_get_my_context":
 { Args: Record<PropertyKey, never>; Returns: {
               "rank": Database["public"]['Enums']["staff_rank"],"user_id": string
             }[]
+                           },
+"operations_remove_product_image":
+{ Args: { "p_media_asset_id": string,"p_product_id": string }; Returns: undefined
+                           },
+"operations_reorder_product_images":
+{ Args: { "p_media_asset_ids": (string)[],"p_product_id": string }; Returns: undefined
+                           },
+"operations_reorder_product_options":
+{ Args: { "p_group_key": string,"p_product_ids": (string)[] }; Returns: undefined
                            },
 "operations_set_exchange_rate":
 { Args: { "p_base_currency": Database["public"]['Enums']["currency_code"],"p_quote_currency": Database["public"]['Enums']["currency_code"],"p_rate": number }; Returns: string
@@ -585,11 +606,25 @@ isOneToOne: false
 "operations_set_order_status":
 { Args: { "p_doctor_message_ar"?: string,"p_order_id": string,"p_status": Database["public"]['Enums']["order_status"] }; Returns: Database["public"]['Enums']["order_status"]
                            },
+"operations_set_primary_product_image":
+{ Args: { "p_media_asset_id": string,"p_product_id": string }; Returns: undefined
+                           },
+"operations_set_product_active":
+{ Args: { "p_active": boolean,"p_product_id": string }; Returns: undefined
+                           },
+"operations_set_product_option":
+{ Args: { "p_group_key": string,"p_label_ar": string,"p_product_id": string }; Returns: undefined
+                           },
 "operations_set_product_price":
 { Args: { "p_amount_minor": number,"p_currency": Database["public"]['Enums']["currency_code"],"p_decimal_places": number,"p_product_id": string }; Returns: string
                            },
+"operations_update_group_details":
+{ Args: { "p_category_id": string,"p_description_ar": string,"p_group_key": string,"p_manufacturer": string,"p_name_ar": string,"p_specifications_ar": string }; Returns: undefined
+                           },
 "operations_update_product":
 { Args: { "p_availability": Database["public"]['Enums']["product_availability"],"p_cost_minor": number,"p_currency": Database["public"]['Enums']["currency_code"],"p_decimal_places": number,"p_description_ar": string,"p_image_height"?: number,"p_image_mime_type"?: string,"p_image_object_key"?: string,"p_image_width"?: number,"p_inventory_notes": string,"p_low_stock_threshold": number,"p_name_ar": string,"p_on_hand": number,"p_product_id": string,"p_sell_price_minor": number }; Returns: undefined
+                           } |
+{ Args: { "p_availability": Database["public"]['Enums']["product_availability"],"p_cost_minor": number,"p_currency": Database["public"]['Enums']["currency_code"],"p_decimal_places": number,"p_description_ar": string,"p_image_height": number,"p_image_mime_type": string,"p_image_object_key": string,"p_image_width": number,"p_inventory_notes": string,"p_low_stock_threshold": number,"p_manufacturer": string,"p_name_ar": string,"p_on_hand": number,"p_package_label_ar": string,"p_product_id": string,"p_sell_price_minor": number,"p_specifications_ar": string,"p_unit_label_ar": string }; Returns: undefined
                            }
           }
           Enums: {
