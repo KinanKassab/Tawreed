@@ -606,6 +606,9 @@ isOneToOne: false
 "operations_set_order_status":
 { Args: { "p_doctor_message_ar"?: string,"p_order_id": string,"p_status": Database["public"]['Enums']["order_status"] }; Returns: Database["public"]['Enums']["order_status"]
                            },
+"operations_set_price_for_options":
+{ Args: { "p_amount_minor": number,"p_product_ids": (string)[] }; Returns: number
+                           },
 "operations_set_primary_product_image":
 { Args: { "p_media_asset_id": string,"p_product_id": string }; Returns: undefined
                            },

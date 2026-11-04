@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(43);
+select plan(50);
 
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -29,6 +29,10 @@ select throws_ok(
 select throws_ok(
   $$select public.operations_set_product_category(array['20000000-0000-0000-0000-000000000002'::uuid], '11000000-0000-0000-0000-000000000005'::uuid)$$,
   '42501', 'STAFF_REQUIRED', 'Doctor cannot move products between categories'
+);
+select throws_ok(
+  $$select public.operations_set_price_for_options(array['20000000-0000-0000-0000-000000000007'::uuid], 500)$$,
+  '42501', 'STAFF_REQUIRED', 'Doctor cannot unify prices'
 );
 
 set local "request.jwt.claim.sub" = '94000000-0000-0000-0000-000000000001';
@@ -163,6 +167,21 @@ select is((select category_id from public.products where id = '20000000-0000-000
 select throws_ok(
   $$select public.operations_set_product_category(array['20000000-0000-0000-0000-000000000002'::uuid], '11000000-0000-0000-0000-0000000000ff'::uuid)$$,
   'P0002', 'CATEGORY_NOT_FOUND', 'Unknown category is rejected'
+);
+
+-- Unify price across a whole group.
+select is(public.operations_set_price_for_options(
+  array['20000000-0000-0000-0000-000000000007'::uuid, '20000000-0000-0000-0000-000000000008'::uuid, (select id from test_ids where name = 'created')], 500), 3, 'Unifying a new price updates every requested product, priced or not');
+select is((select count(*)::integer from public.products where id in ('20000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000008', (select id from test_ids where name = 'created')) and id in (select product_id from public.product_prices where currency = 'USD' and active and amount_minor = 500)), 3, 'Every requested product now has the unified USD price');
+select is(public.operations_set_price_for_options(array['20000000-0000-0000-0000-000000000007'::uuid, '20000000-0000-0000-0000-000000000008'::uuid], 500), 0, 'Reapplying the same price reports no changes');
+select is((select amount_minor from public.product_prices where product_id = '20000000-0000-0000-0000-000000000007' and currency = 'NEW_SYP' and active), 500::bigint, 'The SYP sync trigger still derives from the unified USD price');
+select throws_ok(
+  $$select public.operations_set_price_for_options(array['20000000-0000-0000-0000-000000000007'::uuid], -1)$$,
+  '22023', 'INVALID_PRICE', 'A negative unified price is rejected'
+);
+select throws_ok(
+  $$select public.operations_set_price_for_options(array['aaaaaaaa-0000-0000-0000-000000000099'::uuid], 500)$$,
+  'P0002', 'PRODUCT_NOT_FOUND', 'Unifying price for an unknown product is rejected'
 );
 
 select * from finish();
