@@ -5,7 +5,7 @@ import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Category, type OperationsProduct, type OperationsProductGroup } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
-import { ProductImageEditor, type CroppedProductImage } from './product-image-editor';
+import { ProductImageEditor, type ProductImageFile } from './product-image-editor';
 
 interface ProductGroupEditorProps {
   group: OperationsProductGroup | null;
@@ -49,7 +49,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
   const [sourceLabel, setSourceLabel] = useState(lead?.packageLabelAr ?? '');
   const [galleryOptionId, setGalleryOptionId] = useState<string | null>(null);
   const [unit, setUnit] = useState(lead?.unitLabelAr ?? '');
-  const [image, setImage] = useState<CroppedProductImage | null>(null);
+  const [image, setImage] = useState<ProductImageFile | null>(null);
   const labelOf = (option: OperationsProduct) => labelDrafts[option.id] ?? option.variantLabelAr ?? '';
 
   const run = useMutation({
