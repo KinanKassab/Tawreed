@@ -87,6 +87,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   const [previewing, setPreviewing] = useState<OperationsProductGroup | null>(null);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<GroupFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newProduct, setNewProduct] = useState({ nameAr: '', unitLabelAr: 'قطعة', categoryId: '' });
   const categories = useQuery({ queryKey: ['operations-categories'], queryFn: () => data!.catalog.listCategories(), enabled: Boolean(data) });
@@ -103,8 +104,8 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   const groups = useMemo(() => groupOperationsProducts(products), [products]);
   const filteredGroups = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('ar');
-    return groups.filter((group) => groupMatches(group, filter) && (!needle || group.options.some((option) => `${option.nameAr} ${option.sku} ${option.variantLabelAr ?? ''}`.toLocaleLowerCase('ar').includes(needle))));
-  }, [filter, groups, search]);
+    return groups.filter((group) => groupMatches(group, filter) && (!categoryFilter || group.options.some((option) => option.category?.id === categoryFilter)) && (!needle || group.options.some((option) => `${option.nameAr} ${option.sku} ${option.variantLabelAr ?? ''}`.toLocaleLowerCase('ar').includes(needle))));
+  }, [categoryFilter, filter, groups, search]);
   const visibleGroups = filteredGroups.slice(0, visibleCount);
   const openGroup = groups.find((group) => group.key === openGroupKey) ?? null;
   const create = useMutation({
@@ -192,6 +193,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
       </View>
     </View>
     <View style={styles.filters}>{groupFilters.map((item) => <Pressable key={item.key} accessibilityRole="radio" accessibilityState={{ selected: filter === item.key }} onPress={() => { setVisibleCount(40); setFilter(item.key); }} style={[styles.filterChip, filter === item.key && styles.filterChipSelected]}><AppText variant="small" color={filter === item.key ? colors.white : colors.ink}>{item.label} ({groups.filter((group) => groupMatches(group, item.key)).length.toLocaleString('ar-SY')})</AppText></Pressable>)}</View>
+    {categories.data?.length ? <View style={styles.filters} accessibilityLabel="تصفية حسب الفئة">{[{ id: null, nameAr: 'كل الفئات' }, ...categories.data].map((category) => { const selected = categoryFilter === category.id; const count = category.id ? groups.filter((group) => group.options.some((option) => option.category?.id === category.id)).length : groups.length; return <Pressable key={category.id ?? 'all'} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => { setVisibleCount(40); setCategoryFilter(category.id); }} style={[styles.filterChip, styles.categoryChip, selected && styles.categoryChipSelected]}><AppText variant="small" color={selected ? colors.white : colors.ink}>{category.nameAr} ({count.toLocaleString('ar-SY')})</AppText></Pressable>; })}</View> : null}
     <ScrollView horizontal={!compact} contentContainerStyle={styles.tableScroll}>
       <View style={[styles.table, !compact && styles.tableDesktop]}>
         {!compact ? <View style={styles.headerRow}>
@@ -338,7 +340,7 @@ function Metric({ label, value }: { label: string; value: string }) { return <Vi
 
 const styles = StyleSheet.create({
   page: { gap: spacing.md }, toolbar: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md }, search: { flex: 1, minWidth: 240, maxWidth: 520 }, legend: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.md, paddingBottom: spacing.sm }, legendItem: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs }, legendDot: { width: 8, height: 8, borderRadius: 4 },
-  filters: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, filterChip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white }, filterChipSelected: { backgroundColor: colors.deep, borderColor: colors.deep },
+  filters: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, filterChip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white }, filterChipSelected: { backgroundColor: colors.deep, borderColor: colors.deep }, categoryChip: { minHeight: 36, backgroundColor: colors.pale }, categoryChipSelected: { backgroundColor: colors.successText, borderColor: colors.successText },
   previewOptions: { gap: spacing.xs }, previewOption: { minWidth: 110, minHeight: 48, justifyContent: 'center', gap: 2, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, backgroundColor: colors.white },
   createModal: { width: '100%', maxWidth: 640, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, createContent: { gap: spacing.md }, dataRowArchived: { opacity: 0.6 },
   tableScroll: { flexGrow: 1 }, table: { width: '100%', gap: spacing.xs }, tableDesktop: { minWidth: 1000 }, headerRow: { flexDirection: 'row-reverse', minHeight: 44, alignItems: 'center', backgroundColor: colors.pale, borderRadius: radius.md, paddingHorizontal: spacing.sm }, dataRow: { flexDirection: 'row-reverse', minHeight: 92, alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: spacing.sm }, cell: { width: 105, paddingHorizontal: spacing.xs, gap: spacing.xs }, productColumn: { width: 205 }, descriptionColumn: { width: 180 }, actionColumn: { width: 150 }, productCell: { flexDirection: 'row-reverse', alignItems: 'center' }, thumbnail: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft }, thumbnailPlaceholder: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }, productName: { flex: 1, minWidth: 0, gap: 2 },

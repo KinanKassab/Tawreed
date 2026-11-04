@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(39);
+select plan(43);
 
 insert into auth.users(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -25,6 +25,10 @@ select throws_ok(
 select throws_ok(
   $$select public.operations_set_unit_label(array['20000000-0000-0000-0000-000000000001'::uuid], 'علبة')$$,
   '42501', 'STAFF_REQUIRED', 'Doctor cannot change the sales unit'
+);
+select throws_ok(
+  $$select public.operations_set_product_category(array['20000000-0000-0000-0000-000000000002'::uuid], '11000000-0000-0000-0000-000000000005'::uuid)$$,
+  '42501', 'STAFF_REQUIRED', 'Doctor cannot move products between categories'
 );
 
 set local "request.jwt.claim.sub" = '94000000-0000-0000-0000-000000000001';
@@ -151,6 +155,14 @@ select isnt(public.operations_add_product_image(
 select throws_ok(
   format($$select public.operations_add_product_image(%L::uuid, %L, 'image/jpeg', 9000, 900)$$, (select id from test_ids where name = 'created'), 'products/' || (select id from test_ids where name = 'created') || '/aaaaaaaa-0000-0000-0000-000000000005.jpg'),
   '22023', 'INVALID_PRODUCT_IMAGE', 'Oversized image dimensions are rejected'
+);
+
+-- Category moves for standalone products.
+select is(public.operations_set_product_category(array['20000000-0000-0000-0000-000000000002'::uuid], '11000000-0000-0000-0000-000000000005'::uuid), 1, 'Standalone product moves to another category');
+select is((select category_id from public.products where id = '20000000-0000-0000-0000-000000000002'), '11000000-0000-0000-0000-000000000005'::uuid, 'New category is stored');
+select throws_ok(
+  $$select public.operations_set_product_category(array['20000000-0000-0000-0000-000000000002'::uuid], '11000000-0000-0000-0000-0000000000ff'::uuid)$$,
+  'P0002', 'CATEGORY_NOT_FOUND', 'Unknown category is rejected'
 );
 
 select * from finish();

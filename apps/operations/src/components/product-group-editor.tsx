@@ -106,7 +106,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
           <Pressable accessibilityRole="button" accessibilityLabel="إغلاق" onPress={close} style={styles.iconButton}><Icon name="close" size={24} color={colors.ink} /></Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Section title="المعلومات المشتركة" hint={grouped ? 'تُطبّق على كل خيارات هذا المنتج دفعة واحدة.' : 'لمنتج بدون خيارات تُعدّل هذه المعلومات من "تعديل الخيار".'}>
+          <Section title="المعلومات المشتركة" hint={grouped ? 'تُطبّق على كل خيارات هذا المنتج دفعة واحدة.' : 'غيّر فئة المنتج من هنا، والاسم والوصف من «تعديل الاسم والوصف».'}>
             {grouped ? <>
               <Field label="اسم المنتج" value={details.nameAr} onChangeText={(nameAr) => setDetails((current) => ({ ...current, nameAr }))} />
               <Field label="الشركة المصنعة" value={details.manufacturer} onChangeText={(manufacturer) => setDetails((current) => ({ ...current, manufacturer }))} />
@@ -114,10 +114,14 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
               <Field label="الوصف الظاهر في تطبيق الدكتور" multiline numberOfLines={4} value={details.descriptionAr} onChangeText={(descriptionAr) => setDetails((current) => ({ ...current, descriptionAr }))} />
               <Field label="المواصفات" multiline numberOfLines={3} value={details.specificationsAr} onChangeText={(specificationsAr) => setDetails((current) => ({ ...current, specificationsAr }))} />
               <Button label="حفظ المعلومات المشتركة" loading={run.isPending} disabled={!details.categoryId} onPress={() => perform(() => operations.updateGroupDetails({ groupKey: group.variantGroupKey!, ...details }), 'تم حفظ المعلومات لكل الخيارات.')} />
-            </> : <View style={styles.inlineRow}>
-              <AppText style={styles.flex}>{lead.nameAr} · {lead.category?.nameAr ?? 'بدون فئة'}</AppText>
-              <Button label="تعديل المنتج" onPress={() => onEditOption(lead)} />
-            </View>}
+            </> : <>
+              <View style={styles.inlineRow}>
+                <AppText style={styles.flex}>{lead.nameAr}</AppText>
+                <Button label="تعديل الاسم والوصف" variant="secondary" onPress={() => onEditOption(lead)} />
+              </View>
+              <CategoryPicker categories={categories} value={details.categoryId} onChange={(categoryId) => setDetails((current) => ({ ...current, categoryId }))} />
+              <Button label="نقل إلى هذه الفئة" loading={run.isPending} disabled={!details.categoryId || details.categoryId === lead.category?.id} onPress={() => perform(() => operations.setProductCategory([lead.id], details.categoryId), 'تم نقل المنتج إلى الفئة الجديدة.')} />
+            </>}
           </Section>
 
           <Section title="وحدة البيع" hint={grouped ? 'الوحدة التي يُسعَّر ويُطلب بها كل خيار. تُطبّق هنا على كل الخيارات، ويمكن تغييرها لخيار واحد من "تعديل السعر والمخزون".' : 'الوحدة التي يُسعَّر ويُطلب بها المنتج.'}>
