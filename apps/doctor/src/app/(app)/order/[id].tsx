@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
-import { formatMoney, formatNumber, getOrderStatusLabel, type DoctorOrderStatus } from '@tawreed/domain';
+import { formatMoney, formatNumber, getOrderStatusLabel, getOrderTrackingStep, type DoctorOrderStatus } from '@tawreed/domain';
 import { AppText, Icon, OrdersSkeleton, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { useData, useSession } from '@/providers/app-providers';
 
-const steps: DoctorOrderStatus[] = ['received', 'sourcing', 'preparing', 'ready_for_delivery', 'out_for_delivery', 'delivered'];
+const steps: DoctorOrderStatus[] = ['received', 'out_for_delivery', 'delivered'];
 
 export default function OrderDetailScreen() {
   const { id = '' } = useLocalSearchParams<{ id?: string }>();
@@ -18,7 +18,7 @@ export default function OrderDetailScreen() {
   if (!order.data) return <AppPage><StateView title="الطلب غير موجود" message="لا يمكن عرض هذا الطلب أو أنه لا ينتمي إلى حسابك." /></AppPage>;
 
   const current = order.data.status;
-  const currentIndex = steps.indexOf(current);
+  const currentIndex = getOrderTrackingStep(current);
   const exceptional = current === 'cancelled' || current === 'problem';
   return (
     <AppPage>
@@ -52,7 +52,7 @@ export default function OrderDetailScreen() {
         </Surface>
         <Surface style={styles.section}>
           <AppText variant="h2">المنتجات</AppText>
-          {order.data.items.map((item) => <View key={item.id} style={styles.row}><AppText>{formatMoney(item.lineTotal)}</AppText><View><AppText>{item.nameAr}</AppText><AppText variant="caption" color={colors.textMuted}>{formatNumber(item.quantity)} × {formatMoney(item.unitPrice)}</AppText></View></View>)}
+          {order.data.items.map((item) => <View key={item.id} style={styles.row}><AppText>{formatMoney(item.lineTotal)}</AppText><View><AppText>{item.nameAr}</AppText><AppText variant="caption" color={colors.textMuted}>{item.packageLabelAr ?? item.unitLabelAr} · {formatNumber(item.quantity)} × {formatMoney(item.unitPrice)}</AppText></View></View>)}
           <View style={styles.total}><AppText variant="h3" color={colors.primary}>{formatMoney(order.data.total)}</AppText><AppText variant="h3">الإجمالي</AppText></View>
         </Surface>
       </View>

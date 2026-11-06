@@ -55,13 +55,12 @@ if (-not (Test-Path -LiteralPath $dockerPipe)) {
 }
 
 Write-Step 'Starting local Supabase...'
-$supabaseOutput = & $pnpm.Source exec supabase start 2>&1
-if ($LASTEXITCODE -ne 0) {
-  for ($second = 0; $second -lt 45; $second++) {
-    $health = docker inspect --format '{{.State.Health.Status}}' supabase_db_tawreed-doctor 2>$null
-    if ($health -eq 'healthy') { break }
-    Start-Sleep -Seconds 1
-  }
+$localSupabaseReady = $false
+try {
+  $healthResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:54321/auth/v1/health' -TimeoutSec 3
+  $localSupabaseReady = $healthResponse.StatusCode -eq 200
+} catch {}
+if (-not $localSupabaseReady) {
   $supabaseOutput = & $pnpm.Source exec supabase start 2>&1
   if ($LASTEXITCODE -ne 0) { throw "Supabase failed to start: $($supabaseOutput -join ' ')" }
 }
@@ -81,7 +80,11 @@ if (-not $listening) {
   Write-Step 'Starting Tawreed web app...'
   $stdout = Join-Path $runtimeDir 'expo.log'
   $stderr = Join-Path $runtimeDir 'expo-error.log'
-  $expo = Start-Process -FilePath $pnpm.Source -ArgumentList @('dev:web') -WorkingDirectory $repoRoot -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+  $node = Get-Command node.exe -ErrorAction Stop
+  $expoCli = Join-Path $repoRoot 'apps\doctor\node_modules\expo\bin\cli'
+  if (-not (Test-Path -LiteralPath $expoCli)) { throw 'The local Expo CLI is missing. Run pnpm install, then try again.' }
+  $env:NODE_OPTIONS = '--max-old-space-size=8192'
+  $expo = Start-Process -FilePath $node.Source -ArgumentList @($expoCli, 'start', '--web') -WorkingDirectory (Join-Path $repoRoot 'apps\doctor') -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
   for ($second = 0; $second -lt 90; $second++) {
     if ($expo.HasExited) {
       $details = if (Test-Path -LiteralPath $stderr) { (Get-Content -LiteralPath $stderr -Tail 20) -join ' ' } else { 'No error log was produced.' }

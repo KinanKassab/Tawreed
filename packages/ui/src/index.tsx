@@ -5,7 +5,7 @@ import {
   ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput,
   type StyleProp, type TextInputProps, type TextStyle, View, type ViewProps, type ViewStyle,
 } from 'react-native';
-import Animated, { cancelAnimation, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeIn, FadeInDown, FadeOutDown, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { border, colors, controlHeight, layout, motion, radius, shadows, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Availability, type Product } from '@tawreed/domain';
 export { Icon, type IconName } from './icon';
@@ -29,7 +29,7 @@ export function AppText({ children, style, variant = 'body', color = colors.text
   }, style]}>{children}</Text>;
 }
 
-type ButtonVariant = 'primary' | 'accent' | 'outline' | 'text' | 'secondary' | 'quiet';
+type ButtonVariant = 'primary' | 'accent' | 'danger' | 'outline' | 'text' | 'secondary' | 'quiet';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -65,7 +65,7 @@ export function Button({ label, onPress, variant = 'primary', disabled = false, 
   style?: ViewStyle | ViewStyle[];
 }) {
   const normalized = variant === 'secondary' ? 'outline' : variant === 'quiet' ? 'text' : variant;
-  const labelColor = normalized === 'primary' ? colors.onPrimary : normalized === 'accent' ? colors.onAccent : normalized === 'text' ? colors.textMuted : colors.primary;
+  const labelColor = normalized === 'primary' ? colors.onPrimary : normalized === 'accent' ? colors.onAccent : normalized === 'danger' ? colors.onPrimary : normalized === 'text' ? colors.textMuted : colors.primary;
   return (
     <MotionPressable
       accessibilityRole="button"
@@ -75,6 +75,7 @@ export function Button({ label, onPress, variant = 'primary', disabled = false, 
       style={[
         styles.button,
         normalized === 'accent' && styles.buttonAccent,
+        normalized === 'danger' && styles.buttonDanger,
         normalized === 'outline' && styles.buttonOutline,
         normalized === 'text' && styles.buttonText,
         (disabled || loading) && styles.disabled,
@@ -85,9 +86,11 @@ export function Button({ label, onPress, variant = 'primary', disabled = false, 
   );
 }
 
-export function Field({ label, error, onFocus, onBlur, value, defaultValue, ...props }: TextInputProps & { label: string; error?: string }) {
+export function Field({ label, error, onFocus, onBlur, value, defaultValue, secureTextEntry, ...props }: TextInputProps & { label: string; error?: string }) {
   const [focused, setFocused] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const raised = focused || Boolean(value ?? defaultValue);
+  const togglable = Boolean(secureTextEntry);
   return (
     <View style={styles.field}>
       <View style={[styles.inputShell, focused && styles.inputFocused, Boolean(error) && styles.inputError]}>
@@ -97,11 +100,22 @@ export function Field({ label, error, onFocus, onBlur, value, defaultValue, ...p
           placeholderTextColor={colors.textDisabled}
           value={value}
           defaultValue={defaultValue}
+          secureTextEntry={togglable && !revealed}
           onFocus={(event) => { setFocused(true); onFocus?.(event); }}
           onBlur={(event) => { setFocused(false); onBlur?.(event); }}
           {...props}
-          style={[styles.input, props.multiline && styles.inputMultiline, props.style]}
+          style={[styles.input, props.multiline && styles.inputMultiline, togglable && styles.inputWithAction, props.style]}
         />
+        {togglable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+            hitSlop={8}
+            onPress={() => setRevealed((current) => !current)}
+            style={styles.inputAction}>
+            <Icon name={revealed ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
       </View>
       {error ? <AppText accessibilityRole="alert" color={colors.error} variant="small">{error}</AppText> : null}
     </View>
@@ -203,14 +217,26 @@ export function OfflineBanner() {
 }
 
 export function Toast({ message = 'انضاف المنتج للسلة', actionLabel = 'عرض السلة', onAction }: { message?: string; actionLabel?: string; onAction?: () => void }) {
-  return <View accessibilityRole="alert" style={styles.toast}><AppText color={colors.onToast}>{message}</AppText>{onAction ? <MotionPressable accessibilityRole="button" onPress={onAction} style={styles.toastAction}><AppText variant="button" color={colors.accent}>{actionLabel}</AppText></MotionPressable> : null}</View>;
+  const reducedMotion = useReducedMotion();
+  return (
+    <Animated.View
+      accessibilityRole="alert"
+      entering={reducedMotion ? FadeIn.duration(120) : FadeInDown.duration(220)}
+      exiting={reducedMotion ? undefined : FadeOutDown.duration(180)}
+      style={styles.toast}>
+      <AppText color={colors.onToast}>{message}</AppText>
+      {onAction ? <MotionPressable accessibilityRole="button" onPress={onAction} style={styles.toastAction}><AppText variant="button" color={colors.accent}>{actionLabel}</AppText></MotionPressable> : null}
+    </Animated.View>
+  );
 }
 
 export function ProductCard({ product, imageUrl, onPress, onAdd }: {
   product: Product; imageUrl: string | null; onPress: () => void; onAdd: () => void;
 }) {
   const hasVariants = product.variants.length > 0;
-  const orderable = hasVariants ? product.variants.some((variant) => variant.availability !== 'unavailable') : product.availability !== 'unavailable' && product.price !== null;
+  const orderable = hasVariants ? product.variants.some((variant) => variant.availability !== 'unavailable' && variant.price !== null) : product.availability !== 'unavailable' && product.price !== null;
+  const requestable = hasVariants ? product.variants.some((variant) => variant.priceOnRequest) : product.priceOnRequest;
+  const actionable = orderable || requestable;
   const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>(imageUrl ? 'loading' : 'error');
   return (
     <Surface style={styles.productCard}>
@@ -219,11 +245,11 @@ export function ProductCard({ product, imageUrl, onPress, onAdd }: {
         {imageState === 'loading' ? <View accessibilityLabel="جارٍ تحميل صورة المنتج" style={styles.imageStatus}><ActivityIndicator color={colors.primary} /></View> : null}
         {imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.imageStatus}><Icon name="image-off-outline" size={38} color={colors.textMuted} /><AppText variant="caption" color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
       </MotionPressable>
-      {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSoft }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>السعر والتوفر قيد التأكيد</AppText></View>}
+      {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSoft }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>{requestable ? 'السعر حسب الطلب' : 'السعر والتوفر قيد التأكيد'}</AppText></View>}
       <AppText variant="body" style={styles.productTitle}>{product.nameAr}</AppText>
       <AppText variant="caption" color={colors.textMuted}>{[product.manufacturer, product.packageLabelAr ?? product.unitLabelAr].filter(Boolean).join(' · ')}</AppText>
-      <AppText variant="body" color={colors.primary} style={styles.price}>{product.price ? `${hasVariants ? 'ابتداءً من ' : ''}${formatMoney(product.price)}` : 'السعر غير متوفر'}</AppText>
-      <Button label={orderable ? hasVariants ? 'اختيار النوع' : 'إضافة للسلة' : 'غير متاح للطلب'} onPress={onAdd} disabled={!orderable} style={styles.addButton} />
+      <AppText variant="body" color={colors.primary} style={styles.price}>{product.price ? `${hasVariants ? 'ابتداءً من ' : ''}${formatMoney(product.price)}` : requestable ? 'حسب الطلب' : 'السعر غير متوفر'}</AppText>
+      <Button label={hasVariants && actionable ? 'اختيار النوع' : orderable ? 'إضافة للسلة' : requestable ? 'حسب الطلب' : 'غير متاح للطلب'} onPress={onAdd} disabled={!actionable} style={styles.addButton} />
     </Surface>
   );
 }
@@ -232,6 +258,7 @@ const styles = StyleSheet.create({
   text: { textAlign: 'right', writingDirection: 'rtl' },
   button: { minHeight: controlHeight.regular, borderRadius: radius.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, borderWidth: border.outline, borderColor: colors.primary },
   buttonAccent: { backgroundColor: colors.accent, borderColor: colors.accent },
+  buttonDanger: { backgroundColor: colors.error, borderColor: colors.error },
   buttonOutline: { backgroundColor: colors.surface, borderColor: colors.primary },
   buttonText: { backgroundColor: 'transparent', borderColor: 'transparent' },
   buttonPrimaryPressed: { backgroundColor: colors.primaryPressed, borderColor: colors.primaryPressed },
@@ -244,10 +271,12 @@ const styles = StyleSheet.create({
   inputShell: { minHeight: controlHeight.regular, borderWidth: border.input, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.surface, justifyContent: 'center' },
   inputFocused: { borderColor: colors.primary },
   inputError: { borderColor: colors.error },
-  inputLabel: { position: 'absolute', zIndex: 1, insetInlineStart: spacing.md, backgroundColor: colors.surface, paddingHorizontal: spacing.xxs },
+  inputLabel: { position: 'absolute', zIndex: 1, right: spacing.md, backgroundColor: colors.surface, paddingHorizontal: spacing.xxs },
   inputLabelRaised: { top: -11 },
   input: { minHeight: controlHeight.regular, color: colors.text, paddingHorizontal: spacing.md, paddingTop: spacing.sm, fontFamily: Platform.OS === 'web' ? typography.family.web : typography.family.regular, fontSize: typography.size.body, textAlign: 'right', writingDirection: 'rtl' },
   inputMultiline: { minHeight: 112, paddingTop: spacing.lg, textAlignVertical: 'top' },
+  inputWithAction: { paddingLeft: spacing.xl + spacing.sm },
+  inputAction: { position: 'absolute', left: spacing.sm, top: 0, bottom: 0, width: 36, alignItems: 'center', justifyContent: 'center' },
   badge: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-end', gap: spacing.xs, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs },
   badgeDot: { width: 6, height: 6, borderRadius: 3 },
   surface: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.xl, padding: spacing.xl },

@@ -34,7 +34,7 @@ export function AppHeader() {
         <Responsive>{(viewport) => { const mobile = screenClass(viewport) === 'phone'; return (
         <View style={styles.inner}>
           <View style={styles.actions}>
-            {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="رجوع" hitSlop={4} onPress={goBack} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><Icon name="arrow-right" color={colors.text} size={24} /></Pressable> : null}
+            {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="رجوع" hitSlop={4} onPress={goBack} style={({ pressed }) => [styles.action, pressed && styles.pressed]}><Icon name="arrow-left" color={colors.text} size={24} /></Pressable> : null}
             <Pressable accessibilityRole="button" accessibilityLabel="الإشعارات" hitSlop={4} onPress={() => router.push('/notifications')} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>{mobile ? <Icon name="bell-outline" color={colors.text} size={24} /> : <AppText variant="small">الإشعارات</AppText>}</Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`السلة، ${formatNumber(count)} منتجات`} hitSlop={4} onPress={() => router.push('/cart')} style={({ pressed }) => [styles.action, pressed && styles.pressed]}>
               {mobile ? <View><Icon name="cart-outline" color={colors.text} size={25} />{count ? <View style={styles.cartBadge}><AppText variant="caption" color={colors.onPrimary} style={styles.cartBadgeText}>{formatNumber(count)}</AppText></View> : null}</View> : <AppText variant="small">السلة {count ? `(${formatNumber(count)})` : ''}</AppText>}

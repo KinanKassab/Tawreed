@@ -49,7 +49,6 @@ export default function RootLayout() {
       ensureLink('icon', '/favicon.ico');
       ensureLink('icon', '/favicon.svg', 'image/svg+xml');
       ensureLink('apple-touch-icon', '/apple-touch-icon.png');
-      if ('serviceWorker' in navigator) void navigator.serviceWorker.register('/service-worker.js').catch(() => undefined);
     }
     if (fontsLoaded || fontError) void SplashScreen.hideAsync();
   }, [fontError, fontsLoaded]);

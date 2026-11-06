@@ -8,4 +8,7 @@ export const mainDestinations = [
 
 export const mainPathIndex = (path: string) => mainDestinations.findIndex((destination) => destination.matches(path));
 
-export const isMainSwipePath = (path: string) => path === '/' || path === '/catalog' || path === '/cart' || path === '/orders' || path === '/account';
+// True while a committed swipe hands over to the real route; the stack then skips its own screen animation.
+export const swipeTransition = { active: false };
+
+export const isMainSwipePath =(path: string) => path === '/' || path === '/catalog' || path === '/cart' || path === '/orders' || path === '/account';

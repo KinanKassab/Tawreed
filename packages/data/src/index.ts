@@ -12,8 +12,11 @@ import type {
   OrderSummary,
   OperationsExchangeRate,
   OperationsOrder,
+  OperationsOrderDetail,
   OperationsProduct,
+  OperationsPromoBanner,
   Product,
+  PromoBanner,
   StaffRank,
 } from '@tawreed/domain';
 
@@ -36,6 +39,7 @@ export interface AuthRepository {
   verifySignupCode(email: string, token: string): Promise<void>;
   resendSignupCode(email: string): Promise<void>;
   requestPasswordReset(email: string, redirectTo: string): Promise<void>;
+  exchangeCodeForSession(code: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
   signOut(): Promise<void>;
 }
@@ -52,11 +56,13 @@ export interface CatalogRepository {
   listCategories(): Promise<Category[]>;
   listProducts(filters?: CatalogFilters): Promise<Product[]>;
   getProduct(id: string): Promise<Product | null>;
+  listBanners(): Promise<PromoBanner[]>;
 }
 
 export interface ProfileRepository {
   getMine(): Promise<DoctorProfile | null>;
   updateMine(input: Pick<DoctorProfile, 'fullName' | 'clinicName' | 'defaultAddress'>): Promise<void>;
+  updateAvatar(input: { bytes: ArrayBuffer; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }): Promise<void>;
 }
 
 export interface OrdersRepository {
@@ -95,12 +101,14 @@ export interface ProductImageUpload {
 export interface OperationsRepository {
   getMyContext(): Promise<{ userId: string; rank: StaffRank } | null>;
   listOrders(): Promise<OperationsOrder[]>;
+  getOrderById(id: string): Promise<OperationsOrderDetail | null>;
   listProducts(query?: string): Promise<OperationsProduct[]>;
   getActiveExchangeRate(): Promise<OperationsExchangeRate | null>;
   setProductPrice(input: { productId: string; amountMinor: number; currency: CurrencyCode; decimalPlaces: number }): Promise<void>;
   setExchangeRate(input: { baseCurrency: CurrencyCode; quoteCurrency: CurrencyCode; rate: number }): Promise<void>;
   adjustInventory(input: { productId: string; quantityDelta: number; notes: string }): Promise<void>;
   setProductAvailability(productId: string, availability: Product['availability']): Promise<void>;
+  setProductPriceOnRequest(productId: string, priceOnRequest: boolean): Promise<void>;
   updateProduct(input: {
     productId: string;
     nameAr: string;
@@ -128,6 +136,8 @@ export interface OperationsRepository {
   reorderProductOptions(groupKey: string, productIds: string[]): Promise<void>;
   updateGroupDetails(input: { groupKey: string; nameAr: string; manufacturer: string; descriptionAr: string; specificationsAr: string; categoryId: string }): Promise<void>;
   setProductActive(productId: string, active: boolean): Promise<void>;
+  /** Archives a standalone product or every option in a group atomically. */
+  archiveProducts(productIds: string[]): Promise<number>;
   /** Sets the sales unit of several products (e.g. every option of a group); returns how many changed. */
   setUnitLabel(productIds: string[], unitLabelAr: string): Promise<number>;
   /** Moves products (e.g. every option of a group) to a category; returns how many changed. */
@@ -142,6 +152,11 @@ export interface OperationsRepository {
   copyProductImagesToGroup(productId: string): Promise<number>;
   confirmOrder(orderId: string, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
   setOrderStatus(orderId: string, status: DoctorOrderStatus, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
+  listBanners(): Promise<OperationsPromoBanner[]>;
+  createBanner(input: { titleAr: string; linkUrl: string | null; image: ProductImageUpload }): Promise<string>;
+  updateBanner(input: { id: string; titleAr: string; linkUrl: string | null; active: boolean; expiresAt: string | null; image?: ProductImageUpload }): Promise<void>;
+  reorderBanners(ids: string[]): Promise<void>;
+  deleteBanner(id: string): Promise<void>;
 }
 
 export interface TawreedDataLayer {
@@ -166,6 +181,7 @@ interface CatalogProductRow {
   description_ar: string | null;
   specifications_ar: string | null;
   availability: Product['availability'];
+  price_on_request: boolean;
   variant_group_key: string | null;
   variant_label_ar: string | null;
   variant_sort_order: number;
@@ -190,7 +206,7 @@ const displayPrice = (row: CatalogProductRow) => row.product_prices?.find((price
 
 function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Product {
   const pricedRows = rows.filter((row) => displayPrice(row));
-  const selected = pricedRows.find((row) => row.id === selectedId)
+  const selected = rows.find((row) => row.id === selectedId)
     ?? [...pricedRows].sort((left, right) => (displayPrice(left)?.amount_minor ?? 0) - (displayPrice(right)?.amount_minor ?? 0))[0]
     ?? rows[0];
   if (!selected?.categories) throw new Error('Incomplete catalog product');
@@ -213,9 +229,10 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
     availability: selected.availability,
     category: { id: selected.categories.id, slug: selected.categories.slug, nameAr: selected.categories.name_ar, nameEn: selected.categories.name_en },
     price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
+    priceOnRequest: selected.price_on_request,
     media: mediaRow ? mapMedia(selected) : null,
     variantLabelAr: selected.variant_label_ar,
-    variants: pricedRows
+    variants: rows
       .filter((row) => row.variant_label_ar)
       .sort((left, right) => left.variant_sort_order - right.variant_sort_order)
       .map((row) => ({
@@ -230,11 +247,12 @@ function mapProductGroup(rows: CatalogProductRow[], selectedId?: string): Produc
         descriptionAr: row.description_ar,
         specificationsAr: row.specifications_ar,
         media: mapMedia(row),
-        price: {
+        price: displayPrice(row) ? {
           amountMinor: displayPrice(row)!.amount_minor,
           currency: displayPrice(row)!.currency,
           decimalPlaces: displayPrice(row)!.decimal_places,
-        },
+        } : null,
+        priceOnRequest: row.price_on_request,
         availability: row.availability,
       })),
   };
@@ -310,11 +328,13 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
   };
 
+  const bannerPublicUrl = (objectKey: string) => client.storage.from('product-media').getPublicUrl(objectKey).data.publicUrl;
+
   const productSelect = `
       id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
-      specifications_ar, availability, variant_group_key, variant_label_ar, variant_sort_order,
+      specifications_ar, availability, price_on_request, variant_group_key, variant_label_ar, variant_sort_order,
     categories!inner(id, slug, name_ar, name_en),
-      product_prices!inner(amount_minor, currency, decimal_places),
+      product_prices(amount_minor, currency, decimal_places),
     product_media(is_primary, sort_order, media_assets(id, provider, object_key, external_url, alt_text_ar, width, height))
   `;
 
@@ -333,7 +353,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { data, error } = await query;
       if (error) throw error;
         const grouped = new Map<string, CatalogProductRow[]>();
-        for (const row of data as unknown as CatalogProductRow[]) {
+        for (const row of (data as unknown as CatalogProductRow[]).filter((candidate) => Boolean(displayPrice(candidate)) || candidate.price_on_request)) {
           const key = row.variant_group_key ?? row.id;
           grouped.set(key, [...(grouped.get(key) ?? []), row]);
         }
@@ -346,11 +366,18 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       if (error) throw error;
         if (!data) return null;
         const selected = data as unknown as CatalogProductRow;
+        if (!displayPrice(selected) && !selected.price_on_request) return null;
         if (!selected.variant_group_key) return mapProductGroup([selected], id);
         const { data: siblings, error: siblingsError } = await client.from('products').select(productSelect)
           .eq('variant_group_key', selected.variant_group_key).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP').order('variant_sort_order').order('variant_label_ar');
         if (siblingsError) throw siblingsError;
-        return mapProductGroup(siblings as unknown as CatalogProductRow[], id);
+        const offered = (siblings as unknown as CatalogProductRow[]).filter((candidate) => Boolean(displayPrice(candidate)) || candidate.price_on_request);
+        return offered.length ? mapProductGroup(offered, id) : null;
+    },
+    async listBanners() {
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url').order('sort_order');
+      if (error) throw error;
+      return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url }));
     },
   };
 
@@ -390,9 +417,36 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         total: { amountMinor: row.total_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
       })) as OperationsOrder[];
     },
+    async getOrderById(id) {
+      const { data, error } = await client.from('orders').select(`
+        id, order_number, status, created_at, total_minor, currency, currency_decimal_places,
+        delivery_address_snapshot, recipient_name_snapshot, recipient_phone_snapshot, delivery_notes,
+        order_items(id, product_id, sku_snapshot, name_ar_snapshot, unit_label_ar_snapshot, package_label_ar_snapshot, quantity, unit_price_minor, line_total_minor, currency, currency_decimal_places)
+      `).eq('id', id).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const row = data as unknown as {
+        id: string; order_number: string; status: OperationsOrder['status']; created_at: string; total_minor: number; currency: CurrencyCode; currency_decimal_places: number;
+        delivery_address_snapshot: string; recipient_name_snapshot: string; recipient_phone_snapshot: string; delivery_notes: string | null;
+        order_items: { id: string; product_id: string | null; sku_snapshot: string; name_ar_snapshot: string; unit_label_ar_snapshot: string; package_label_ar_snapshot: string | null; quantity: number; unit_price_minor: number; line_total_minor: number; currency: CurrencyCode; currency_decimal_places: number }[];
+      };
+      return {
+        id: row.id,
+        orderNumber: row.order_number,
+        status: row.status,
+        createdAt: row.created_at,
+        itemCount: row.order_items.reduce((sum, item) => sum + item.quantity, 0),
+        total: { amountMinor: row.total_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
+        deliveryAddress: row.delivery_address_snapshot,
+        recipientName: row.recipient_name_snapshot,
+        recipientPhone: row.recipient_phone_snapshot,
+        deliveryNotes: row.delivery_notes,
+        items: row.order_items.map((item) => ({ id: item.id, productId: item.product_id, sku: item.sku_snapshot, nameAr: item.name_ar_snapshot, unitLabelAr: item.unit_label_ar_snapshot, packageLabelAr: item.package_label_ar_snapshot, quantity: item.quantity, unitPrice: { amountMinor: item.unit_price_minor, currency: item.currency, decimalPlaces: item.currency_decimal_places }, lineTotal: { amountMinor: item.line_total_minor, currency: item.currency, decimalPlaces: item.currency_decimal_places } })),
+      } as OperationsOrderDetail;
+    },
     async listProducts(queryText) {
       const select = `
-        id, sku, name_ar, manufacturer, unit_label_ar, package_label_ar, description_ar, specifications_ar, availability, active, low_stock_threshold,
+        id, sku, name_ar, manufacturer, unit_label_ar, package_label_ar, description_ar, specifications_ar, availability, active, price_on_request, low_stock_threshold,
         variant_group_key, variant_label_ar, variant_sort_order,
         categories(id, slug, name_ar, name_en),
         product_prices(amount_minor, currency, decimal_places, active),
@@ -455,6 +509,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           availability: row.availability,
           active: row.active,
           price: price ? { amountMinor: price.amount_minor, currency: price.currency, decimalPlaces: price.decimal_places } : null,
+          priceOnRequest: row.price_on_request,
           cost: cost ? { amountMinor: cost.amount_minor, currency: cost.currency, decimalPlaces: cost.decimal_places } : null,
           media: gallery[0] ?? null,
           gallery,
@@ -502,6 +557,13 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { data: updated, error } = await client.from('products').update({ availability }).eq('id', productId).select('id').maybeSingle();
       if (error) throw error;
       if (!updated) throw new Error('PRODUCT_NOT_FOUND_OR_FORBIDDEN');
+    },
+    async setProductPriceOnRequest(productId, priceOnRequest) {
+      const { error } = await client.rpc('operations_set_price_on_request', {
+        p_product_id: productId,
+        p_price_on_request: priceOnRequest,
+      });
+      if (error) throw error;
     },
     async updateProduct(input) {
       const objectKey = input.image ? await uploadProductImage(input.productId, input.image) : null;
@@ -577,6 +639,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { error } = await client.rpc('operations_set_product_active', { p_product_id: productId, p_active: active });
       if (error) throw error;
     },
+    async archiveProducts(productIds) {
+      const { data, error } = await client.rpc('operations_archive_products', { p_product_ids: productIds });
+      if (error) throw error;
+      return data as number;
+    },
     async setUnitLabel(productIds, unitLabelAr) {
       const { data, error } = await client.rpc('operations_set_unit_label', { p_product_ids: productIds, p_unit_label_ar: unitLabelAr });
       if (error) throw error;
@@ -635,6 +702,60 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       if (error) throw error;
       return data as DoctorOrderStatus;
     },
+    async listBanners() {
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, sort_order, active, expires_at').order('sort_order');
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url,
+        sortOrder: row.sort_order, active: row.active, expiresAt: row.expires_at,
+      }));
+    },
+    async createBanner({ titleAr, linkUrl, image }) {
+      const objectKey = `banners/${crypto.randomUUID()}.${image.extension}`;
+      const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, image.bytes, {
+        cacheControl: '31536000',
+        contentType: image.mimeType,
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+      const { data: lastRow } = await client.from('promo_banners').select('sort_order').order('sort_order', { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await client.from('promo_banners').insert({
+        title_ar: titleAr, image_object_key: objectKey, link_url: linkUrl, sort_order: (lastRow?.sort_order ?? -1) + 1,
+      }).select('id').single();
+      if (error) { await client.storage.from('product-media').remove([objectKey]); throw error; }
+      return data.id;
+    },
+    async updateBanner({ id, titleAr, linkUrl, active, expiresAt, image }) {
+      let objectKey: string | undefined;
+      if (image) {
+        objectKey = `banners/${crypto.randomUUID()}.${image.extension}`;
+        const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, image.bytes, {
+          cacheControl: '31536000',
+          contentType: image.mimeType,
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+      }
+      const { data: previous, error: fetchError } = await client.from('promo_banners').select('image_object_key').eq('id', id).single();
+      if (fetchError) { if (objectKey) await client.storage.from('product-media').remove([objectKey]); throw fetchError; }
+      const { error } = await client.from('promo_banners').update({
+        title_ar: titleAr, link_url: linkUrl, active, expires_at: expiresAt,
+        ...(objectKey ? { image_object_key: objectKey } : {}),
+      }).eq('id', id);
+      if (error) { if (objectKey) await client.storage.from('product-media').remove([objectKey]); throw error; }
+      if (objectKey) await client.storage.from('product-media').remove([previous.image_object_key]);
+    },
+    async reorderBanners(ids) {
+      const { error } = await client.rpc('operations_reorder_promo_banners', { p_ids: ids });
+      if (error) throw error;
+    },
+    async deleteBanner(id) {
+      const { data: row, error: fetchError } = await client.from('promo_banners').select('image_object_key').eq('id', id).single();
+      if (fetchError) throw fetchError;
+      const { error } = await client.from('promo_banners').delete().eq('id', id);
+      if (error) throw error;
+      await client.storage.from('product-media').remove([row.image_object_key]);
+    },
   };
 
   return {
@@ -689,6 +810,10 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
       },
+      async exchangeCodeForSession(code) {
+        const { error } = await client.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+      },
       async updatePassword(password) {
         const { error } = await client.auth.updateUser({ password });
         if (error) throw error;
@@ -700,8 +825,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     profile: {
       async getMine() {
-        const { data, error } = await client.from('profiles').select('id, first_name, last_name, full_name, clinic_name, phone, email, preferred_contact, default_address, default_latitude, default_longitude, default_google_place_id').maybeSingle();
+        const { data, error } = await client.from('profiles').select('id, first_name, last_name, full_name, clinic_name, phone, email, avatar_path, preferred_contact, default_address, default_latitude, default_longitude, default_google_place_id').maybeSingle();
         if (error) throw error;
+        const avatarUrl = data?.avatar_path
+          ? (await client.storage.from('avatars').createSignedUrl(data.avatar_path, 3600)).data?.signedUrl ?? null
+          : null;
         return data ? {
           id: data.id,
           firstName: data.first_name,
@@ -710,6 +838,8 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           clinicName: data.clinic_name,
           phone: data.phone,
           email: data.email,
+          avatarPath: data.avatar_path,
+          avatarUrl,
           preferredContact: data.preferred_contact,
           defaultAddress: data.default_address,
           defaultLatitude: data.default_latitude,
@@ -725,6 +855,17 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           clinic_name: input.clinicName,
           default_address: input.defaultAddress,
         }).eq('id', userData.user.id);
+        if (error) throw error;
+      },
+      async updateAvatar(input) {
+        const { data: userData, error: userError } = await client.auth.getUser();
+        if (userError || !userData.user) throw userError ?? new Error('Unauthorized');
+        const objectKey = `${userData.user.id}/avatar`;
+        const { error: uploadError } = await client.storage.from('avatars').upload(objectKey, input.bytes, {
+          cacheControl: '3600', contentType: input.mimeType, upsert: true,
+        });
+        if (uploadError) throw uploadError;
+        const { error } = await client.from('profiles').update({ avatar_path: objectKey }).eq('id', userData.user.id);
         if (error) throw error;
       },
     },

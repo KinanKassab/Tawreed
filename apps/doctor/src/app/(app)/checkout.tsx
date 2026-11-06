@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { breakpoints, colors, radius, spacing, typography } from '@tawreed/design-tokens';
@@ -13,6 +13,7 @@ import { AppPage } from '@/components/app-page';
 import { useNetwork } from '@/hooks/use-network';
 import { useData, useSession } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
+import { useToast } from '@/store/toast';
 import { ar } from '@/locales/ar';
 
 export default function CheckoutScreen() {
@@ -34,15 +35,22 @@ export default function CheckoutScreen() {
   const currency = products[0]?.price?.currency ?? 'NEW_SYP';
   const decimalPlaces = products[0]?.price?.decimalPlaces ?? 0;
   const subtotal = products.reduce((sum, product) => product.price ? sum + product.price.amountMinor * (items[product.id] ?? 1) : sum, 0);
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<CheckoutInput>({
+  const showToast = useToast((state) => state.show);
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, reset } = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
-    values: profile.data ? {
+    defaultValues: { recipientName: '', recipientPhone: '', deliveryAddress: '', deliveryNotes: '' },
+  });
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !profile.data) return;
+    prefilled.current = true;
+    reset({
       recipientName: profile.data.fullName,
       recipientPhone: profile.data.phone ?? '',
       deliveryAddress: profile.data.defaultAddress ?? '',
       deliveryNotes: '',
-    } : undefined,
-  });
+    });
+  }, [profile.data, reset]);
 
   if (!ids.length) return <AppPage><StateView title="السلة فارغة" message="أضف منتجاً قبل إتمام الطلب." actionLabel="تصفح المنتجات" onAction={() => router.replace('/(app)/(tabs)/catalog')} /></AppPage>;
   if (loadingProducts || profile.isLoading) return <AppPage><StateView loading title="نجهّز فاتورتك" message="نتحقق من الأسعار ومعلومات التوصيل." /></AppPage>;
@@ -76,6 +84,7 @@ export default function CheckoutScreen() {
       });
       clear();
       router.replace({ pathname: '/order-success', params: result });
+      showToast('تم إرسال طلبك بنجاح', { actionLabel: 'عرض التفاصيل', onAction: () => router.push({ pathname: '/order/[id]', params: { id: result.orderId } }) });
     } catch (error) {
       const authError = /SESSION_INVALID|ACCOUNT_UNAVAILABLE|AUTH_REQUIRED/.test(error instanceof Error ? error.message : '');
       setError('root', { message: authError ? 'انتهت الجلسة أو لم يعد الحساب متاحاً. سجّل الدخول من جديد.' : normalizeAppError(error).messageAr });

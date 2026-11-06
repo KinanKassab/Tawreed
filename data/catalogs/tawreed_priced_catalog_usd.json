@@ -46,7 +46,7 @@
     ]},
     { "name": "سنابل", "slug": "burs", "items": [
       { "name": "سنابل توربين", "options": [{ "label": "الكت", "price": 2 }, { "label": "قطعة", "price": 0.2 }] },
-      { "name": "سنابل مكرتور", "options": [{ "label": "الكت", "price": null }, { "label": "قطعة", "price": null }] },
+      { "name": "سنابل مكرتور", "options": [{ "label": "الكت", "price": 4 }, { "label": "قطعة", "price": 0.4 }] },
       { "name": "فراشي (قطعة)", "price": 0.25 }, { "name": "مطاط", "price": 0.5 },
       { "name": "قبضات مستقيمة", "price": null }, { "name": "إنهاء", "price": null }, { "name": "تقطير فينير", "price": null }
     ]},

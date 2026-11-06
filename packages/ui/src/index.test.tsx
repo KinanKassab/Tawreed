@@ -25,6 +25,7 @@ const baseProduct: Product = {
   availability: 'available',
   category: { id: 'category-1', slug: 'consumables', nameAr: 'مستهلكات', nameEn: 'Consumables' },
   price: { amountMinor: 2400, currency: 'USD', decimalPlaces: 2 },
+  priceOnRequest: false,
   media: null,
   variantLabelAr: null,
   variants: [],
@@ -64,9 +65,13 @@ describe('shared Doctor UI', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain('غير متاح للطلب');
   });
 
-  it('labels an unpriced catalog record as pending commercial verification', async () => {
-    const renderer = await render(<ProductCard product={{ ...baseProduct, price: null }} imageUrl={null} onPress={vi.fn()} onAdd={vi.fn()} />);
-    expect(JSON.stringify(renderer.toJSON())).toContain('السعر والتوفر قيد التأكيد');
-    expect(findButton(renderer.root).props.accessibilityState.disabled).toBe(true);
+  it('offers a quote request for a product priced on request', async () => {
+    const onAdd = vi.fn();
+    const renderer = await render(<ProductCard product={{ ...baseProduct, price: null, priceOnRequest: true }} imageUrl={null} onPress={vi.fn()} onAdd={onAdd} />);
+    expect(JSON.stringify(renderer.toJSON())).toContain('حسب الطلب');
+    const button = findButton(renderer.root);
+    expect(button.props.accessibilityState.disabled).toBe(false);
+    await act(async () => button.props.onPress());
+    expect(onAdd).toHaveBeenCalledOnce();
   });
 });

@@ -1,8 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Surface } from '@tawreed/ui';
@@ -10,34 +9,28 @@ import { emailPasswordSchema, type EmailPasswordInput } from '@tawreed/validatio
 import { ar } from '@/locales/ar';
 import { useData, useSession } from '@/providers/app-providers';
 import { BrandLogo } from '@/components/brand-logo';
+import { useToast } from '@/store/toast';
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = ['/checkout', '/orders', '/account', '/notifications', '/support'].includes(params.returnTo ?? '') ? params.returnTo! : '/(app)/(tabs)';
-  const [showAccountSetup, setShowAccountSetup] = useState(false);
   const data = useData();
   const { authNotice, clearAuthNotice } = useSession();
+  const showToast = useToast((state) => state.show);
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<EmailPasswordInput>({
     resolver: zodResolver(emailPasswordSchema),
     defaultValues: { email: '', password: '' },
   });
 
-  const closeAccountSetup = () => setShowAccountSetup(false);
-  const openAccountSetup = () => {
-    closeAccountSetup();
-    router.push({ pathname: '/(auth)/register', params: { returnTo } });
-  };
   const submit = handleSubmit(async (values) => {
     if (!data) return;
-    closeAccountSetup();
     try {
       await data.auth.signInWithPassword(values.email, values.password);
       clearAuthNotice();
       router.replace(returnTo as never);
+      showToast('تم تسجيل الدخول');
     } catch (error) {
-      const normalized = normalizeAppError(error);
-      setError('root', { message: normalized.messageAr });
-      if (normalized.kind === 'unauthorized') setShowAccountSetup(true);
+      setError('root', { message: normalizeAppError(error).messageAr });
     }
   });
 
@@ -54,38 +47,21 @@ export default function LoginScreen() {
           {authNotice ? <View accessibilityRole="alert" style={styles.sessionNotice}><AppText variant="small" color={colors.warningText}>{authNotice}</AppText></View> : null}
           <Controller control={control} name="email" render={({ field }) => <Field label={ar.email} autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.email?.message} />} />
           <Controller control={control} name="password" render={({ field }) => <Field label={ar.password} secureTextEntry autoComplete="current-password" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.password?.message} />} />
-          {errors.root?.message ? <AppText accessibilityRole="alert" color={colors.error}>{errors.root.message}</AppText> : null}
+          {errors.root?.message ? (
+            <View accessibilityRole="alert" style={styles.errorBox}>
+              <AppText color={colors.error}>{errors.root.message}</AppText>
+              <Link href="/(auth)/forgot" style={styles.link}>{ar.forgotPassword}</Link>
+            </View>
+          ) : null}
           <Button label={ar.login} onPress={submit} loading={isSubmitting} />
           <Button label="متابعة تصفح المنتجات كزائر" variant="quiet" onPress={() => router.replace('/(app)/(tabs)/catalog')} />
-          <Link href="/(auth)/forgot" style={styles.link}>{ar.forgotPassword}</Link>
+          {!errors.root?.message ? <Link href="/(auth)/forgot" style={styles.link}>{ar.forgotPassword}</Link> : null}
           <View style={styles.inline}>
             <AppText variant="small" color={colors.textMuted}>{ar.noAccount}</AppText>
             <Link href={{ pathname: '/(auth)/register', params: { returnTo } }} style={styles.link}> {ar.register}</Link>
           </View>
         </Surface>
       </ScrollView>
-      <Modal
-        animationType="fade"
-        onRequestClose={closeAccountSetup}
-        presentationStyle="overFullScreen"
-        statusBarTranslucent
-        transparent
-        visible={showAccountSetup}>
-        <View style={styles.modalBackdrop}>
-          <Surface
-            accessibilityLabel="خيارات تجهيز الحساب"
-            accessibilityViewIsModal
-            role="dialog"
-            style={styles.accountDialog}>
-            <AppText variant="h3">هل تريد تجهيز حساب جديد؟</AppText>
-            <AppText color={colors.textMuted}>إذا لم يكن لديك حساب في توريد، يمكنك تجهيز حسابك الآن والبدء خلال دقائق.</AppText>
-            <View style={styles.dialogActions}>
-              <Button label="تجهيز حساب جديد" onPress={openAccountSetup} />
-              <Button label="ليس الآن" variant="secondary" onPress={closeAccountSetup} />
-            </View>
-          </Surface>
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -96,9 +72,7 @@ const styles = StyleSheet.create({
   brand: { alignItems: 'center', marginBottom: spacing.xl },
   card: { width: '100%', maxWidth: 480, gap: spacing.md },
   sessionNotice: { backgroundColor: colors.warningSoft, borderColor: colors.warning, borderWidth: 1, borderRadius: 12, padding: spacing.md },
-  modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md, backgroundColor: colors.overlay },
-  accountDialog: { width: '100%', maxWidth: 440, gap: spacing.md, borderColor: colors.primary, elevation: 2, shadowColor: colors.text, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 18 },
-  dialogActions: { gap: spacing.sm, marginTop: spacing.xs },
+  errorBox: { gap: spacing.xs },
   link: { color: colors.primary, textAlign: 'center', minHeight: 44, paddingVertical: spacing.sm },
   inline: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center' },
 });

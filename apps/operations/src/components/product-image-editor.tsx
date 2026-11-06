@@ -18,6 +18,8 @@ interface ProductImageEditorProps {
   value: ProductImageFile | null;
   onChange: (image: ProductImageFile) => void;
   onError: (message: string) => void;
+  title?: string;
+  description?: string;
 }
 
 const maxBytes = 5 * 1024 * 1024;
@@ -33,7 +35,7 @@ function measure(url: string) {
 }
 
 /** Picks a product image and uploads it as-is (no cropping); the apps display it with contain-fit. */
-export function ProductImageEditor({ currentImageUrl, value, onChange, onError }: ProductImageEditorProps) {
+export function ProductImageEditor({ currentImageUrl, value, onChange, onError, title = 'صورة المنتج', description = 'تُرفع الصورة كما هي بدون قص (JPG أو PNG أو WEBP حتى 5 ميغابايت).' }: ProductImageEditorProps) {
   const [processing, setProcessing] = useState(false);
 
   const chooseImage = useCallback(async () => {
@@ -68,8 +70,8 @@ export function ProductImageEditor({ currentImageUrl, value, onChange, onError }
       <View style={styles.heading}>
         <View style={styles.icon}><Icon name="image-edit-outline" size={22} color={colors.ink} /></View>
         <View style={styles.copy}>
-          <AppText variant="h3">صورة المنتج</AppText>
-          <AppText variant="small" color={colors.muted}>تُرفع الصورة كما هي بدون قص (JPG أو PNG أو WEBP حتى 5 ميغابايت).</AppText>
+          <AppText variant="h3">{title}</AppText>
+          <AppText variant="small" color={colors.muted}>{description}</AppText>
         </View>
       </View>
       {preview ? <Image source={{ uri: preview }} resizeMode="contain" style={styles.preview} accessibilityLabel="معاينة صورة المنتج" /> : <View style={styles.empty}><Icon name="image-outline" size={44} color={colors.muted} /><AppText color={colors.muted}>لا توجد صورة حالياً</AppText></View>}

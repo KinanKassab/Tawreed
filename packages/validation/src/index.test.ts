@@ -15,6 +15,8 @@ describe('Doctor input validation', () => {
     };
     expect(registerSchema.safeParse(valid).success).toBe(true);
     expect(registerSchema.safeParse({ ...valid, phone: '0900000000' }).success).toBe(false);
+    expect(registerSchema.safeParse({ ...valid, phone: '+96390000000' }).success).toBe(false);
+    expect(registerSchema.safeParse({ ...valid, phone: '+9639000000000' }).success).toBe(false);
   });
 
   it('requires a usable default address in profile updates', () => {

@@ -8,7 +8,7 @@ export const emailPasswordSchema = z.object({
 export const registerSchema = emailPasswordSchema.extend({
   firstName: z.string().trim().min(2, 'أدخل الاسم الأول').max(50),
   lastName: z.string().trim().min(2, 'أدخل الاسم الثاني').max(50),
-  phone: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'استخدم رقم الهاتف بالصيغة الدولية مثل +963...'),
+  phone: z.string().trim().regex(/^\+9639\d{8}$/, 'أدخل 9 أرقام صحيحة بعد +963'),
   preferredContact: z.enum(['phone', 'whatsapp', 'email']),
   deliveryAddress: z.string().trim().min(8, 'أدخل عنواناً واضحاً للتوصيل').max(300),
   latitude: z.number().min(-90).max(90).nullable(),

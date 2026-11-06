@@ -1,0 +1,34 @@
+{
+  "applied": true,
+  "verifiedAt": "2026-11-03T22:56:39.767Z",
+  "target": "mgpgdpmjftkproivjkmd.supabase.co",
+  "totals": {
+    "databaseProducts": 231,
+    "desiredProducts": 182,
+    "activeProducts": 145,
+    "archivedProducts": 86,
+    "excelGroups": 123,
+    "pricedRows": 145,
+    "excelUniqueImages": 374,
+    "matchedMediaAssets": 374,
+    "expectedMediaLinks": 617,
+    "actualMediaLinks": 617,
+    "groupsWithoutImages": 3
+  },
+  "failures": [],
+  "missingStorageObjects": [],
+  "groupsWithoutImages": [
+    {
+      "groupId": "PRD-0116",
+      "nameAr": "جبس"
+    },
+    {
+      "groupId": "PRD-0100",
+      "nameAr": "كاسات"
+    },
+    {
+      "groupId": "PRD-0096",
+      "nameAr": "لابكوت"
+    }
+  ]
+}

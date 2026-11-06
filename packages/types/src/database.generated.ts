@@ -405,14 +405,14 @@ isOneToOne: true
                   ]
                 },"products": {
                   Row: {
-                    "active": boolean,"availability": Database["public"]['Enums']["product_availability"],"category_id": string,"created_at": string,"description_ar": string | null,"id": string,"low_stock_threshold": number,"manufacturer": string | null,"name_ar": string,"name_en": string | null,"package_label_ar": string | null,"search_text": string | null,"sku": string,"specifications_ar": string | null,"unit_label_ar": string,"updated_at": string,"variant_group_key": string | null,"variant_label_ar": string | null,"variant_sort_order": number
+                    "active": boolean,"availability": Database["public"]['Enums']["product_availability"],"category_id": string,"created_at": string,"description_ar": string | null,"id": string,"low_stock_threshold": number,"manufacturer": string | null,"name_ar": string,"name_en": string | null,"package_label_ar": string | null,"price_on_request": boolean,"search_text": string | null,"sku": string,"specifications_ar": string | null,"unit_label_ar": string,"updated_at": string,"variant_group_key": string | null,"variant_label_ar": string | null,"variant_sort_order": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id": string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar": string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku": string,"specifications_ar"?: string | null,"unit_label_ar": string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null,"variant_sort_order"?: number
+                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id": string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar": string,"name_en"?: string | null,"package_label_ar"?: string | null,"price_on_request"?: boolean,"search_text"?: never,"sku": string,"specifications_ar"?: string | null,"unit_label_ar": string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null,"variant_sort_order"?: number
                   }
                   Update: {
-                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id"?: string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar"?: string,"name_en"?: string | null,"package_label_ar"?: string | null,"search_text"?: never,"sku"?: string,"specifications_ar"?: string | null,"unit_label_ar"?: string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null,"variant_sort_order"?: number
+                    "active"?: boolean,"availability"?: Database["public"]['Enums']["product_availability"],"category_id"?: string,"created_at"?: string,"description_ar"?: string | null,"id"?: string,"low_stock_threshold"?: number,"manufacturer"?: string | null,"name_ar"?: string,"name_en"?: string | null,"package_label_ar"?: string | null,"price_on_request"?: boolean,"search_text"?: never,"sku"?: string,"specifications_ar"?: string | null,"unit_label_ar"?: string,"updated_at"?: string,"variant_group_key"?: string | null,"variant_label_ar"?: string | null,"variant_sort_order"?: number
                   }
                   Relationships: [
                     {
@@ -425,14 +425,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "clinic_name": string | null,"created_at": string,"default_address": string | null,"default_google_place_id": string | null,"default_latitude": number | null,"default_longitude": number | null,"email": string | null,"first_name": string | null,"full_name": string,"id": string,"last_name": string | null,"phone": string | null,"preferred_contact": string,"updated_at": string
+                    "avatar_path": string | null,"clinic_name": string | null,"created_at": string,"default_address": string | null,"default_google_place_id": string | null,"default_latitude": number | null,"default_longitude": number | null,"email": string | null,"first_name": string | null,"full_name": string,"id": string,"last_name": string | null,"phone": string | null,"preferred_contact": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"default_google_place_id"?: string | null,"default_latitude"?: number | null,"default_longitude"?: number | null,"email"?: string | null,"first_name"?: string | null,"full_name": string,"id": string,"last_name"?: string | null,"phone"?: string | null,"preferred_contact"?: string,"updated_at"?: string
+                    "avatar_path"?: string | null,"clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"default_google_place_id"?: string | null,"default_latitude"?: number | null,"default_longitude"?: number | null,"email"?: string | null,"first_name"?: string | null,"full_name": string,"id": string,"last_name"?: string | null,"phone"?: string | null,"preferred_contact"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"default_google_place_id"?: string | null,"default_latitude"?: number | null,"default_longitude"?: number | null,"email"?: string | null,"first_name"?: string | null,"full_name"?: string,"id"?: string,"last_name"?: string | null,"phone"?: string | null,"preferred_contact"?: string,"updated_at"?: string
+                    "avatar_path"?: string | null,"clinic_name"?: string | null,"created_at"?: string,"default_address"?: string | null,"default_google_place_id"?: string | null,"default_latitude"?: number | null,"default_longitude"?: number | null,"email"?: string | null,"first_name"?: string | null,"full_name"?: string,"id"?: string,"last_name"?: string | null,"phone"?: string | null,"preferred_contact"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -614,6 +614,12 @@ isOneToOne: false
                            },
 "operations_set_product_active":
 { Args: { "p_active": boolean,"p_product_id": string }; Returns: undefined
+                           },
+"operations_archive_products":
+{ Args: { "p_product_ids": (string)[] }; Returns: number
+                           },
+"operations_set_price_on_request":
+{ Args: { "p_price_on_request": boolean,"p_product_id": string }; Returns: undefined
                            },
 "operations_set_product_category":
 { Args: { "p_category_id": string,"p_product_ids": (string)[] }; Returns: number

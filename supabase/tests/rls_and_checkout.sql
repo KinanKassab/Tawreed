@@ -1,8 +1,10 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(29);
 
 select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
+select has_column('public', 'profiles', 'avatar_path', 'profiles store an owned avatar path');
+select is((select public from storage.buckets where id = 'avatars'), false, 'avatar bucket is private');
 select ok((select relrowsecurity from pg_class where oid = 'public.orders'::regclass), 'orders has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.order_items'::regclass), 'order_items has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.vendors'::regclass), 'internal vendors has RLS');
