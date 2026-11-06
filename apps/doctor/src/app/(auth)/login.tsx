@@ -9,12 +9,14 @@ import { emailPasswordSchema, type EmailPasswordInput } from '@tawreed/validatio
 import { ar } from '@/locales/ar';
 import { useData, useSession } from '@/providers/app-providers';
 import { BrandLogo } from '@/components/brand-logo';
+import { useToast } from '@/store/toast';
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = ['/checkout', '/orders', '/account', '/notifications', '/support'].includes(params.returnTo ?? '') ? params.returnTo! : '/(app)/(tabs)';
   const data = useData();
   const { authNotice, clearAuthNotice } = useSession();
+  const showToast = useToast((state) => state.show);
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<EmailPasswordInput>({
     resolver: zodResolver(emailPasswordSchema),
     defaultValues: { email: '', password: '' },
@@ -26,6 +28,7 @@ export default function LoginScreen() {
       await data.auth.signInWithPassword(values.email, values.password);
       clearAuthNotice();
       router.replace(returnTo as never);
+      showToast('تم تسجيل الدخول');
     } catch (error) {
       setError('root', { message: normalizeAppError(error).messageAr });
     }

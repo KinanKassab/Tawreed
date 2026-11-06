@@ -13,6 +13,7 @@ import { AppPage } from '@/components/app-page';
 import { useNetwork } from '@/hooks/use-network';
 import { useData, useSession } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
+import { useToast } from '@/store/toast';
 import { ar } from '@/locales/ar';
 
 export default function CheckoutScreen() {
@@ -34,6 +35,7 @@ export default function CheckoutScreen() {
   const currency = products[0]?.price?.currency ?? 'NEW_SYP';
   const decimalPlaces = products[0]?.price?.decimalPlaces ?? 0;
   const subtotal = products.reduce((sum, product) => product.price ? sum + product.price.amountMinor * (items[product.id] ?? 1) : sum, 0);
+  const showToast = useToast((state) => state.show);
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError, reset } = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { recipientName: '', recipientPhone: '', deliveryAddress: '', deliveryNotes: '' },
@@ -82,6 +84,7 @@ export default function CheckoutScreen() {
       });
       clear();
       router.replace({ pathname: '/order-success', params: result });
+      showToast('تم إرسال طلبك بنجاح', { actionLabel: 'عرض التفاصيل', onAction: () => router.push({ pathname: '/order/[id]', params: { id: result.orderId } }) });
     } catch (error) {
       const authError = /SESSION_INVALID|ACCOUNT_UNAVAILABLE|AUTH_REQUIRED/.test(error instanceof Error ? error.message : '');
       setError('root', { message: authError ? 'انتهت الجلسة أو لم يعد الحساب متاحاً. سجّل الدخول من جديد.' : normalizeAppError(error).messageAr });

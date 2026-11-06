@@ -12,7 +12,6 @@ import { useData } from '@/providers/app-providers';
 
 const steps = ['الاسم', 'التواصل', 'التوصيل'] as const;
 const contactOptions = [
-  { value: 'phone', label: 'اتصال هاتفي', icon: 'phone-outline' },
   { value: 'whatsapp', label: 'واتساب', icon: 'whatsapp' },
   { value: 'email', label: 'بريد إلكتروني', icon: 'email-outline' },
 ] as const;

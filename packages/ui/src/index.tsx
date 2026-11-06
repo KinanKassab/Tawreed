@@ -5,7 +5,7 @@ import {
   ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput,
   type StyleProp, type TextInputProps, type TextStyle, View, type ViewProps, type ViewStyle,
 } from 'react-native';
-import Animated, { cancelAnimation, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeIn, FadeInDown, FadeOutDown, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { border, colors, controlHeight, layout, motion, radius, shadows, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Availability, type Product } from '@tawreed/domain';
 export { Icon, type IconName } from './icon';
@@ -217,7 +217,17 @@ export function OfflineBanner() {
 }
 
 export function Toast({ message = 'انضاف المنتج للسلة', actionLabel = 'عرض السلة', onAction }: { message?: string; actionLabel?: string; onAction?: () => void }) {
-  return <View accessibilityRole="alert" style={styles.toast}><AppText color={colors.onToast}>{message}</AppText>{onAction ? <MotionPressable accessibilityRole="button" onPress={onAction} style={styles.toastAction}><AppText variant="button" color={colors.accent}>{actionLabel}</AppText></MotionPressable> : null}</View>;
+  const reducedMotion = useReducedMotion();
+  return (
+    <Animated.View
+      accessibilityRole="alert"
+      entering={reducedMotion ? FadeIn.duration(120) : FadeInDown.duration(220)}
+      exiting={reducedMotion ? undefined : FadeOutDown.duration(180)}
+      style={styles.toast}>
+      <AppText color={colors.onToast}>{message}</AppText>
+      {onAction ? <MotionPressable accessibilityRole="button" onPress={onAction} style={styles.toastAction}><AppText variant="button" color={colors.accent}>{actionLabel}</AppText></MotionPressable> : null}
+    </Animated.View>
+  );
 }
 
 export function ProductCard({ product, imageUrl, onPress, onAdd }: {

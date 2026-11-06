@@ -6,10 +6,9 @@ import { StyleSheet, View } from 'react-native';
 import type { z } from 'zod';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { normalizeAppError } from '@tawreed/domain';
-import { AccountSkeleton, AppText, Button, ContentFade, Field, Surface } from '@tawreed/ui';
+import { AccountSkeleton, AppText, Button, ContentFade, Field, Icon, Surface } from '@tawreed/ui';
 import { profileSchema } from '@tawreed/validation';
 import { AppPage } from '@/components/app-page';
-import { ProfileAvatarEditor } from '@/components/profile-avatar-editor';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
 import { useNetwork } from '@/hooks/use-network';
 import { useData, useSession } from '@/providers/app-providers';
@@ -35,27 +34,14 @@ export default function AccountScreen() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
   });
-  const avatar = useMutation({
-    mutationFn: async (image: { bytes: ArrayBuffer; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }) => {
-      if (!online) throw new Error(ar.offlineMutation);
-      await data!.profile.updateAvatar(image);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
-  });
 
   if (profile.isLoading) return <AppPage><AccountSkeleton /></AppPage>;
 
   return <AppPage><ContentFade style={styles.page}>
     <AppText variant="h1">حسابي</AppText>
+
     <SwipeExclusion><Surface style={styles.card}>
-      <ProfileAvatarEditor
-        avatarUrl={profile.data?.avatarUrl ?? null}
-        fullName={profile.data?.fullName ?? 'المستخدم'}
-        onUpload={(image) => avatar.mutateAsync(image)}
-      />
-      {avatar.isSuccess ? <AppText accessibilityRole="alert" color={colors.successText}>تم تحديث صورة البروفايل.</AppText> : null}
-      <View style={styles.divider} />
-      <AppText variant="h2">بيانات العيادة</AppText>
+      <View style={styles.sectionTitle}><Icon name="map-marker-outline" size={22} color={colors.primary} /><AppText variant="h2">بيانات التوصيل</AppText></View>
       {profile.data?.email ? <AppText variant="small" color={colors.textMuted}>{profile.data.email}</AppText> : null}
       <Controller control={control} name="fullName" render={({ field }) => <Field label="الاسم الكامل" value={field.value} onChangeText={field.onChange} error={errors.fullName?.message} />} />
       <Controller control={control} name="clinicName" render={({ field }) => <Field label="اسم العيادة أو الجهة" value={field.value ?? ''} onChangeText={field.onChange} error={errors.clinicName?.message} />} />
@@ -64,8 +50,15 @@ export default function AccountScreen() {
       {update.isSuccess ? <AppText accessibilityRole="alert" color={colors.successText}>تم حفظ البيانات.</AppText> : null}
       <Button label="حفظ البيانات" onPress={handleSubmit((input) => update.mutate(input))} loading={update.isPending} />
     </Surface></SwipeExclusion>
+
     <Surface style={styles.card}>
-      <AppText variant="h2">الدعم</AppText>
+      <View style={styles.sectionTitle}><Icon name="clipboard-text-outline" size={22} color={colors.primary} /><AppText variant="h2">طلباتي</AppText></View>
+      <AppText color={colors.textMuted}>راجع حالة طلباتك الحالية والسابقة.</AppText>
+      <Button label="عرض طلباتي" variant="outline" onPress={() => router.push('/(app)/(tabs)/orders')} />
+    </Surface>
+
+    <Surface style={styles.card}>
+      <View style={styles.sectionTitle}><Icon name="shield-check-outline" size={22} color={colors.primary} /><AppText variant="h2">الدعم</AppText></View>
       <AppText color={colors.textMuted}>يمكنك الإبلاغ عن مشكلة، وستظهر قنوات التواصل الرسمية عند اعتمادها.</AppText>
       <Button label="الإبلاغ عن مشكلة" variant="outline" onPress={() => router.push('/support')} />
       <Button label="تسجيل الخروج" variant="text" onPress={async () => { await signOut(); reset(); router.replace('/(auth)/login'); }} />
@@ -76,5 +69,5 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   page: { gap: spacing.xl },
   card: { gap: spacing.md },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
+  sectionTitle: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm },
 });
