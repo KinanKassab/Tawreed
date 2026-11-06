@@ -36,6 +36,7 @@ export default function DashboardScreen() {
   const [selectedProduct, setSelectedProduct] = useState<OperationsProduct | null>(null);
   const [productSearch, setProductSearch] = useState('');
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const context = useQuery({ queryKey: ['operations-context', session?.user.id], queryFn: () => data!.operations.getMyContext(), enabled: Boolean(data && session) });
   const orders = useQuery({
     queryKey: ['operations-orders'],
@@ -45,6 +46,7 @@ export default function DashboardScreen() {
     refetchOnWindowFocus: true,
   });
   const products = useQuery({ queryKey: ['operations-products'], queryFn: () => data!.operations.listProducts(), enabled: Boolean(data && context.data) });
+  const orderDetail = useQuery({ queryKey: ['operations-order-detail', expandedOrderId], queryFn: () => data!.operations.getOrderById(expandedOrderId!), enabled: Boolean(data && expandedOrderId) });
   const exchangeRate = useQuery({ queryKey: ['operations-exchange-rate'], queryFn: () => data!.operations.getActiveExchangeRate(), enabled: Boolean(data && context.data) });
 
   useEffect(() => {
@@ -67,10 +69,13 @@ export default function DashboardScreen() {
     if (!data) return;
     await data.operations.setExchangeRate({ baseCurrency: 'USD', quoteCurrency: 'NEW_SYP', rate: Number(values.rate) });
   }, onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['operations-exchange-rate'] }); setFeedback({ message: 'تم تحديث سعر الصرف وتسجيل التعديل.', error: false }); }, onError: (error) => setFeedback({ message: normalizeAppError(error).messageAr, error: true }) });
-  const orderMutation = useMutation({ mutationFn: async ({ id, status }: { id: string; status?: DoctorOrderStatus }) => {
+  const orderMutation = useMutation({ mutationFn: async ({ id, status, currentStatus }: { id: string; status?: DoctorOrderStatus; currentStatus?: DoctorOrderStatus }) => {
     if (!data) return;
     if (!status) await data.operations.confirmOrder(id);
-    else await data.operations.setOrderStatus(id, status);
+    else if (status === 'out_for_delivery' && currentStatus === 'preparing') {
+      await data.operations.setOrderStatus(id, 'ready_for_delivery');
+      await data.operations.setOrderStatus(id, 'out_for_delivery');
+    } else await data.operations.setOrderStatus(id, status);
   }, onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['operations-orders'] }), refreshProducts()]); setFeedback({ message: 'تم تحديث الطلب بنجاح.', error: false }); }, onError: (error) => setFeedback({ message: normalizeAppError(error).messageAr, error: true }) });
 
   const stats = useMemo(() => {
@@ -78,7 +83,7 @@ export default function DashboardScreen() {
     const productRows = products.data ?? [];
     return {
       newOrders: orderRows.filter((order) => order.status === 'received').length,
-      preparing: orderRows.filter((order) => ['preparing', 'ready_for_delivery'].includes(order.status)).length,
+      preparing: orderRows.filter((order) => ['sourcing', 'preparing', 'ready_for_delivery'].includes(order.status)).length,
       problems: orderRows.filter((order) => order.status === 'problem').length,
       lowStock: productRows.filter((product) => product.onHand - product.reserved <= product.lowStockThreshold).length,
     };
@@ -91,8 +96,8 @@ export default function DashboardScreen() {
 
   if (!data || context.isLoading || !context.data) return <StateView loading title="جاري التحقق" message="نتحقق من صلاحيات حساب الفريق." />;
 
-  const nextStatus = (status: DoctorOrderStatus): DoctorOrderStatus | undefined => status === 'preparing' ? 'ready_for_delivery' : status === 'ready_for_delivery' ? 'out_for_delivery' : status === 'out_for_delivery' ? 'delivered' : undefined;
-  const nextLabel = (status: DoctorOrderStatus) => status === 'preparing' ? 'جاهز للتوصيل' : status === 'ready_for_delivery' ? 'خرج للتوصيل' : status === 'out_for_delivery' ? 'تم التسليم' : '';
+  const nextStatus = (status: DoctorOrderStatus): DoctorOrderStatus | undefined => ['preparing', 'ready_for_delivery'].includes(status) ? 'out_for_delivery' : status === 'out_for_delivery' ? 'delivered' : undefined;
+  const nextLabel = (status: DoctorOrderStatus) => ['preparing', 'ready_for_delivery'].includes(status) ? 'بدء التوصيل' : status === 'out_for_delivery' ? 'تأكيد أنه وصل' : '';
 
   const signOut = () => data.auth.signOut().finally(() => router.replace('/login'));
   const activeSection = sections.find((item) => item.id === section)!;
@@ -103,9 +108,20 @@ export default function DashboardScreen() {
     <ScrollView style={styles.content} contentContainerStyle={[styles.contentInner, compact && styles.contentInnerCompact, phone && styles.contentInnerPhone]}>
       <View style={[styles.pageHeader, phone && styles.pageHeaderPhone]}><View style={styles.pageTitle}><View style={styles.pageEyebrow}><Icon name={activeSection.icon} size={17} color={colors.green} /><AppText variant="caption" color={colors.green}>مساحة العمل</AppText></View><AppText variant={phone ? 'h2' : 'h1'}>{activeSection.label}</AppText><AppText variant={phone ? 'small' : 'body'} color={colors.muted}>إدارة يوم توريد من مكان واحد.</AppText></View>{feedback ? <View accessibilityRole="alert" style={[styles.feedback, feedback.error && styles.feedbackError]}><AppText style={styles.feedbackText} variant="small" color={feedback.error ? colors.danger : colors.successText}>{feedback.message}</AppText><Pressable accessibilityRole="button" accessibilityLabel="إغلاق الرسالة" onPress={() => setFeedback(null)} style={styles.feedbackClose}><Icon name="close" size={20} color={feedback.error ? colors.danger : colors.successText} /></Pressable></View> : null}</View>
 
-  {section === 'overview' ? <View style={styles.pageBody}><View style={styles.stats}><Stat label="طلبات جديدة" value={stats.newOrders} icon="clipboard-alert-outline" compact={compact} phone={phone} /><Stat label="قيد التجهيز" value={stats.preparing} icon="progress-clock" compact={compact} phone={phone} /><Stat label="بحاجة متابعة" value={stats.problems} icon="alert-circle-outline" compact={compact} phone={phone} /><Stat label="مخزون منخفض" value={stats.lowStock} icon="package-variant-minus" compact={compact} phone={phone} /></View><Surface style={styles.panel}><AppText variant="h3">أولوية اليوم</AppText><AppText color={colors.muted}>ابدأ بتأكيد الطلبات الجديدة. لن يُحجز أي مخزون قبل التأكيد، ولن يُصرف إلا كامل الطلب عند خروجه للتوصيل.</AppText><Button label="عرض الطلبات" onPress={() => setSection('orders')} style={styles.shortButton} /></Surface></View> : null}
+  {section === 'overview' ? <View style={styles.pageBody}><View style={styles.stats}><Stat label="طلبات جديدة" value={stats.newOrders} icon="clipboard-alert-outline" compact={compact} phone={phone} /><Stat label="وصلتنا وعم نحضّرها" value={stats.preparing} icon="progress-clock" compact={compact} phone={phone} /><Stat label="بحاجة متابعة" value={stats.problems} icon="alert-circle-outline" compact={compact} phone={phone} /><Stat label="مخزون منخفض" value={stats.lowStock} icon="package-variant-minus" compact={compact} phone={phone} /></View><Surface style={styles.panel}><AppText variant="h3">أولوية اليوم</AppText><AppText color={colors.muted}>أكد الطلب أولاً لحجزه، ثم حدّثه إلى «عم نوصّله» وبعد التسليم إلى «وصل».</AppText><Button label="عرض الطلبات" onPress={() => setSection('orders')} style={styles.shortButton} /></Surface></View> : null}
 
-  {section === 'orders' ? <View style={styles.pageBody}>{orders.isLoading ? <StateView loading title="جاري تحميل الطلبات" message="لحظات قليلة." /> : orders.data?.length ? orders.data.map((order) => <Surface key={order.id} style={styles.orderCard}><View style={styles.rowWrap}><View style={styles.grow}><AppText variant="h3">طلب {order.orderNumber}</AppText><AppText variant="small" color={colors.muted}>{order.recipientName} · {order.recipientPhone}</AppText></View><StatusBadge label={getOrderStatusLabel(order.status)} problem={order.status === 'problem'} /></View><View style={styles.metaGrid}><Meta label="التاريخ" value={new Date(order.createdAt).toLocaleString('ar-SY')} /><Meta label="العناصر" value={order.itemCount.toLocaleString('ar-SY')} /><Meta label="الإجمالي" value={formatMoney(order.total)} /><Meta label="العنوان" value={order.deliveryAddress} /></View><View style={styles.actions}>{['received', 'problem'].includes(order.status) ? <Button label="تأكيد الطلب وحجزه" onPress={() => orderMutation.mutate({ id: order.id })} loading={orderMutation.isPending} /> : null}{nextStatus(order.status) ? <Button label={nextLabel(order.status)} onPress={() => orderMutation.mutate({ id: order.id, status: nextStatus(order.status) })} loading={orderMutation.isPending} /> : null}{['preparing', 'ready_for_delivery', 'problem'].includes(order.status) ? <Button label="إلغاء الطلب وفك الحجز" variant="secondary" onPress={() => orderMutation.mutate({ id: order.id, status: 'cancelled' })} loading={orderMutation.isPending} /> : null}</View></Surface>) : <StateView title="لا توجد طلبات" message="ستظهر طلبات الأطباء الجديدة هنا." />}</View> : null}
+  {section === 'orders' ? <View style={styles.pageBody}>{orders.isLoading ? <StateView loading title="جاري تحميل الطلبات" message="لحظات قليلة." /> : orders.data?.length ? orders.data.map((order) => {
+    const expanded = expandedOrderId === order.id;
+    return <Surface key={order.id} style={styles.orderCard}><View style={styles.rowWrap}><View style={styles.grow}><AppText variant="h3">طلب {order.orderNumber}</AppText><AppText variant="small" color={colors.muted}>{order.recipientName} · {order.recipientPhone}</AppText></View><StatusBadge label={getOrderStatusLabel(order.status)} problem={order.status === 'problem'} /></View><View style={styles.metaGrid}><Meta label="التاريخ" value={new Date(order.createdAt).toLocaleString('ar-SY')} /><Meta label="العناصر" value={order.itemCount.toLocaleString('ar-SY')} /><Meta label="الإجمالي" value={formatMoney(order.total)} /><Meta label="العنوان" value={order.deliveryAddress} /></View>
+      <Pressable accessibilityRole="button" onPress={() => setExpandedOrderId(expanded ? null : order.id)} style={({ pressed }) => [styles.detailsToggle, pressed && styles.pressed]}><AppText variant="small" color={colors.green}>{expanded ? 'إخفاء تفاصيل الطلب' : 'عرض تفاصيل الطلب'}</AppText><Icon name="chevron-left" size={18} color={colors.green} style={expanded ? styles.detailsToggleIconOpen : undefined} /></Pressable>
+      {expanded ? <View style={styles.orderItems}>
+        {orderDetail.isLoading ? <AppText variant="small" color={colors.muted}>جاري تحميل تفاصيل الطلب...</AppText> : orderDetail.data ? <>
+          {orderDetail.data.items.map((item) => <View key={item.id} style={styles.orderItemRow}><View style={styles.grow}><AppText variant="small" style={styles.semibold}>{item.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{item.packageLabelAr ?? item.unitLabelAr} · {item.quantity.toLocaleString('ar-SY')} × {formatMoney(item.unitPrice)}</AppText></View><AppText variant="small" style={styles.semibold}>{formatMoney(item.lineTotal)}</AppText></View>)}
+          {orderDetail.data.deliveryNotes ? <AppText variant="small" color={colors.muted}>ملاحظة التوصيل: {orderDetail.data.deliveryNotes}</AppText> : null}
+        </> : <AppText variant="small" color={colors.danger}>تعذر تحميل تفاصيل الطلب.</AppText>}
+      </View> : null}
+      <View style={styles.actions}>{['received', 'problem'].includes(order.status) ? <Button label="تأكيد استلام الطلب" onPress={() => orderMutation.mutate({ id: order.id })} loading={orderMutation.isPending} /> : null}{nextStatus(order.status) ? <Button label={nextLabel(order.status)} onPress={() => orderMutation.mutate({ id: order.id, status: nextStatus(order.status), currentStatus: order.status })} loading={orderMutation.isPending} /> : null}{['preparing', 'ready_for_delivery', 'problem'].includes(order.status) ? <Button label="إلغاء الطلب وفك الحجز" variant="secondary" onPress={() => orderMutation.mutate({ id: order.id, status: 'cancelled' })} loading={orderMutation.isPending} /> : null}</View></Surface>;
+  }) : <StateView title="لا توجد طلبات" message="ستظهر طلبات الأطباء الجديدة هنا." />}</View> : null}
 
   {section === 'catalog' ? <ProductManagement products={products.data ?? []} loading={products.isLoading} compact={compact} phone={phone} search={productSearch} onSearch={setProductSearch} onRefresh={refreshProducts} onFeedback={(message, error = false) => setFeedback({ message, error })} /> : null}
 
@@ -135,6 +151,8 @@ const styles = StyleSheet.create({
   feedback: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.successSurface, borderRadius: radius.md, paddingStart: spacing.md, minHeight: 48, maxWidth: 480, borderWidth: 1, borderColor: colors.green }, feedbackError: { backgroundColor: '#F5E9E7', borderColor: colors.danger }, feedbackText: { flex: 1 }, feedbackClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stats: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.md }, stat: { flexGrow: 1, flexBasis: 180, gap: spacing.xs }, statCompact: { flexBasis: 280 }, statPhone: { flexBasis: 140, padding: spacing.md }, statIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.pale, alignItems: 'center', justifyContent: 'center' },
   panel: { gap: spacing.md }, shortButton: { alignSelf: 'flex-end', minWidth: 180 }, orderCard: { gap: spacing.md }, rowWrap: { flexDirection: 'row-reverse', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: spacing.sm }, grow: { flex: 1, minWidth: 0, gap: 2 },
+  detailsToggle: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', minHeight: 36 }, detailsToggleIconOpen: { transform: [{ rotate: '-90deg' }] },
+  orderItems: { gap: spacing.sm, backgroundColor: colors.pale, borderRadius: radius.md, padding: spacing.md }, orderItemRow: { flexDirection: 'row-reverse', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   badge: { backgroundColor: colors.successSurface, borderRadius: radius.pill, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }, badgeProblem: { backgroundColor: '#F5E9E7' },
   metaGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.md }, meta: { minWidth: 130, flexGrow: 1, gap: 2 }, actions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
   split: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: spacing.lg }, splitCompact: { flexDirection: 'column' }, listPane: { flex: 1, width: '100%', gap: spacing.xs }, editor: { width: 360, maxWidth: '100%', gap: spacing.md },

@@ -2,8 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { colors, spacing, typography } from '@tawreed/design-tokens';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { colors, controlHeight, radius, spacing, typography } from '@tawreed/design-tokens';
 import { formatNumber, normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, Surface } from '@tawreed/ui';
 import { registerSchema, type RegisterInput } from '@tawreed/validation';
@@ -17,8 +17,10 @@ const contactOptions = [
   { value: 'email', label: 'بريد إلكتروني', icon: 'email-outline' },
 ] as const;
 
-function safeReturnTo(value: string | string[] | undefined): '/(app)/(tabs)' | '/checkout' {
-  return value === '/checkout' ? '/checkout' : '/(app)/(tabs)';
+function safeReturnTo(value: string | string[] | undefined): '/(app)/(tabs)' | '/(app)/(tabs)/account' | '/checkout' {
+  if (value === '/checkout') return '/checkout';
+  if (value === '/account') return '/(app)/(tabs)/account';
+  return '/(app)/(tabs)';
 }
 
 export default function RegisterScreen() {
@@ -77,7 +79,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <Surface style={styles.card}>
           <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => step ? setStep(step - 1) : router.back()} style={styles.back}><Icon name="arrow-right" size={24} color={colors.text} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => step ? setStep(step - 1) : router.back()} style={styles.back}><Icon name="arrow-left" size={24} color={colors.text} /></Pressable>
             <View style={styles.heading}><AppText variant="h2">تجهيز حسابك</AppText><AppText color={colors.textMuted}>الخطوة {formatNumber(step + 1)} من {formatNumber(steps.length)}</AppText></View>
           </View>
           <View accessibilityLabel={`الخطوة ${step + 1} من ${steps.length}`} style={styles.progress}>
@@ -94,7 +96,25 @@ export default function RegisterScreen() {
           {step === 1 ? <View style={styles.step}>
             <View><AppText variant="h3">بيانات الدخول والتواصل</AppText><AppText color={colors.textMuted}>البريد للدخول إلى الحساب، والرقم للتواصل معك حول الطلب والتوصيل.</AppText></View>
             <Controller control={control} name="email" render={({ field }) => <Field label="البريد الإلكتروني" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={field.value} onChangeText={field.onChange} error={errors.email?.message} />} />
-            <Controller control={control} name="phone" render={({ field }) => <Field label="رقم الهاتف" autoComplete="tel" keyboardType="phone-pad" value={field.value} onChangeText={field.onChange} error={errors.phone?.message} />} />
+            <Controller control={control} name="phone" render={({ field }) => <View style={styles.phoneField}>
+              <AppText variant="small">رقم الهاتف</AppText>
+              <View style={[styles.phoneRow, errors.phone?.message ? styles.phoneRowError : null]}>
+                <View style={styles.phonePrefix}><AppText style={styles.phonePrefixText}>+963</AppText></View>
+                <TextInput
+                  accessibilityLabel="رقم الهاتف، 9 أرقام بعد +963"
+                  autoComplete="tel"
+                  keyboardType="phone-pad"
+                  maxLength={9}
+                  placeholder="9XXXXXXXX"
+                  placeholderTextColor={colors.textDisabled}
+                  value={field.value.replace(/^\+963/, '')}
+                  onBlur={field.onBlur}
+                  onChangeText={(value) => field.onChange(`+963${value.replace(/\D/g, '').slice(0, 9)}`)}
+                  style={styles.phoneInput}
+                />
+              </View>
+              {errors.phone?.message ? <AppText accessibilityRole="alert" color={colors.error} variant="small">{errors.phone.message}</AppText> : null}
+            </View>} />
             <Controller control={control} name="password" render={({ field }) => <Field label="كلمة المرور" secureTextEntry autoComplete="new-password" value={field.value} onChangeText={field.onChange} error={errors.password?.message} />} />
             <View style={styles.contactGroup}><AppText variant="small">كيف تفضّل أن نتابع معك؟</AppText><Controller control={control} name="preferredContact" render={({ field }) => <View style={styles.contactOptions}>{contactOptions.map((option) => { const selected = field.value === option.value; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => field.onChange(option.value)} style={[styles.contactOption, selected && styles.contactOptionSelected]}><Icon name={option.icon} size={21} color={selected ? colors.onPrimary : colors.textMuted} /><AppText variant="small" color={selected ? colors.onPrimary : colors.text}>{option.label}</AppText></Pressable>; })}</View>} /></View>
             <Button label="التالي" onPress={next} />
@@ -131,6 +151,12 @@ const styles = StyleSheet.create({
   contactOptions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
   contactOption: { minHeight: 48, flexGrow: 1, flexBasis: 145, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 14 },
   contactOptionSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
+  phoneField: { gap: spacing.xs },
+  phoneRow: { minHeight: controlHeight.regular, flexDirection: 'row', alignItems: 'stretch', overflow: 'hidden', borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.surface },
+  phoneRowError: { borderColor: colors.error },
+  phonePrefix: { width: 82, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: colors.border, backgroundColor: colors.backgroundSubtle },
+  phonePrefixText: { textAlign: 'center', writingDirection: 'ltr' },
+  phoneInput: { flex: 1, minWidth: 0, minHeight: controlHeight.regular, paddingHorizontal: spacing.md, color: colors.text, fontFamily: Platform.OS === 'web' ? typography.family.web : typography.family.regular, fontSize: typography.size.body, textAlign: 'right', writingDirection: 'ltr' },
   inline: { flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center' },
   link: { color: colors.primary, minHeight: 44, paddingVertical: spacing.sm, fontFamily: typography.family.semibold },
 });

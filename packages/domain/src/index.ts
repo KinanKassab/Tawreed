@@ -37,6 +37,7 @@ export interface Product {
   availability: Availability;
   category: Category;
   price: Money | null;
+  priceOnRequest: boolean;
   media: MediaAsset | null;
   variantLabelAr: string | null;
   variants: ProductVariant[];
@@ -54,7 +55,8 @@ export interface ProductVariant {
   descriptionAr: string | null;
   specificationsAr: string | null;
   media: MediaAsset | null;
-  price: Money;
+  price: Money | null;
+  priceOnRequest: boolean;
   availability: Availability;
 }
 
@@ -109,6 +111,8 @@ export interface DoctorProfile {
   clinicName: string | null;
   phone: string | null;
   email: string | null;
+  avatarPath: string | null;
+  avatarUrl: string | null;
   preferredContact: 'phone' | 'whatsapp' | 'email';
   defaultAddress: string | null;
   defaultLatitude: number | null;
@@ -130,6 +134,21 @@ export interface OperationsOrder {
   total: Money;
 }
 
+export interface OperationsOrderDetail extends OperationsOrder {
+  deliveryNotes: string | null;
+  items: {
+    id: string;
+    productId: string | null;
+    sku: string;
+    nameAr: string;
+    unitLabelAr: string;
+    packageLabelAr: string | null;
+    quantity: number;
+    unitPrice: Money;
+    lineTotal: Money;
+  }[];
+}
+
 export interface OperationsProduct {
   id: string;
   sku: string;
@@ -142,6 +161,7 @@ export interface OperationsProduct {
   availability: Availability;
   active: boolean;
   price: Money | null;
+  priceOnRequest: boolean;
   cost: Money | null;
   media: MediaAsset | null;
   gallery: OperationsProductImage[];
@@ -216,18 +236,25 @@ const availabilityLabels: Record<Availability, string> = {
 };
 
 const orderStatusLabels: Record<DoctorOrderStatus, string> = {
-  received: 'تم استلام الطلب',
-  sourcing: 'جاري تأمين المنتجات',
-  preparing: 'قيد التجهيز',
-  ready_for_delivery: 'جاهز للتوصيل',
-  out_for_delivery: 'قيد التوصيل',
-  delivered: 'تم التسليم',
+  received: 'وصلنا الطلب وعم نحضّره لنبعتلك ياه',
+  sourcing: 'وصلنا الطلب وعم نحضّره لنبعتلك ياه',
+  preparing: 'وصلنا الطلب وعم نحضّره لنبعتلك ياه',
+  ready_for_delivery: 'وصلنا الطلب وعم نحضّره لنبعتلك ياه',
+  out_for_delivery: 'عم نوصّله',
+  delivered: 'وصل',
   cancelled: 'ملغي',
   problem: 'مشكلة بالطلب',
 };
 
 export const getAvailabilityLabel = (value: Availability) => availabilityLabels[value];
 export const getOrderStatusLabel = (value: DoctorOrderStatus) => orderStatusLabels[value];
+
+/** Collapses internal fulfilment states into the three stages shown to Doctors. */
+export const getOrderTrackingStep = (value: DoctorOrderStatus): 0 | 1 | 2 => {
+  if (value === 'delivered') return 2;
+  if (value === 'out_for_delivery') return 1;
+  return 0;
+};
 
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
   return new Intl.NumberFormat('en-US', options).format(value);
@@ -256,7 +283,7 @@ export function normalizeAppError(error: unknown): AppError {
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String(error.message).toLowerCase();
     if (message.includes('invalid login credentials')) {
-      return { kind: 'unauthorized', messageAr: 'تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور، أو جهّز حساباً جديداً.', cause: error };
+      return { kind: 'unauthorized', messageAr: 'البريد أو كلمة السر غير صحيحة.', cause: error };
     }
     if (message.includes('refresh token') || message.includes('session_not_found')) {
       return { kind: 'unauthorized', messageAr: 'انتهت جلستك. سجّل الدخول مجدداً.', cause: error };

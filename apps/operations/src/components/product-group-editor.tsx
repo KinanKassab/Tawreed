@@ -150,7 +150,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
             }, 'تم توحيد السعر لكل الخيارات.')} />
           </Section> : null}
 
-          <Section title="الخيارات (النوع / العبوة / الحجم)" hint="كل خيار له سعره وتكلفته ومخزونه وصوره. الطبيب يختار بينها داخل نفس المنتج.">
+          <Section title="الخيارات (النوع / العبوة / الحجم)" hint="كل خيار له سعره وتكلفته ومخزونه وصوره. للمنتج الذي يُسعّر بعد التواصل، اترك السعر فارغاً وفعّل «حسب الطلب».">
             {grouped ? group.options.map((option, index) => <View key={option.id} style={[styles.optionRow, !option.active && styles.optionArchived, compact && styles.optionRowCompact]}>
               <Thumb url={data.media.resolve(option.media)} />
               <View style={styles.optionLabel}>
@@ -158,7 +158,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
                 <AppText variant="caption" color={colors.muted}>{option.sku}{option.active ? '' : ' · مؤرشف'}</AppText>
               </View>
               <View style={styles.optionMetrics}>
-                <Metric label="البيع" value={option.price ? formatMoney(option.price) : 'بدون سعر'} warn={!option.price} />
+                <Metric label="البيع" value={option.price ? formatMoney(option.price) : option.priceOnRequest ? 'حسب الطلب' : 'بدون سعر'} warn={!option.price && !option.priceOnRequest} />
                 <Metric label="الوحدة" value={option.unitLabelAr} />
                 <Metric label="التكلفة" value={option.cost ? formatMoney(option.cost) : '—'} />
                 <Metric label="المتاح" value={(option.onHand - option.reserved).toLocaleString('ar-SY')} />
@@ -171,6 +171,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
                   setLabelDrafts(({ [option.id]: _saved, ...rest }) => rest);
                 }, 'تم تغيير اسم الخيار.')} /> : null}
                 <Button label="تعديل السعر والمخزون" variant="secondary" onPress={() => onEditOption(option)} />
+                <Button label={option.priceOnRequest ? 'إلغاء حسب الطلب' : 'حسب الطلب'} variant={option.priceOnRequest ? 'primary' : 'secondary'} disabled={Boolean(option.price) && !option.priceOnRequest} onPress={() => perform(() => operations.setProductPriceOnRequest(option.id, !option.priceOnRequest), option.priceOnRequest ? 'تم إلغاء التسعير حسب الطلب.' : 'سيظهر الخيار للطبيب بسعر حسب الطلب.')} />
                 <Button label="↑" variant="secondary" disabled={index === 0 || run.isPending} onPress={() => move(index, -1)} />
                 <Button label="↓" variant="secondary" disabled={index === group.options.length - 1 || run.isPending} onPress={() => move(index, 1)} />
                 <Button label={option.active ? 'أرشفة' : 'استعادة'} variant="secondary" onPress={() => perform(() => operations.setProductActive(option.id, !option.active), option.active ? 'تمت أرشفة الخيار وإخفاؤه عن الأطباء.' : 'تمت استعادة الخيار.')} />
@@ -178,8 +179,8 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
               </View>
             </View>) : <View style={styles.optionRow}>
               <Thumb url={data.media.resolve(lead.media)} />
-              <View style={styles.flex}><AppText>{lead.sku}</AppText><AppText variant="caption" color={colors.muted}>{lead.price ? formatMoney(lead.price) : 'بدون سعر'} · متاح {(lead.onHand - lead.reserved).toLocaleString('ar-SY')}</AppText></View>
-              <Button label={lead.active ? 'أرشفة' : 'استعادة'} variant="secondary" onPress={() => perform(() => operations.setProductActive(lead.id, !lead.active), lead.active ? 'تمت أرشفة المنتج.' : 'تمت استعادة المنتج.')} />
+              <View style={styles.flex}><AppText>{lead.sku}</AppText><AppText variant="caption" color={colors.muted}>{lead.price ? formatMoney(lead.price) : lead.priceOnRequest ? 'حسب الطلب' : 'بدون سعر'} · متاح {(lead.onHand - lead.reserved).toLocaleString('ar-SY')}</AppText></View>
+              <View style={styles.optionActions}><Button label={lead.priceOnRequest ? 'إلغاء حسب الطلب' : 'حسب الطلب'} variant={lead.priceOnRequest ? 'primary' : 'secondary'} disabled={Boolean(lead.price) && !lead.priceOnRequest} onPress={() => perform(() => operations.setProductPriceOnRequest(lead.id, !lead.priceOnRequest), lead.priceOnRequest ? 'تم إلغاء التسعير حسب الطلب.' : 'سيظهر المنتج للطبيب بسعر حسب الطلب.')} /><Button label={lead.active ? 'أرشفة' : 'استعادة'} variant="secondary" onPress={() => perform(() => operations.setProductActive(lead.id, !lead.active), lead.active ? 'تمت أرشفة المنتج.' : 'تمت استعادة المنتج.')} /></View>
             </View>}
             <Surface style={styles.addOption}>
               <AppText variant="small" style={styles.semibold}>{grouped ? 'إضافة خيار جديد' : 'تحويل إلى منتج بخيارات'}</AppText>

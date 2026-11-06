@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { breakpoints, colors, radius, spacing, typography } from '@tawreed/design-tokens';
@@ -34,15 +34,21 @@ export default function CheckoutScreen() {
   const currency = products[0]?.price?.currency ?? 'NEW_SYP';
   const decimalPlaces = products[0]?.price?.decimalPlaces ?? 0;
   const subtotal = products.reduce((sum, product) => product.price ? sum + product.price.amountMinor * (items[product.id] ?? 1) : sum, 0);
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<CheckoutInput>({
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, reset } = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
-    values: profile.data ? {
+    defaultValues: { recipientName: '', recipientPhone: '', deliveryAddress: '', deliveryNotes: '' },
+  });
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !profile.data) return;
+    prefilled.current = true;
+    reset({
       recipientName: profile.data.fullName,
       recipientPhone: profile.data.phone ?? '',
       deliveryAddress: profile.data.defaultAddress ?? '',
       deliveryNotes: '',
-    } : undefined,
-  });
+    });
+  }, [profile.data, reset]);
 
   if (!ids.length) return <AppPage><StateView title="السلة فارغة" message="أضف منتجاً قبل إتمام الطلب." actionLabel="تصفح المنتجات" onAction={() => router.replace('/(app)/(tabs)/catalog')} /></AppPage>;
   if (loadingProducts || profile.isLoading) return <AppPage><StateView loading title="نجهّز فاتورتك" message="نتحقق من الأسعار ومعلومات التوصيل." /></AppPage>;

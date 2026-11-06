@@ -46,12 +46,12 @@ const groupFilters: { key: GroupFilter; label: string }[] = [
   { key: 'archived', label: 'مؤرشف' },
   { key: 'options', label: 'بخيارات' },
   { key: 'no-image', label: 'بدون صورة' },
-  { key: 'no-price', label: 'بدون سعر' },
+  { key: 'no-price', label: 'بدون سعر / حسب الطلب' },
 ];
 const groupMatches = (group: OperationsProductGroup, filter: GroupFilter) => {
   const active = group.options.filter((option) => option.active);
   switch (filter) {
-    case 'active': return active.some((option) => option.price);
+    case 'active': return active.length > 0;
     case 'archived': return !active.length;
     case 'options': return group.options.length > 1;
     case 'no-image': return active.some((option) => !option.media);
@@ -84,6 +84,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
     ? exchangeRate.data.rate
     : null;
   const [editing, setEditing] = useState<OperationsProduct | null>(null);
+  const [archiving, setArchiving] = useState<OperationsProductGroup | null>(null);
   const [previewing, setPreviewing] = useState<OperationsProductGroup | null>(null);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const [filter, setFilter] = useState<GroupFilter>('all');
@@ -116,6 +117,15 @@ export function ProductManagement({ products, loading, compact, phone, search, o
       setNewProduct({ nameAr: '', unitLabelAr: 'قطعة', categoryId: '' });
       setOpenGroupKey(id);
       onFeedback('تم إنشاء المنتج. أضف سعره وصورته وخياراته ليظهر للأطباء.');
+    },
+    onError: (error) => onFeedback(operationsErrorMessage(error), true),
+  });
+  const archive = useMutation({
+    mutationFn: async (group: OperationsProductGroup) => data!.operations.archiveProducts(group.options.filter((option) => option.active).map((option) => option.id)),
+    onSuccess: async () => {
+      await onRefresh();
+      setArchiving(null);
+      onFeedback('تم حذف المنتج من العرض ونقله إلى المؤرشفات.');
     },
     onError: (error) => onFeedback(operationsErrorMessage(error), true),
   });
@@ -205,13 +215,23 @@ export function ProductManagement({ products, loading, compact, phone, search, o
           <HeaderCell label="الحالة" />
           <HeaderCell label="الإجراءات" style={styles.actionColumn} />
         </View> : null}
-        {visibleGroups.map((group) => <ProductGroupRow key={group.key} group={group} compact={compact} imageUrl={data?.media.resolve(pickDisplayedOption(group.options)?.media ?? null) ?? null} onManage={() => setOpenGroupKey(group.key)} onPreview={() => setPreviewing(group)} />)}
+        {visibleGroups.map((group) => <ProductGroupRow key={group.key} group={group} compact={compact} imageUrl={data?.media.resolve(pickDisplayedOption(group.options)?.media ?? null) ?? null} onManage={() => setOpenGroupKey(group.key)} onPreview={() => setPreviewing(group)} onArchive={() => setArchiving(group)} />)}
         {!filteredGroups.length ? <StateView title="لا توجد نتائج" message="جرّب تغيير عبارة البحث." /> : null}
       </View>
     </ScrollView>
     {visibleCount < filteredGroups.length ? <View style={styles.loadMore}><AppText variant="small" color={colors.muted}>يظهر {visibleGroups.length.toLocaleString('ar-SY')} من {filteredGroups.length.toLocaleString('ar-SY')} منتج</AppText><Button label="عرض المزيد" variant="secondary" onPress={() => setVisibleCount((count) => count + 40)} /></View> : null}
 
     <ProductGroupEditor key={openGroup?.key ?? 'closed'} group={openGroup} categories={categories.data ?? []} phone={phone} compact={compact} onClose={() => setOpenGroupKey(null)} onEditOption={openEditor} onPreview={setPreviewing} onRefresh={onRefresh} onFeedback={onFeedback} />
+
+    <Modal visible={Boolean(archiving)} transparent animationType="fade" onRequestClose={() => { if (!archive.isPending) setArchiving(null); }}>
+      <View style={[styles.overlay, phone && styles.overlayPhone]}>
+        <Surface style={styles.confirmModal} accessibilityViewIsModal>
+          <View style={styles.modalHeader}><AppText variant="h2">حذف المنتج؟</AppText><Pressable accessibilityRole="button" accessibilityLabel="إغلاق التأكيد" disabled={archive.isPending} onPress={() => setArchiving(null)} style={styles.iconButton}><Icon name="close" size={24} color={colors.ink} /></Pressable></View>
+          <AppText color={colors.muted}>سيختفي «{archiving?.options[0]?.nameAr}» من تطبيق الأطباء وينتقل إلى المؤرشفات، ويمكن استعادته لاحقاً. لن تُحذف صوره أو بياناته.</AppText>
+          <View style={styles.confirmActions}><Button label="إلغاء" variant="secondary" disabled={archive.isPending} onPress={() => setArchiving(null)} style={styles.confirmAction} /><Button label="حذف ونقل للمؤرشفات" variant="danger" loading={archive.isPending} onPress={() => { if (archiving) archive.mutate(archiving); }} style={styles.confirmAction} /></View>
+        </Surface>
+      </View>
+    </Modal>
 
     <Modal visible={creating} transparent animationType="fade" onRequestClose={() => setCreating(false)}>
       <View style={[styles.overlay, phone && styles.overlayPhone]}>
@@ -277,15 +297,17 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   </View>;
 }
 
-function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview }: { group: OperationsProductGroup; compact: boolean; imageUrl: string | null; onManage: () => void; onPreview: () => void }) {
+function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview, onArchive }: { group: OperationsProductGroup; compact: boolean; imageUrl: string | null; onManage: () => void; onPreview: () => void; onArchive: () => void }) {
   const lead = group.options.find((option) => option.active) ?? group.options[0];
   const active = group.options.filter((option) => option.active);
   const prices = active.flatMap((option) => option.price ? [option.price] : []).sort((left, right) => left.amountMinor - right.amountMinor);
-  const priceText = !prices.length ? '—' : prices[0].amountMinor === prices[prices.length - 1].amountMinor ? formatMoney(prices[0]) : `${formatMoney(prices[0])} – ${formatMoney(prices[prices.length - 1])}`;
+  const hasRequestPrice = active.some((option) => option.priceOnRequest);
+  const priceText = !prices.length ? hasRequestPrice ? 'حسب الطلب' : '—' : prices[0].amountMinor === prices[prices.length - 1].amountMinor ? formatMoney(prices[0]) : `${formatMoney(prices[0])} – ${formatMoney(prices[prices.length - 1])}`;
   const profits = active.flatMap((option) => option.price && option.cost ? [option.price.amountMinor - option.cost.amountMinor] : []);
   const profitText = !profits.length || !prices.length ? '—' : formatMoney({ amountMinor: Math.min(...profits), currency: prices[0].currency, decimalPlaces: prices[0].decimalPlaces });
   const stock = stockState({ onHand: active.reduce((sum, option) => sum + option.onHand, 0), reserved: active.reduce((sum, option) => sum + option.reserved, 0), lowStockThreshold: lead.lowStockThreshold });
-  const missing = [!active.length ? 'مؤرشف' : null, active.some((option) => !option.price) ? 'خيار بدون سعر' : null, active.some((option) => !option.media) ? 'خيار بدون صورة' : null].filter(Boolean).join(' · ');
+  const missing = [!active.length ? 'مؤرشف' : null, active.some((option) => !option.price && !option.priceOnRequest) ? 'خيار بدون سعر' : null, active.some((option) => !option.media) ? 'خيار بدون صورة' : null].filter(Boolean).join(' · ');
+  const status = missing || (hasRequestPrice ? 'حسب الطلب' : 'جاهز');
   const optionsText = group.variantGroupKey ? group.options.map((option) => option.variantLabelAr ?? option.sku).join('، ') : 'بدون خيارات';
   const title = <View style={styles.productName}><AppText variant={compact ? 'body' : 'small'} style={styles.semibold} numberOfLines={2}>{lead.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{lead.category?.nameAr ?? 'بدون فئة'} · {lead.unitLabelAr} · {group.options.length > 1 ? `${group.options.length.toLocaleString('ar-SY')} خيارات` : lead.sku}</AppText></View>;
   const thumbnail = imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><Icon name="image-outline" size={24} color={colors.muted} /></View>;
@@ -294,7 +316,7 @@ function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview }: { gr
     <AppText variant="small" color={colors.muted} numberOfLines={2}>{optionsText}</AppText>
     <View style={styles.mobileMetrics}><Metric label="البيع" value={priceText} /><Metric label="أقل ربح" value={profitText} /></View>
     {missing ? <AppText variant="caption" color={colors.warningText}>{missing}</AppText> : null}
-    <View style={styles.rowActions}><Button label="إدارة المنتج" onPress={onManage} style={styles.cardAction} /><Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.cardAction} /></View>
+    <View style={styles.rowActions}><Button label="إدارة" onPress={onManage} style={styles.cardAction} /><Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.cardAction} />{active.length ? <Button label="حذف" variant="danger" onPress={onArchive} style={styles.cardAction} /> : null}</View>
   </Surface>;
   return <View style={[styles.dataRow, !active.length && styles.dataRowArchived]}>
     <View style={[styles.cell, styles.productColumn, styles.productCell]}>{thumbnail}{title}</View>
@@ -302,23 +324,23 @@ function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview }: { gr
     <View style={styles.cell}><AppText variant="small">{priceText}</AppText></View>
     <View style={styles.cell}><AppText variant="small" color={profits.some((profit) => profit < 0) ? colors.danger : colors.successText}>{profitText}</AppText></View>
     <View style={styles.cell}><StockBadge {...stock} /></View>
-    <View style={styles.cell}><AppText variant="caption" color={missing ? colors.warningText : colors.successText}>{missing || 'جاهز'}</AppText></View>
-    <View style={[styles.cell, styles.actionColumn, styles.rowActions]}><Button label="إدارة" onPress={onManage} /><Button label="معاينة" variant="secondary" onPress={onPreview} /></View>
+    <View style={styles.cell}><AppText variant="caption" color={missing || hasRequestPrice ? colors.warningText : colors.successText}>{status}</AppText></View>
+    <View style={[styles.cell, styles.actionColumn, styles.rowActions]}><Button label="إدارة" onPress={onManage} style={styles.tableAction} /><Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.tableAction} />{active.length ? <Button label="حذف" variant="danger" onPress={onArchive} style={styles.tableAction} /> : null}</View>
   </View>;
 }
 
 function GroupPreview({ group, resolve, exchangeRate, onClose, phone }: { group: OperationsProductGroup | null; resolve: (asset: OperationsProduct['media']) => string | null; exchangeRate: number | null; onClose: () => void; phone: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   if (!group) return null;
-  // Mirrors the Doctor app: only active, priced options are offered and the cheapest is preselected.
-  const offered = group.options.filter((option) => option.active && option.price);
+  // Mirrors the Doctor app: active options with a fixed price or "حسب الطلب" are offered.
+  const offered = group.options.filter((option) => option.active && (option.price || option.priceOnRequest));
   const options = group.variantGroupKey ? offered : [];
   const selected = options.find((option) => option.id === selectedId) ?? pickDisplayedOption(group.options) ?? group.options[0];
-  const sypText = (value: OperationsProduct['price']) => value?.currency === 'USD' ? convertedSypText(value.amountMinor / 100, exchangeRate) : value ? formatMoney(value) : 'السعر غير متوفر';
+  const sypText = (option: OperationsProduct) => option.price?.currency === 'USD' ? convertedSypText(option.price.amountMinor / 100, exchangeRate) : option.price ? formatMoney(option.price) : option.priceOnRequest ? 'حسب الطلب' : 'السعر غير متوفر';
   const close = () => { setSelectedId(null); onClose(); };
-  return <PreviewModal visible imageUrl={resolve(selected.media)} name={selected.nameAr} price={sypText(selected.price)} description={selected.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={selected.availability} onClose={close} phone={phone}
+  return <PreviewModal visible imageUrl={resolve(selected.media)} name={selected.nameAr} price={sypText(selected)} description={selected.descriptionAr || 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'} availability={selected.availability} onClose={close} phone={phone}
     hidden={!offered.length}
-    options={options.map((option) => ({ id: option.id, label: option.variantLabelAr ?? option.sku, price: sypText(option.price) }))}
+    options={options.map((option) => ({ id: option.id, label: option.variantLabelAr ?? option.sku, price: sypText(option) }))}
     selectedOptionId={selected.id} onSelectOption={setSelectedId} />;
 }
 
@@ -329,7 +351,7 @@ function DraftProductPreview({ product, values, imageUrl, exchangeRate, onClose,
 }
 
 function PreviewModal({ visible, imageUrl, name, price, description, availability, onClose, draft = false, phone, hidden = false, options = [], selectedOptionId, onSelectOption }: { visible: boolean; imageUrl: string | null; name: string; price: string; description: string; availability: Availability; onClose: () => void; draft?: boolean; phone: boolean; hidden?: boolean; options?: { id: string; label: string; price: string }[]; selectedOptionId?: string; onSelectOption?: (id: string) => void }) {
-  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}><View style={[styles.overlay, phone ? styles.overlayPhone : undefined]}><Surface style={phone ? [styles.previewModal, styles.previewModalPhone] : styles.previewModal} accessibilityViewIsModal><View style={styles.modalHeader}><View><AppText variant="h2">معاينة المنتج</AppText>{draft ? <AppText variant="caption" color={colors.warningText}>معاينة للتعديلات غير المحفوظة</AppText> : null}{hidden ? <AppText variant="caption" color={colors.danger}>هذا المنتج غير ظاهر للأطباء حالياً (مؤرشف أو بدون سعر)</AppText> : null}</View><Pressable accessibilityRole="button" accessibilityLabel="إغلاق المعاينة" onPress={onClose} style={styles.iconButton}><Icon name="close" size={24} color={colors.ink} /></Pressable></View><ScrollView contentContainerStyle={styles.doctorPreview}><Surface style={phone ? [styles.previewImage, styles.previewImagePhone] : styles.previewImage}>{imageUrl ? <Image source={{ uri: imageUrl }} resizeMode="contain" style={[styles.previewImageContent, phone ? styles.previewImageContentPhone : undefined]} accessibilityLabel={`صورة ${name}`} /> : <Icon name="image-outline" size={64} color={colors.muted} />}</Surface><View style={styles.previewCopy}><View style={styles.previewAvailability}><Icon name={availability === 'available' ? 'check-circle-outline' : availability === 'limited' ? 'alert-circle-outline' : 'close-circle-outline'} size={18} color={availability === 'available' ? colors.successText : availability === 'limited' ? colors.warningText : colors.danger} /><AppText variant="small">{getAvailabilityLabel(availability)}</AppText></View><AppText variant={phone ? 'h2' : 'h1'}>{name}</AppText>{options.length ? <View style={styles.previewOptions}><AppText variant="small">اختر النوع أو العبوة</AppText><View style={styles.filters}>{options.map((option) => { const selected = option.id === selectedOptionId; return <Pressable key={option.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onSelectOption?.(option.id)} style={[styles.previewOption, selected && styles.filterChipSelected]}><AppText variant="small" color={selected ? colors.white : colors.ink}>{option.label}</AppText><AppText variant="caption" color={selected ? colors.white : colors.muted}>{option.price}</AppText></Pressable>; })}</View></View> : null}<AppText variant="h2">{price}</AppText><Button label="إضافة إلى السلة" disabled={availability === 'unavailable' || price === 'السعر غير متوفر'} onPress={() => undefined} /></View><Surface style={phone ? [styles.previewDescription, styles.previewDescriptionPhone] : styles.previewDescription}><AppText variant="h2">عن المنتج</AppText><AppText color={colors.muted}>{description}</AppText></Surface></ScrollView><Button label="إغلاق المعاينة" variant="secondary" onPress={onClose} /></Surface></View></Modal>;
+  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}><View style={[styles.overlay, phone ? styles.overlayPhone : undefined]}><Surface style={phone ? [styles.previewModal, styles.previewModalPhone] : styles.previewModal} accessibilityViewIsModal><View style={styles.modalHeader}><View><AppText variant="h2">معاينة المنتج</AppText>{draft ? <AppText variant="caption" color={colors.warningText}>معاينة للتعديلات غير المحفوظة</AppText> : null}{hidden ? <AppText variant="caption" color={colors.danger}>هذا المنتج غير ظاهر للأطباء حالياً (مؤرشف أو بدون سعر)</AppText> : null}</View><Pressable accessibilityRole="button" accessibilityLabel="إغلاق المعاينة" onPress={onClose} style={styles.iconButton}><Icon name="close" size={24} color={colors.ink} /></Pressable></View><ScrollView contentContainerStyle={styles.doctorPreview}><Surface style={phone ? [styles.previewImage, styles.previewImagePhone] : styles.previewImage}>{imageUrl ? <Image source={{ uri: imageUrl }} resizeMode="contain" style={[styles.previewImageContent, phone ? styles.previewImageContentPhone : undefined]} accessibilityLabel={`صورة ${name}`} /> : <Icon name="image-outline" size={64} color={colors.muted} />}</Surface><View style={styles.previewCopy}><View style={styles.previewAvailability}><Icon name={availability === 'available' ? 'check-circle-outline' : availability === 'limited' ? 'alert-circle-outline' : 'close-circle-outline'} size={18} color={availability === 'available' ? colors.successText : availability === 'limited' ? colors.warningText : colors.danger} /><AppText variant="small">{getAvailabilityLabel(availability)}</AppText></View><AppText variant={phone ? 'h2' : 'h1'}>{name}</AppText>{options.length ? <View style={styles.previewOptions}><AppText variant="small">اختر النوع أو العبوة</AppText><View style={styles.filters}>{options.map((option) => { const selected = option.id === selectedOptionId; return <Pressable key={option.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onSelectOption?.(option.id)} style={[styles.previewOption, selected && styles.filterChipSelected]}><AppText variant="small" color={selected ? colors.white : colors.ink}>{option.label}</AppText><AppText variant="caption" color={selected ? colors.white : colors.muted}>{option.price}</AppText></Pressable>; })}</View></View> : null}<AppText variant="h2">{price}</AppText><Button label={price === 'حسب الطلب' ? 'حسب الطلب' : 'إضافة إلى السلة'} disabled={availability === 'unavailable' || price === 'السعر غير متوفر'} onPress={() => undefined} /></View><Surface style={phone ? [styles.previewDescription, styles.previewDescriptionPhone] : styles.previewDescription}><AppText variant="h2">عن المنتج</AppText><AppText color={colors.muted}>{description}</AppText></Surface></ScrollView><Button label="إغلاق المعاينة" variant="secondary" onPress={onClose} /></Surface></View></Modal>;
 }
 
 function HeaderCell({ label, style }: { label: string; style?: object }) { return <View style={[styles.cell, style]}><AppText variant="caption" style={styles.semibold}>{label}</AppText></View>; }
@@ -342,8 +364,9 @@ const styles = StyleSheet.create({
   filters: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, filterChip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white }, filterChipSelected: { backgroundColor: colors.deep, borderColor: colors.deep }, categoryChip: { minHeight: 36, backgroundColor: colors.pale }, categoryChipSelected: { backgroundColor: colors.successText, borderColor: colors.successText },
   previewOptions: { gap: spacing.xs }, previewOption: { minWidth: 110, minHeight: 48, justifyContent: 'center', gap: 2, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, backgroundColor: colors.white },
   createModal: { width: '100%', maxWidth: 640, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, createContent: { gap: spacing.md }, dataRowArchived: { opacity: 0.6 },
-  tableScroll: { flexGrow: 1 }, table: { width: '100%', gap: spacing.xs }, tableDesktop: { minWidth: 1000 }, headerRow: { flexDirection: 'row-reverse', minHeight: 44, alignItems: 'center', backgroundColor: colors.pale, borderRadius: radius.md, paddingHorizontal: spacing.sm }, dataRow: { flexDirection: 'row-reverse', minHeight: 92, alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: spacing.sm }, cell: { width: 105, paddingHorizontal: spacing.xs, gap: spacing.xs }, productColumn: { width: 205 }, descriptionColumn: { width: 180 }, actionColumn: { width: 150 }, productCell: { flexDirection: 'row-reverse', alignItems: 'center' }, thumbnail: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft }, thumbnailPlaceholder: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }, productName: { flex: 1, minWidth: 0, gap: 2 },
-  stockBadge: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: 4, borderRadius: radius.pill, paddingHorizontal: spacing.xs, paddingVertical: 4 }, rowActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, cardAction: { flexGrow: 1, minWidth: 120 }, mobileCard: { gap: spacing.md, padding: spacing.md }, mobileTitle: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, mobileMetrics: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, metric: { flexGrow: 1, flexBasis: 120, backgroundColor: colors.soft, borderRadius: radius.sm, padding: spacing.sm, gap: 2 }, loadMore: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  tableScroll: { flexGrow: 1 }, table: { width: '100%', gap: spacing.xs }, tableDesktop: { minWidth: 1120 }, headerRow: { flexDirection: 'row-reverse', minHeight: 44, alignItems: 'center', backgroundColor: colors.pale, borderRadius: radius.md, paddingHorizontal: spacing.sm }, dataRow: { flexDirection: 'row-reverse', minHeight: 92, alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: spacing.sm }, cell: { width: 105, paddingHorizontal: spacing.xs, gap: spacing.xs }, productColumn: { width: 205 }, descriptionColumn: { width: 180 }, actionColumn: { width: 270 }, productCell: { flexDirection: 'row-reverse', alignItems: 'center' }, thumbnail: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft }, thumbnailPlaceholder: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }, productName: { flex: 1, minWidth: 0, gap: 2 },
+  stockBadge: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: 4, borderRadius: radius.pill, paddingHorizontal: spacing.xs, paddingVertical: 4 }, rowActions: { flexDirection: 'row-reverse', flexWrap: 'nowrap', gap: spacing.sm }, cardAction: { flex: 1, minWidth: 0 }, tableAction: { flex: 1, minWidth: 0 }, mobileCard: { gap: spacing.md, padding: spacing.md }, mobileTitle: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, mobileMetrics: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, metric: { flexGrow: 1, flexBasis: 120, backgroundColor: colors.soft, borderRadius: radius.sm, padding: spacing.sm, gap: 2 }, loadMore: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   overlay: { flex: 1, backgroundColor: colors.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, overlayPhone: { padding: 0, justifyContent: 'flex-end' }, editorModal: { width: '100%', maxWidth: 1080, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, editorModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, modalHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }, iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft }, editorContent: { paddingVertical: spacing.xs, paddingBottom: spacing.lg }, formGrid: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: spacing.lg }, formGridCompact: { flexDirection: 'column' }, formColumn: { flex: 1, width: '100%', gap: spacing.md }, imageColumn: { width: 380, maxWidth: '100%' }, twoColumns: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, flexField: { flex: 1, minWidth: 180 }, profit: { backgroundColor: colors.successSurface, borderRadius: radius.sm, padding: spacing.sm }, profitLoss: { backgroundColor: '#F5E9E7' }, fieldGroup: { gap: spacing.xs }, availability: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, modalActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'flex-start', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md }, modalActionsPhone: { flexDirection: 'row-reverse' }, modalActionPhone: { flexGrow: 1, minWidth: 145 },
   previewModal: { width: '100%', maxWidth: 920, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, previewModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, doctorPreview: { gap: spacing.lg, paddingBottom: spacing.md }, previewImage: { minHeight: 320, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pale }, previewImagePhone: { minHeight: 240, padding: spacing.sm }, previewImageContent: { width: '100%', height: 320 }, previewImageContentPhone: { height: 240 }, previewCopy: { gap: spacing.md }, previewAvailability: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: spacing.xs }, previewDescription: { gap: spacing.md }, previewDescriptionPhone: { padding: spacing.md }, semibold: { fontFamily: typography.family.semibold, fontWeight: '600' },
+  confirmModal: { width: '100%', maxWidth: 520, gap: spacing.lg, padding: spacing.lg }, confirmActions: { flexDirection: 'row-reverse', gap: spacing.sm }, confirmAction: { flex: 1 },
 });

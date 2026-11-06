@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateSubtotal, formatMoney, getAvailabilityLabel, getOrderStatusLabel, normalizeAppError, roundSypTo50 } from './index';
+import { calculateSubtotal, formatMoney, getAvailabilityLabel, getOrderStatusLabel, getOrderTrackingStep, normalizeAppError, roundSypTo50 } from './index';
 
 describe('commerce domain', () => {
   it('calculates integer minor-unit subtotals', () => {
@@ -28,15 +28,28 @@ describe('commerce domain', () => {
   });
 
   it('maps normal and exceptional Doctor-visible order states', () => {
-    expect(getOrderStatusLabel('sourcing')).toBe('جاري تأمين المنتجات');
-    expect(getOrderStatusLabel('out_for_delivery')).toBe('قيد التوصيل');
+    expect(getOrderStatusLabel('received')).toBe('وصلنا الطلب وعم نحضّره لنبعتلك ياه');
+    expect(getOrderStatusLabel('sourcing')).toBe('وصلنا الطلب وعم نحضّره لنبعتلك ياه');
+    expect(getOrderStatusLabel('preparing')).toBe('وصلنا الطلب وعم نحضّره لنبعتلك ياه');
+    expect(getOrderStatusLabel('ready_for_delivery')).toBe('وصلنا الطلب وعم نحضّره لنبعتلك ياه');
+    expect(getOrderStatusLabel('out_for_delivery')).toBe('عم نوصّله');
+    expect(getOrderStatusLabel('delivered')).toBe('وصل');
     expect(getOrderStatusLabel('problem')).toBe('مشكلة بالطلب');
+  });
+
+  it('collapses internal fulfilment states into three tracking steps', () => {
+    expect(getOrderTrackingStep('received')).toBe(0);
+    expect(getOrderTrackingStep('sourcing')).toBe(0);
+    expect(getOrderTrackingStep('preparing')).toBe(0);
+    expect(getOrderTrackingStep('ready_for_delivery')).toBe(0);
+    expect(getOrderTrackingStep('out_for_delivery')).toBe(1);
+    expect(getOrderTrackingStep('delivered')).toBe(2);
   });
 
   it('normalizes network and session errors to safe Arabic messages', () => {
     expect(normalizeAppError(new Error('Failed to fetch')).kind).toBe('network');
     expect(normalizeAppError(new Error('JWT expired')).kind).toBe('unauthorized');
-    expect(normalizeAppError(new Error('Invalid login credentials')).messageAr).toContain('جهّز حساباً جديداً');
+    expect(normalizeAppError(new Error('Invalid login credentials')).messageAr).toContain('البريد أو كلمة السر غير صحيحة');
     expect(normalizeAppError(new Error('Invalid Refresh Token: Refresh Token Not Found')).kind).toBe('unauthorized');
   });
 

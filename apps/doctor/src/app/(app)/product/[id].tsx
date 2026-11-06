@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { colors, motion, radius, spacing } from '@tawreed/design-tokens';
 import { formatMoney, formatNumber } from '@tawreed/domain';
@@ -10,6 +10,8 @@ import { AppPage } from '@/components/app-page';
 import { useProduct } from '@/hooks/use-catalog';
 import { useData } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
+
+const supportWhatsAppDigits = (process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP_NUMBER ?? '').replace(/\D/g, '');
 
 export default function ProductScreen() {
   const { id = '' } = useLocalSearchParams<{ id?: string }>();
@@ -30,10 +32,17 @@ export default function ProductScreen() {
 
   const selectedId = selectedVariant?.id ?? item.id;
   const details = selectedVariant ?? item;
-  const selectedPrice = selectedVariant?.price ?? item.price;
+  const selectedPrice = selectedVariant ? selectedVariant.price : item.price;
+  const priceOnRequest = selectedVariant ? selectedVariant.priceOnRequest : item.priceOnRequest;
   const selectedAvailability = selectedVariant?.availability ?? item.availability;
   const image = data?.media.resolve(details.media);
   const orderable = selectedAvailability !== 'unavailable' && selectedPrice !== null;
+  const requestable = selectedPrice === null && priceOnRequest;
+  const requestQuote = () => {
+    const option = selectedVariant?.labelAr ? `\nالخيار: ${selectedVariant.labelAr}` : '';
+    const message = `مرحباً توريد، أريد معرفة سعر المنتج حسب الطلب:\n${details.nameAr}${option}\nرمز المنتج: ${selectedVariant?.sku ?? item.sku}`;
+    void Linking.openURL(`https://wa.me/${supportWhatsAppDigits}?text=${encodeURIComponent(message)}`);
+  };
   const transition = reducedMotion ? undefined : FadeIn.duration(motion.duration.normal);
 
   return <AppPage>
@@ -44,22 +53,22 @@ export default function ProductScreen() {
         {!image || imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.fallback}><Icon name="image-off-outline" size={64} color={colors.textMuted} /><AppText color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
       </Surface>
       <View style={styles.copy}>
-        {selectedPrice ? <AvailabilityBadge value={selectedAvailability} /> : <AppText variant="small" color={colors.warningText}>بانتظار التحقق من السعر والتوفر</AppText>}
+        {selectedPrice ? <AvailabilityBadge value={selectedAvailability} /> : <AppText variant="small" color={colors.warningText}>{requestable ? 'يُحدّد السعر حسب الطلب' : 'بانتظار التحقق من السعر والتوفر'}</AppText>}
         <AppText variant="h1">{details.nameAr}</AppText>
         {details.nameEn ? <AppText color={colors.textMuted}>{details.nameEn}</AppText> : null}
         <AppText color={colors.textMuted}>{[details.manufacturer, details.unitLabelAr, details.packageLabelAr].filter(Boolean).join(' · ')}</AppText>
         {item.variants.length ? <View style={styles.variants}><AppText variant="small">اختر النوع أو العبوة</AppText><View style={styles.variantOptions}>{item.variants.map((variant) => {
           const selected = variant.id === selectedId;
-          return <MotionPressable key={variant.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => { setImageState('loading'); setSelectedVariantId(variant.id); }} style={[styles.variantOption, selected && styles.variantOptionSelected]}><AppText variant="small" color={selected ? colors.onPrimary : colors.text}>{variant.labelAr}</AppText><AppText variant="caption" color={selected ? colors.onPrimary : colors.textMuted}>{formatMoney(variant.price)}</AppText></MotionPressable>;
+          return <MotionPressable key={variant.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => { setImageState('loading'); setSelectedVariantId(variant.id); }} style={[styles.variantOption, selected && styles.variantOptionSelected]}><AppText variant="small" color={selected ? colors.onPrimary : colors.text}>{variant.labelAr}</AppText><AppText variant="caption" color={selected ? colors.onPrimary : colors.textMuted}>{variant.price ? formatMoney(variant.price) : variant.priceOnRequest ? 'حسب الطلب' : 'غير متاح'}</AppText></MotionPressable>;
         })}</View></View> : null}
-        <AppText variant="h2" color={colors.primary}>{selectedPrice ? formatMoney(selectedPrice) : 'السعر غير متوفر'}</AppText>
+        <AppText variant="h2" color={colors.primary}>{selectedPrice ? formatMoney(selectedPrice) : requestable ? 'حسب الطلب' : 'السعر غير متوفر'}</AppText>
         {orderable ? <View style={styles.quantity}><MotionPressable accessibilityRole="button" accessibilityLabel="زيادة الكمية" onPress={() => setQuantity((value) => value + 1)} style={styles.quantityButton}><AppText variant="h3">+</AppText></MotionPressable><AppText>{formatNumber(quantity)}</AppText><MotionPressable accessibilityRole="button" accessibilityLabel="تقليل الكمية" accessibilityState={{ disabled: quantity === 1 }} disabled={quantity === 1} onPress={() => setQuantity((value) => Math.max(1, value - 1))} style={styles.quantityButton}><AppText variant="h3">−</AppText></MotionPressable></View> : null}
-        <Button label={orderable ? 'اطلب الآن' : 'غير متاح للطلب'} variant="accent" disabled={!orderable} onPress={() => { add(selectedId, quantity); router.push('/cart'); }} />
+        <Button label={orderable ? 'اطلب الآن' : requestable ? 'حسب الطلب' : 'غير متاح للطلب'} variant="accent" disabled={!orderable && !requestable} onPress={() => { if (requestable) requestQuote(); else { add(selectedId, quantity); router.push('/cart'); } }} />
       </View>
     </Animated.View>
     <Animated.View key={`info-${selectedId}`} entering={transition} style={styles.sections}>
       <Surface style={styles.section}><View style={styles.sectionTitle}><Icon name="information-outline" size={24} color={colors.primary} /><AppText variant="h2">عن المنتج</AppText></View><AppText color={colors.textMuted}>{details.descriptionAr ?? 'لا تتوفر تفاصيل إضافية لهذا المنتج حالياً.'}</AppText>{details.specificationsAr ? <><View style={styles.sectionTitle}><Icon name="clipboard-list-outline" size={22} color={colors.primary} /><AppText variant="h3">المواصفات والخيارات</AppText></View><AppText color={colors.textMuted}>{details.specificationsAr}</AppText></> : null}</Surface>
-      <Surface style={styles.section}><View style={styles.sectionTitle}><Icon name="package-variant-closed" size={24} color={colors.primary} /><AppText variant="h2">معلومات المنتج</AppText></View><AppText color={colors.textMuted}>وحدة البيع: {details.packageLabelAr ?? details.unitLabelAr}</AppText><AppText color={colors.textMuted}>رمز المنتج: {selectedVariant?.sku ?? item.sku}</AppText>{!selectedPrice ? <AppText color={colors.textMuted}>سيُتاح الطلب بعد تأكيد السعر والتوفر.</AppText> : null}</Surface>
+      <Surface style={styles.section}><View style={styles.sectionTitle}><Icon name="package-variant-closed" size={24} color={colors.primary} /><AppText variant="h2">معلومات المنتج</AppText></View><AppText color={colors.textMuted}>وحدة البيع: {details.packageLabelAr ?? details.unitLabelAr}</AppText><AppText color={colors.textMuted}>رمز المنتج: {selectedVariant?.sku ?? item.sku}</AppText>{requestable ? <AppText color={colors.textMuted}>تواصل معنا لتحديد السعر بحسب الكمية والمواصفات المطلوبة.</AppText> : !selectedPrice ? <AppText color={colors.textMuted}>سيُتاح الطلب بعد تأكيد السعر والتوفر.</AppText> : null}</Surface>
     </Animated.View>
   </AppPage>;
 }

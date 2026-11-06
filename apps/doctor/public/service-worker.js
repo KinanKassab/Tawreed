@@ -1,14 +1,22 @@
-const CACHE_NAME = 'tawreed-brand-v6';
+const CACHE_NAME = 'tawreed-brand-v7';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/app-icon-192.png', '/app-icon-512.png', '/maskable-512.png'];
 // Content-hashed build output never changes for a given URL, so it is served cache-first.
 const IMMUTABLE_PREFIXES = ['/_expo/static/', '/assets/'];
+const IS_LOCAL_DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1' || self.location.hostname === '[::1]';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+  if (IS_LOCAL_DEV) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+  // One optional icon should not prevent a new worker from installing.
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => Promise.all(APP_SHELL.map((url) => cache.add(url).catch(() => undefined)))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil(caches.keys()
+    .then((keys) => Promise.all(keys.filter((key) => IS_LOCAL_DEV || key !== CACHE_NAME).map((key) => caches.delete(key))))
+    .then(() => IS_LOCAL_DEV ? self.registration.unregister() : self.clients.claim()));
 });
 
 const store = (request, response) => {
@@ -21,6 +29,8 @@ const store = (request, response) => {
 };
 
 self.addEventListener('fetch', (event) => {
+  // Expo's development server uses dynamic bundle and asset URLs. Let the browser request them directly.
+  if (IS_LOCAL_DEV) return;
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);

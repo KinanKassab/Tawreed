@@ -51,7 +51,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <title>توريد | مستلزماتك الطبية</title>
-        <meta name="description" content="مستلزماتك الطبية، واصلة لعندك. منصة تربط الأطباء والطلاب والعيادات بموردين موثوقين." />
+        <meta name="description" content="مستلزماتك الطبية، واصلة لعندك. للأطباء والطلاب والعيادات، بسرعة وبسعر ممتاز." />
         {/* Matches the white header (and the splash), so the browser bar and status bar never show a different-coloured edge. */}
         <meta name="theme-color" content={colors.surface} />
         <meta name="apple-mobile-web-app-title" content="توريد" />
@@ -79,7 +79,7 @@ export default function Root({ children }: PropsWithChildren) {
         {children}
         <div id="tawreed-splash" dangerouslySetInnerHTML={{ __html: splashLogo }} />
         {deferUntilPainted(bodyNodes)}
-        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>undefined));}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){var local=location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.hostname==='[::1]';if(local){navigator.serviceWorker.getRegistrations().then(function(registrations){registrations.forEach(function(registration){registration.unregister();});}).catch(function(){});return;}navigator.serviceWorker.register('/service-worker.js').catch(function(){});});}` }} />
       </body>
     </html>
   );
