@@ -6,6 +6,7 @@ import { AppText, Button, CategoryTilesSkeleton, ContentFade, Icon, MotionPressa
 import { AppPage } from '@/components/app-page';
 import { CatalogGrid, CatalogGridSkeleton } from '@/components/catalog-grid';
 import { FirstOrderGuide } from '@/components/first-order-guide';
+import { PromoBanners } from '@/components/promo-banners';
 import { Responsive } from '@/components/responsive';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
 import { useCategories, useProducts } from '@/hooks/use-catalog';
@@ -27,6 +28,7 @@ export default function HomeScreen() {
   return (
     <AppPage><ContentFade style={styles.pageContent}>
       <FirstOrderGuide />
+      <PromoBanners />
       <Surface style={styles.welcome}>
         <AppText variant="small" color={colors.primary}>منصة توريد للمستلزمات الطبية</AppText>
         <AppText variant="h1">{ar.welcomeTitle}</AppText>

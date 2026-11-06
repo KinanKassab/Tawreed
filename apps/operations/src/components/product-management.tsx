@@ -95,6 +95,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   const [draftPreview, setDraftPreview] = useState<ProductForm | null>(null);
   const [image, setImage] = useState<ProductImageFile | null>(null);
   const [visibleCount, setVisibleCount] = useState(40);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: { nameAr: '', manufacturer: '', unitLabelAr: 'قطعة', packageLabelAr: '', sellingPrice: '', cost: '', onHand: '0', lowStockThreshold: '5', descriptionAr: '', specificationsAr: '', inventoryNotes: '', availability: 'unavailable' },
@@ -147,12 +148,14 @@ export function ProductManagement({ products, loading, compact, phone, search, o
       availability: product.availability,
     });
     setImage(null);
+    setAdvancedOpen(false);
     setEditing(product);
   };
   const closeEditor = () => {
     if (image?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(image.previewUrl);
     setImage(null);
     setDraftPreview(null);
+    setAdvancedOpen(false);
     setEditing(null);
   };
 
@@ -215,7 +218,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
           <HeaderCell label="الحالة" />
           <HeaderCell label="الإجراءات" style={styles.actionColumn} />
         </View> : null}
-        {visibleGroups.map((group) => <ProductGroupRow key={group.key} group={group} compact={compact} imageUrl={data?.media.resolve(pickDisplayedOption(group.options)?.media ?? null) ?? null} onManage={() => setOpenGroupKey(group.key)} onPreview={() => setPreviewing(group)} onArchive={() => setArchiving(group)} />)}
+        {visibleGroups.map((group) => <ProductGroupRow key={group.key} group={group} compact={compact} imageUrl={data?.media.resolve(pickDisplayedOption(group.options)?.media ?? null) ?? null} onManage={() => setOpenGroupKey(group.key)} onEdit={() => openEditor(group.options.find((option) => option.active) ?? group.options[0])} onPreview={() => setPreviewing(group)} onArchive={() => setArchiving(group)} />)}
         {!filteredGroups.length ? <StateView title="لا توجد نتائج" message="جرّب تغيير عبارة البحث." /> : null}
       </View>
     </ScrollView>
@@ -260,11 +263,6 @@ export function ProductManagement({ products, loading, compact, phone, search, o
             <View style={[styles.formGrid, compact && styles.formGridCompact]}>
               <View style={styles.formColumn}>
                 <Controller control={form.control} name="nameAr" render={({ field, fieldState }) => <Field label="اسم المنتج" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
-                <Controller control={form.control} name="manufacturer" render={({ field, fieldState }) => <Field label="الشركة المصنعة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
-                <View style={styles.twoColumns}>
-                  <View style={styles.flexField}><Controller control={form.control} name="unitLabelAr" render={({ field, fieldState }) => <UnitPicker value={field.value} onChange={field.onChange} error={fieldState.error?.message} />} /></View>
-                  <View style={styles.flexField}><Controller control={form.control} name="packageLabelAr" render={({ field, fieldState }) => <Field label="النوع أو العبوة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
-                </View>
                 <View style={styles.twoColumns}>
                   <View style={styles.flexField}><Controller control={form.control} name="sellingPrice" render={({ field, fieldState }) => <Field label="سعر البيع (USD)" keyboardType="decimal-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
                   <View style={styles.flexField}><Controller control={form.control} name="cost" render={({ field, fieldState }) => <Field label="سعر التكلفة (USD)" keyboardType="decimal-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
@@ -275,10 +273,22 @@ export function ProductManagement({ products, loading, compact, phone, search, o
                   <View style={styles.flexField}><Controller control={form.control} name="lowStockThreshold" render={({ field, fieldState }) => <Field label="حد التنبيه" keyboardType="number-pad" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
                 </View>
                 {editing ? <AppText variant="caption" color={colors.muted}>المحجوز حالياً: {editing.reserved.toLocaleString('ar-SY')} — لا يمكن خفض الموجود عن المحجوز.</AppText> : null}
-                <Controller control={form.control} name="descriptionAr" render={({ field, fieldState }) => <Field label="الوصف الظاهر في تطبيق الدكتور" multiline numberOfLines={5} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
-                <Controller control={form.control} name="specificationsAr" render={({ field, fieldState }) => <Field label="المواصفات والخيارات" multiline numberOfLines={4} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
-                <Controller control={form.control} name="inventoryNotes" render={({ field, fieldState }) => <Field label="سبب تعديل المخزون (عند تغيير الكمية)" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
                 <Controller control={form.control} name="availability" render={({ field }) => <View style={styles.fieldGroup}><AppText variant="small">حالة العرض</AppText><View style={styles.availability}>{(['available', 'limited', 'unavailable'] as const).map((item) => <Button key={item} label={getAvailabilityLabel(item)} variant={field.value === item ? 'primary' : 'secondary'} onPress={() => field.onChange(item)} />)}</View></View>} />
+
+                <Pressable accessibilityRole="button" accessibilityState={{ expanded: advancedOpen }} onPress={() => setAdvancedOpen((current) => !current)} style={styles.advancedToggle}>
+                  <Icon name={advancedOpen ? 'chevron-left' : 'chevron-left'} size={18} color={colors.muted} style={advancedOpen ? styles.advancedChevronOpen : undefined} />
+                  <AppText variant="small" style={styles.semibold}>إعدادات متقدمة</AppText>
+                </Pressable>
+                {advancedOpen ? <View style={styles.advancedSection}>
+                  <Controller control={form.control} name="manufacturer" render={({ field, fieldState }) => <Field label="الشركة المصنعة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
+                  <View style={styles.twoColumns}>
+                    <View style={styles.flexField}><Controller control={form.control} name="unitLabelAr" render={({ field, fieldState }) => <UnitPicker value={field.value} onChange={field.onChange} error={fieldState.error?.message} />} /></View>
+                    <View style={styles.flexField}><Controller control={form.control} name="packageLabelAr" render={({ field, fieldState }) => <Field label="النوع أو العبوة" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} /></View>
+                  </View>
+                  <Controller control={form.control} name="descriptionAr" render={({ field, fieldState }) => <Field label="الوصف الظاهر في تطبيق الدكتور" multiline numberOfLines={5} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
+                  <Controller control={form.control} name="specificationsAr" render={({ field, fieldState }) => <Field label="المواصفات والخيارات" multiline numberOfLines={4} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
+                  <Controller control={form.control} name="inventoryNotes" render={({ field, fieldState }) => <Field label="سبب تعديل المخزون (عند تغيير الكمية)" value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
+                </View> : null}
               </View>
               <View style={styles.imageColumn}>{editing ? <ProductImageEditor currentImageUrl={currentImage} value={image} onChange={setImage} onError={(message) => onFeedback(message, true)} /> : null}</View>
             </View>
@@ -297,7 +307,8 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   </View>;
 }
 
-function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview, onArchive }: { group: OperationsProductGroup; compact: boolean; imageUrl: string | null; onManage: () => void; onPreview: () => void; onArchive: () => void }) {
+function ProductGroupRow({ group, compact, imageUrl, onManage, onEdit, onPreview, onArchive }: { group: OperationsProductGroup; compact: boolean; imageUrl: string | null; onManage: () => void; onEdit: () => void; onPreview: () => void; onArchive: () => void }) {
+  const grouped = Boolean(group.variantGroupKey);
   const lead = group.options.find((option) => option.active) ?? group.options[0];
   const active = group.options.filter((option) => option.active);
   const prices = active.flatMap((option) => option.price ? [option.price] : []).sort((left, right) => left.amountMinor - right.amountMinor);
@@ -316,7 +327,7 @@ function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview, onArch
     <AppText variant="small" color={colors.muted} numberOfLines={2}>{optionsText}</AppText>
     <View style={styles.mobileMetrics}><Metric label="البيع" value={priceText} /><Metric label="أقل ربح" value={profitText} /></View>
     {missing ? <AppText variant="caption" color={colors.warningText}>{missing}</AppText> : null}
-    <View style={styles.rowActions}><Button label="إدارة" onPress={onManage} style={styles.cardAction} /><Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.cardAction} />{active.length ? <Button label="حذف" variant="danger" onPress={onArchive} style={styles.cardAction} /> : null}</View>
+    <View style={styles.rowActions}>{grouped ? <Button label="إدارة" onPress={onManage} style={styles.cardAction} /> : <Button label="تعديل" onPress={onEdit} style={styles.cardAction} />}<Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.cardAction} />{active.length ? <Button label="حذف" variant="danger" onPress={onArchive} style={styles.cardAction} /> : null}</View>
   </Surface>;
   return <View style={[styles.dataRow, !active.length && styles.dataRowArchived]}>
     <View style={[styles.cell, styles.productColumn, styles.productCell]}>{thumbnail}{title}</View>
@@ -325,7 +336,7 @@ function ProductGroupRow({ group, compact, imageUrl, onManage, onPreview, onArch
     <View style={styles.cell}><AppText variant="small" color={profits.some((profit) => profit < 0) ? colors.danger : colors.successText}>{profitText}</AppText></View>
     <View style={styles.cell}><StockBadge {...stock} /></View>
     <View style={styles.cell}><AppText variant="caption" color={missing || hasRequestPrice ? colors.warningText : colors.successText}>{status}</AppText></View>
-    <View style={[styles.cell, styles.actionColumn, styles.rowActions]}><Button label="إدارة" onPress={onManage} style={styles.tableAction} /><Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.tableAction} />{active.length ? <Button label="حذف" variant="danger" onPress={onArchive} style={styles.tableAction} /> : null}</View>
+    <View style={[styles.cell, styles.actionColumn, styles.rowActions]}>{grouped ? <Button label="إدارة" onPress={onManage} style={styles.tableAction} /> : <Button label="تعديل" onPress={onEdit} style={styles.tableAction} />}<Button label="معاينة" variant="secondary" onPress={onPreview} style={styles.tableAction} />{active.length ? <Button label="حذف" variant="danger" onPress={onArchive} style={styles.tableAction} /> : null}</View>
   </View>;
 }
 
@@ -366,7 +377,8 @@ const styles = StyleSheet.create({
   createModal: { width: '100%', maxWidth: 640, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, createContent: { gap: spacing.md }, dataRowArchived: { opacity: 0.6 },
   tableScroll: { flexGrow: 1 }, table: { width: '100%', gap: spacing.xs }, tableDesktop: { minWidth: 1120 }, headerRow: { flexDirection: 'row-reverse', minHeight: 44, alignItems: 'center', backgroundColor: colors.pale, borderRadius: radius.md, paddingHorizontal: spacing.sm }, dataRow: { flexDirection: 'row-reverse', minHeight: 92, alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: spacing.sm }, cell: { width: 105, paddingHorizontal: spacing.xs, gap: spacing.xs }, productColumn: { width: 205 }, descriptionColumn: { width: 180 }, actionColumn: { width: 270 }, productCell: { flexDirection: 'row-reverse', alignItems: 'center' }, thumbnail: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft }, thumbnailPlaceholder: { width: 52, height: 52, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }, productName: { flex: 1, minWidth: 0, gap: 2 },
   stockBadge: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: 4, borderRadius: radius.pill, paddingHorizontal: spacing.xs, paddingVertical: 4 }, rowActions: { flexDirection: 'row-reverse', flexWrap: 'nowrap', gap: spacing.sm }, cardAction: { flex: 1, minWidth: 0 }, tableAction: { flex: 1, minWidth: 0 }, mobileCard: { gap: spacing.md, padding: spacing.md }, mobileTitle: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, mobileMetrics: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, metric: { flexGrow: 1, flexBasis: 120, backgroundColor: colors.soft, borderRadius: radius.sm, padding: spacing.sm, gap: 2 }, loadMore: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
-  overlay: { flex: 1, backgroundColor: colors.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, overlayPhone: { padding: 0, justifyContent: 'flex-end' }, editorModal: { width: '100%', maxWidth: 1080, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, editorModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, modalHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }, iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft }, editorContent: { paddingVertical: spacing.xs, paddingBottom: spacing.lg }, formGrid: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: spacing.lg }, formGridCompact: { flexDirection: 'column' }, formColumn: { flex: 1, width: '100%', gap: spacing.md }, imageColumn: { width: 380, maxWidth: '100%' }, twoColumns: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm }, flexField: { flex: 1, minWidth: 180 }, profit: { backgroundColor: colors.successSurface, borderRadius: radius.sm, padding: spacing.sm }, profitLoss: { backgroundColor: '#F5E9E7' }, fieldGroup: { gap: spacing.xs }, availability: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, modalActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'flex-start', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md }, modalActionsPhone: { flexDirection: 'row-reverse' }, modalActionPhone: { flexGrow: 1, minWidth: 145 },
+  overlay: { flex: 1, backgroundColor: colors.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, overlayPhone: { padding: 0, justifyContent: 'flex-end' }, editorModal: { width: '100%', maxWidth: 1080, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, editorModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, modalHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }, iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft }, editorContent: { paddingVertical: spacing.xs, paddingBottom: spacing.lg }, formGrid: { flexDirection: 'row-reverse', alignItems: 'flex-start', gap: spacing.lg }, formGridCompact: { flexDirection: 'column' }, formColumn: { flex: 1, width: '100%', gap: spacing.md }, imageColumn: { width: 380, maxWidth: '100%' }, twoColumns: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
+  advancedToggle: { minHeight: 44, flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' }, advancedChevronOpen: { transform: [{ rotate: '-90deg' }] }, advancedSection: { gap: spacing.md, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.line }, flexField: { flex: 1, minWidth: 180 }, profit: { backgroundColor: colors.successSurface, borderRadius: radius.sm, padding: spacing.sm }, profitLoss: { backgroundColor: '#F5E9E7' }, fieldGroup: { gap: spacing.xs }, availability: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs }, modalActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', justifyContent: 'flex-start', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md }, modalActionsPhone: { flexDirection: 'row-reverse' }, modalActionPhone: { flexGrow: 1, minWidth: 145 },
   previewModal: { width: '100%', maxWidth: 920, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, previewModalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md }, doctorPreview: { gap: spacing.lg, paddingBottom: spacing.md }, previewImage: { minHeight: 320, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pale }, previewImagePhone: { minHeight: 240, padding: spacing.sm }, previewImageContent: { width: '100%', height: 320 }, previewImageContentPhone: { height: 240 }, previewCopy: { gap: spacing.md }, previewAvailability: { flexDirection: 'row-reverse', alignItems: 'center', alignSelf: 'flex-start', gap: spacing.xs }, previewDescription: { gap: spacing.md }, previewDescriptionPhone: { padding: spacing.md }, semibold: { fontFamily: typography.family.semibold, fontWeight: '600' },
   confirmModal: { width: '100%', maxWidth: 520, gap: spacing.lg, padding: spacing.lg }, confirmActions: { flexDirection: 'row-reverse', gap: spacing.sm }, confirmAction: { flex: 1 },
 });

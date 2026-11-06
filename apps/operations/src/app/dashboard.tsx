@@ -8,14 +8,16 @@ import { z } from 'zod';
 import { breakpoints, colors, layout, radius, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getOrderStatusLabel, normalizeAppError, type DoctorOrderStatus, type OperationsProduct } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, type IconName, StateView, Surface } from '@tawreed/ui';
+import { BannerManagement } from '@/components/banner-management';
 import { ProductManagement } from '@/components/product-management';
 import { useData, useSession } from '@/providers/app-providers';
 
-type Section = 'overview' | 'orders' | 'catalog' | 'inventory' | 'settings';
+type Section = 'overview' | 'orders' | 'catalog' | 'banners' | 'inventory' | 'settings';
 const sections: { id: Section; label: string; icon: IconName }[] = [
   { id: 'overview', label: 'نظرة عامة', icon: 'view-dashboard-outline' },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard-text-outline' },
   { id: 'catalog', label: 'الكتالوج والأسعار', icon: 'package-variant-closed' },
+  { id: 'banners', label: 'بانرات العروض', icon: 'image-outline' },
   { id: 'inventory', label: 'المخزون', icon: 'warehouse' },
   { id: 'settings', label: 'سعر الصرف', icon: 'currency-usd' },
 ];
@@ -124,6 +126,8 @@ export default function DashboardScreen() {
   }) : <StateView title="لا توجد طلبات" message="ستظهر طلبات الأطباء الجديدة هنا." />}</View> : null}
 
   {section === 'catalog' ? <ProductManagement products={products.data ?? []} loading={products.isLoading} compact={compact} phone={phone} search={productSearch} onSearch={setProductSearch} onRefresh={refreshProducts} onFeedback={(message, error = false) => setFeedback({ message, error })} /> : null}
+
+  {section === 'banners' ? <BannerManagement phone={phone} onFeedback={(message, error = false) => setFeedback({ message, error })} /> : null}
 
   {section === 'inventory' ? <View style={[styles.split, compact && styles.splitCompact]}><View style={styles.listPane}><Field label="بحث بالاسم أو SKU" value={productSearch} onChangeText={setProductSearch} />{filteredProducts.map((product) => <ProductRow key={product.id} product={product} selected={selectedProduct?.id === product.id} onPress={() => setSelectedProduct(product)} showStock />)}</View><Surface style={styles.editor}>{selectedProduct ? <><AppText variant="h3">{selectedProduct.nameAr}</AppText><View style={styles.stockSummary}><Meta label="الموجود" value={selectedProduct.onHand.toLocaleString('ar-SY')} /><Meta label="المحجوز" value={selectedProduct.reserved.toLocaleString('ar-SY')} /><Meta label="المتاح" value={(selectedProduct.onHand - selectedProduct.reserved).toLocaleString('ar-SY')} /></View><Controller control={inventoryForm.control} name="delta" render={({ field }) => <Field label="كمية التعديل (+ أو -)" keyboardType="numbers-and-punctuation" value={field.value} onChangeText={field.onChange} error={inventoryForm.formState.errors.delta?.message} />} /><Controller control={inventoryForm.control} name="notes" render={({ field }) => <Field label="سبب التعديل" value={field.value} onChangeText={field.onChange} error={inventoryForm.formState.errors.notes?.message} />} /><Button label="تسجيل حركة المخزون" onPress={inventoryForm.handleSubmit((values) => inventoryMutation.mutate(values))} loading={inventoryMutation.isPending} /></> : <AppText color={colors.muted}>اختر منتجاً لتعديل مخزونه.</AppText>}</Surface></View> : null}
 

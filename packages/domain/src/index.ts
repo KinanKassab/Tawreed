@@ -24,6 +24,19 @@ export interface Category {
   nameEn: string | null;
 }
 
+export interface PromoBanner {
+  id: string;
+  titleAr: string;
+  imageUrl: string | null;
+  linkUrl: string | null;
+}
+
+export interface OperationsPromoBanner extends PromoBanner {
+  sortOrder: number;
+  active: boolean;
+  expiresAt: string | null;
+}
+
 export interface Product {
   id: string;
   sku: string;

@@ -14,7 +14,9 @@ import type {
   OperationsOrder,
   OperationsOrderDetail,
   OperationsProduct,
+  OperationsPromoBanner,
   Product,
+  PromoBanner,
   StaffRank,
 } from '@tawreed/domain';
 
@@ -54,6 +56,7 @@ export interface CatalogRepository {
   listCategories(): Promise<Category[]>;
   listProducts(filters?: CatalogFilters): Promise<Product[]>;
   getProduct(id: string): Promise<Product | null>;
+  listBanners(): Promise<PromoBanner[]>;
 }
 
 export interface ProfileRepository {
@@ -149,6 +152,11 @@ export interface OperationsRepository {
   copyProductImagesToGroup(productId: string): Promise<number>;
   confirmOrder(orderId: string, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
   setOrderStatus(orderId: string, status: DoctorOrderStatus, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
+  listBanners(): Promise<OperationsPromoBanner[]>;
+  createBanner(input: { titleAr: string; linkUrl: string | null; image: ProductImageUpload }): Promise<string>;
+  updateBanner(input: { id: string; titleAr: string; linkUrl: string | null; active: boolean; expiresAt: string | null; image?: ProductImageUpload }): Promise<void>;
+  reorderBanners(ids: string[]): Promise<void>;
+  deleteBanner(id: string): Promise<void>;
 }
 
 export interface TawreedDataLayer {
@@ -320,6 +328,8 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
   };
 
+  const bannerPublicUrl = (objectKey: string) => client.storage.from('product-media').getPublicUrl(objectKey).data.publicUrl;
+
   const productSelect = `
       id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
       specifications_ar, availability, price_on_request, variant_group_key, variant_label_ar, variant_sort_order,
@@ -363,6 +373,11 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         if (siblingsError) throw siblingsError;
         const offered = (siblings as unknown as CatalogProductRow[]).filter((candidate) => Boolean(displayPrice(candidate)) || candidate.price_on_request);
         return offered.length ? mapProductGroup(offered, id) : null;
+    },
+    async listBanners() {
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url').order('sort_order');
+      if (error) throw error;
+      return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url }));
     },
   };
 
@@ -686,6 +701,60 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { data, error } = await client.rpc('operations_set_order_status', { p_order_id: orderId, p_status: status, p_doctor_message_ar: doctorMessageAr ?? null });
       if (error) throw error;
       return data as DoctorOrderStatus;
+    },
+    async listBanners() {
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, sort_order, active, expires_at').order('sort_order');
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url,
+        sortOrder: row.sort_order, active: row.active, expiresAt: row.expires_at,
+      }));
+    },
+    async createBanner({ titleAr, linkUrl, image }) {
+      const objectKey = `banners/${crypto.randomUUID()}.${image.extension}`;
+      const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, image.bytes, {
+        cacheControl: '31536000',
+        contentType: image.mimeType,
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+      const { data: lastRow } = await client.from('promo_banners').select('sort_order').order('sort_order', { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await client.from('promo_banners').insert({
+        title_ar: titleAr, image_object_key: objectKey, link_url: linkUrl, sort_order: (lastRow?.sort_order ?? -1) + 1,
+      }).select('id').single();
+      if (error) { await client.storage.from('product-media').remove([objectKey]); throw error; }
+      return data.id;
+    },
+    async updateBanner({ id, titleAr, linkUrl, active, expiresAt, image }) {
+      let objectKey: string | undefined;
+      if (image) {
+        objectKey = `banners/${crypto.randomUUID()}.${image.extension}`;
+        const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, image.bytes, {
+          cacheControl: '31536000',
+          contentType: image.mimeType,
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+      }
+      const { data: previous, error: fetchError } = await client.from('promo_banners').select('image_object_key').eq('id', id).single();
+      if (fetchError) { if (objectKey) await client.storage.from('product-media').remove([objectKey]); throw fetchError; }
+      const { error } = await client.from('promo_banners').update({
+        title_ar: titleAr, link_url: linkUrl, active, expires_at: expiresAt,
+        ...(objectKey ? { image_object_key: objectKey } : {}),
+      }).eq('id', id);
+      if (error) { if (objectKey) await client.storage.from('product-media').remove([objectKey]); throw error; }
+      if (objectKey) await client.storage.from('product-media').remove([previous.image_object_key]);
+    },
+    async reorderBanners(ids) {
+      const { error } = await client.rpc('operations_reorder_promo_banners', { p_ids: ids });
+      if (error) throw error;
+    },
+    async deleteBanner(id) {
+      const { data: row, error: fetchError } = await client.from('promo_banners').select('image_object_key').eq('id', id).single();
+      if (fetchError) throw fetchError;
+      const { error } = await client.from('promo_banners').delete().eq('id', id);
+      if (error) throw error;
+      await client.storage.from('product-media').remove([row.image_object_key]);
     },
   };
 
