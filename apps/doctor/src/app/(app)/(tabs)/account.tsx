@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import type { z } from 'zod';
 import { colors, spacing } from '@tawreed/design-tokens';
 import { normalizeAppError } from '@tawreed/domain';
-import { AccountSkeleton, AppText, Button, ContentFade, Field, Icon, Surface } from '@tawreed/ui';
+import { AccountSkeleton, AppText, Button, ContentFade, Field, Icon, StateView, Surface } from '@tawreed/ui';
 import { profileSchema } from '@tawreed/validation';
 import { AppPage } from '@/components/app-page';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
@@ -36,6 +36,7 @@ export default function AccountScreen() {
   });
 
   if (profile.isLoading) return <AppPage><AccountSkeleton /></AppPage>;
+  if (profile.isError) return <AppPage><StateView title="تعذر تحميل بيانات حسابك" message="لم نتمكن من جلب بياناتك لتعبية الحقول تلقائياً. تحقق من الاتصال وحاول مرة أخرى." actionLabel="إعادة المحاولة" onAction={() => profile.refetch()} /></AppPage>;
 
   return <AppPage><ContentFade style={styles.page}>
     <AppText variant="h1">حسابي</AppText>

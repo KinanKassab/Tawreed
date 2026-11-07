@@ -55,6 +55,7 @@ export default function CheckoutScreen() {
   if (!ids.length) return <AppPage><StateView title="السلة فارغة" message="أضف منتجاً قبل إتمام الطلب." actionLabel="تصفح المنتجات" onAction={() => router.replace('/(app)/(tabs)/catalog')} /></AppPage>;
   if (loadingProducts || profile.isLoading) return <AppPage><StateView loading title="نجهّز فاتورتك" message="نتحقق من الأسعار ومعلومات التوصيل." /></AppPage>;
   if (failedProducts) return <AppPage><StateView title="تعذر تحميل الفاتورة" message="تحقق من الاتصال ثم ارجع إلى السلة وحاول مجدداً." actionLabel="العودة إلى السلة" onAction={() => router.replace('/cart')} /></AppPage>;
+  if (profile.isError) return <AppPage><StateView title="تعذر تحميل معلومات التوصيل" message="لم نتمكن من جلب بياناتك لتعبية بيانات التوصيل تلقائياً. تحقق من الاتصال وحاول مرة أخرى." actionLabel="إعادة المحاولة" onAction={() => profile.refetch()} /></AppPage>;
 
   const submit = handleSubmit(async (values) => {
     if (!data || !online) {
