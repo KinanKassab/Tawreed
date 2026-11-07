@@ -238,17 +238,26 @@ export function ProductCard({ product, imageUrl, onPress, onAdd }: {
   const requestable = hasVariants ? product.variants.some((variant) => variant.priceOnRequest) : product.priceOnRequest;
   const actionable = orderable || requestable;
   const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>(imageUrl ? 'loading' : 'error');
+  // With variants, favor the distinct package/size options over the base product's own label so the
+  // card hints at what's actually choosable, without listing every option when there are many.
+  const packageOptions = hasVariants ? Array.from(new Set(product.variants.map((variant) => variant.labelAr).filter(Boolean))) : [];
+  const packageSummary = packageOptions.length > 2
+    ? `${packageOptions.slice(0, 2).join('، ')} +${packageOptions.length - 2}`
+    : packageOptions.length ? packageOptions.join('، ') : product.packageLabelAr ?? product.unitLabelAr;
+  const subtitle = [product.manufacturer, packageSummary].filter(Boolean).join(' · ');
   return (
     <Surface style={styles.productCard}>
-      <MotionPressable accessibilityRole="link" accessibilityLabel={`عرض ${product.nameAr}`} onPress={onPress} style={styles.productImage}>
-        {imageUrl && imageState !== 'error' ? <Image source={imageUrl} cachePolicy="memory-disk" contentFit="contain" style={StyleSheet.absoluteFill} accessibilityLabel={product.media?.altTextAr ?? product.nameAr} onLoadStart={() => setImageState('loading')} onLoad={() => setImageState('loaded')} onError={() => setImageState('error')} /> : null}
-        {imageState === 'loading' ? <View accessibilityLabel="جارٍ تحميل صورة المنتج" style={styles.imageStatus}><ActivityIndicator color={colors.primary} /></View> : null}
-        {imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.imageStatus}><Icon name="image-off-outline" size={38} color={colors.textMuted} /><AppText variant="caption" color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
+      <MotionPressable accessibilityRole="link" accessibilityLabel={`عرض ${product.nameAr}`} onPress={onPress} style={styles.productBody}>
+        <View style={styles.productImage}>
+          {imageUrl && imageState !== 'error' ? <Image source={imageUrl} cachePolicy="memory-disk" contentFit="contain" style={StyleSheet.absoluteFill} accessibilityLabel={product.media?.altTextAr ?? product.nameAr} onLoadStart={() => setImageState('loading')} onLoad={() => setImageState('loaded')} onError={() => setImageState('error')} /> : null}
+          {imageState === 'loading' ? <View accessibilityLabel="جارٍ تحميل صورة المنتج" style={styles.imageStatus}><ActivityIndicator color={colors.primary} /></View> : null}
+          {imageState === 'error' ? <View accessibilityLabel="صورة المنتج غير متاحة" style={styles.imageStatus}><Icon name="image-off-outline" size={38} color={colors.textMuted} /><AppText variant="caption" color={colors.textMuted}>الصورة غير متاحة</AppText></View> : null}
+        </View>
+        {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSoft }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>{requestable ? 'السعر حسب الطلب' : 'السعر والتوفر قيد التأكيد'}</AppText></View>}
+        <AppText variant="body" numberOfLines={2} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.86} style={styles.productTitle}>{product.nameAr}</AppText>
+        <AppText variant="caption" color={colors.textMuted} numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.8} style={styles.productSubtitle}>{subtitle}</AppText>
+        <AppText variant="body" color={colors.primary} numberOfLines={1} style={styles.price}>{product.price ? `${hasVariants ? 'ابتداءً من ' : ''}${formatMoney(product.price)}` : requestable ? 'حسب الطلب' : 'السعر غير متوفر'}</AppText>
       </MotionPressable>
-      {product.price ? <AvailabilityBadge value={product.availability} /> : <View style={[styles.badge, { backgroundColor: colors.warningSoft }]}><View style={[styles.badgeDot, { backgroundColor: colors.warningText }]} /><AppText variant="caption" color={colors.warningText}>{requestable ? 'السعر حسب الطلب' : 'السعر والتوفر قيد التأكيد'}</AppText></View>}
-      <AppText variant="body" style={styles.productTitle}>{product.nameAr}</AppText>
-      <AppText variant="caption" color={colors.textMuted}>{[product.manufacturer, product.packageLabelAr ?? product.unitLabelAr].filter(Boolean).join(' · ')}</AppText>
-      <AppText variant="body" color={colors.primary} style={styles.price}>{product.price ? `${hasVariants ? 'ابتداءً من ' : ''}${formatMoney(product.price)}` : requestable ? 'حسب الطلب' : 'السعر غير متوفر'}</AppText>
       <Button label={hasVariants && actionable ? 'اختيار النوع' : orderable ? 'إضافة للسلة' : requestable ? 'حسب الطلب' : 'غير متاح للطلب'} onPress={onAdd} disabled={!actionable} style={styles.addButton} />
     </Surface>
   );
@@ -287,12 +296,14 @@ const styles = StyleSheet.create({
   offline: { backgroundColor: colors.warningSoft, borderBottomWidth: 1, borderBottomColor: colors.warning, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   toast: { minHeight: 52, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.toast, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   toastAction: { minHeight: 44, justifyContent: 'center' },
-  productCard: { flex: 1, minWidth: 0, padding: spacing.sm, gap: spacing.xs, ...shadows.soft },
-  productImage: { width: '100%', aspectRatio: 1, borderRadius: 13, overflow: 'hidden', backgroundColor: colors.imageWell },
+  productCard: { flex: 1, minWidth: 0, padding: spacing.sm, gap: spacing.sm, borderRadius: radius.xl, ...shadows.soft },
+  productBody: { flex: 1, gap: spacing.xs },
+  productImage: { width: '100%', aspectRatio: 1, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.imageWell },
   imageStatus: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.imageWell },
   productTitle: { minHeight: 56, fontWeight: '700' },
-  price: { fontWeight: '700', marginTop: spacing.xs },
-  addButton: { minHeight: 44, borderRadius: 10 },
+  productSubtitle: { minHeight: typography.lineHeight.caption },
+  price: { fontWeight: '700', marginTop: spacing.xxs },
+  addButton: { minHeight: 44, borderRadius: radius.md },
   skeleton: { position: 'relative', overflow: 'hidden', backgroundColor: colors.surfaceMuted },
   skeletonSheen: { position: 'absolute', top: 0, bottom: 0, width: '28%', backgroundColor: colors.primarySoft },
   // react-native-web compiles these to a CSS @keyframes animation; same path and timing as the native sheen.
