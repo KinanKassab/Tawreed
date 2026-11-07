@@ -124,8 +124,6 @@ export interface DoctorProfile {
   clinicName: string | null;
   phone: string | null;
   email: string | null;
-  avatarPath: string | null;
-  avatarUrl: string | null;
   preferredContact: 'phone' | 'whatsapp' | 'email';
   defaultAddress: string | null;
   defaultLatitude: number | null;
