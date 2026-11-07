@@ -9,17 +9,21 @@ import { useToast } from '@/store/toast';
 const MOBILE_NAV_HEIGHT = 82;
 const TOAST_DURATION_MS = 3200;
 
+function ToastEntry({ id, message, actionLabel, onAction, hide }: { id: number; message: string; actionLabel?: string; onAction?: () => void; hide: (id: number) => void }) {
+  useEffect(() => {
+    const timer = setTimeout(() => hide(id), TOAST_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [id, hide]);
+
+  return <Toast message={message} actionLabel={actionLabel} onAction={onAction ? () => { onAction(); hide(id); } : undefined} />;
+}
+
 export function ToastHost() {
-  const { message, actionLabel, onAction, hide } = useToast();
+  const toasts = useToast((state) => state.toasts);
+  const hide = useToast((state) => state.hide);
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    if (!message) return;
-    const timer = setTimeout(hide, TOAST_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [message, hide]);
-
-  if (!message) return null;
+  if (!toasts.length) return null;
 
   return (
     <Responsive>{(viewport) => {
@@ -27,7 +31,7 @@ export function ToastHost() {
       const bottom = phone ? MOBILE_NAV_HEIGHT + Math.max(insets.bottom, spacing.xs) + spacing.sm : spacing.xl;
       return (
         <View pointerEvents="box-none" style={[styles.host, { bottom }]}>
-          <Toast message={message} actionLabel={actionLabel} onAction={onAction ? () => { onAction(); hide(); } : undefined} />
+          {toasts.map((toast) => <ToastEntry key={toast.id} id={toast.id} message={toast.message} actionLabel={toast.actionLabel} onAction={toast.onAction} hide={hide} />)}
         </View>
       );
     }}</Responsive>
@@ -35,5 +39,5 @@ export function ToastHost() {
 }
 
 const styles = StyleSheet.create({
-  host: { position: 'absolute', insetInlineStart: spacing.md, insetInlineEnd: spacing.md, zIndex: 30 },
+  host: { position: 'absolute', insetInlineStart: spacing.md, insetInlineEnd: spacing.md, zIndex: 30, gap: spacing.sm },
 });

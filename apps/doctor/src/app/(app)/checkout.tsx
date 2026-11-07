@@ -120,7 +120,7 @@ export default function CheckoutScreen() {
           return <View key={product.id} style={styles.invoiceLine}><View style={styles.lineCopy}><AppText variant="small" style={styles.semibold}>{product.nameAr}</AppText><AppText variant="caption" color={colors.textMuted}>{product.packageLabelAr ?? product.unitLabelAr} · {quantity.toLocaleString('ar-SY')} × {formatMoney(unitPrice)}</AppText></View><AppText variant="small" style={styles.lineTotal}>{formatMoney({ ...unitPrice, amountMinor: unitPrice.amountMinor * quantity })}</AppText></View>;
         })}</View>
         <View style={styles.divider} />
-        <View style={styles.totalRow}><AppText variant="h2">{formatMoney({ amountMinor: subtotal, currency, decimalPlaces })}</AppText><View><AppText variant="small" color={colors.textMuted}>الإجمالي</AppText><AppText variant="caption" color={colors.successText}>التوصيل والدفع عند الاستلام</AppText></View></View>
+        <View style={styles.totalRow}><AppText variant="h2">{formatMoney({ amountMinor: subtotal, currency, decimalPlaces })}</AppText><View><AppText variant="small" color={colors.textMuted}>الإجمالي</AppText><AppText variant="caption" color={colors.successText}>توصيل مجاني والدفع عند الاستلام</AppText></View></View>
         {!canCheckout ? <View accessibilityRole="alert" style={styles.warning}><AppText variant="small" color={colors.warningText}>تغيّر سعر أو توفر أحد المنتجات. ارجع إلى السلة وراجعه.</AppText></View> : null}
         {errors.root?.message ? <View accessibilityRole="alert" style={styles.error}><AppText variant="small" color={colors.error}>{errors.root.message}</AppText></View> : null}
         <Button label="إرسال الطلب" variant="accent" onPress={submit} loading={isSubmitting} disabled={!online || !canCheckout} />
