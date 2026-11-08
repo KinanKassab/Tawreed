@@ -1,6 +1,7 @@
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import { Children, isValidElement, type PropsWithChildren, type ReactNode } from 'react';
 import { colors, cssVariables, typography } from '@tawreed/design-tokens';
+import { Analytics } from '@vercel/analytics/react';
 
 const globalStyles = `${cssVariables}
 @font-face{font-family:"NotoKufiArabic";src:url('/fonts/kufi.woff2') format('woff2');font-display:swap;font-weight:100 900}
@@ -79,6 +80,7 @@ export default function Root({ children }: PropsWithChildren) {
         {children}
         <div id="tawreed-splash" dangerouslySetInnerHTML={{ __html: splashLogo }} />
         {deferUntilPainted(bodyNodes)}
+        <Analytics />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){var local=location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.hostname==='[::1]';if(local){navigator.serviceWorker.getRegistrations().then(function(registrations){registrations.forEach(function(registration){registration.unregister();});}).catch(function(){});return;}navigator.serviceWorker.register('/service-worker.js').catch(function(){});});}` }} />
       </body>
     </html>
