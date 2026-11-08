@@ -62,7 +62,6 @@ export interface CatalogRepository {
 export interface ProfileRepository {
   getMine(): Promise<DoctorProfile | null>;
   updateMine(input: Pick<DoctorProfile, 'fullName' | 'clinicName' | 'defaultAddress'>): Promise<void>;
-  updateAvatar(input: { bytes: ArrayBuffer; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }): Promise<void>;
 }
 
 export interface OrdersRepository {
@@ -825,11 +824,8 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     profile: {
       async getMine() {
-        const { data, error } = await client.from('profiles').select('id, first_name, last_name, full_name, clinic_name, phone, email, avatar_path, preferred_contact, default_address, default_latitude, default_longitude, default_google_place_id').maybeSingle();
+        const { data, error } = await client.from('profiles').select('id, first_name, last_name, full_name, clinic_name, phone, email, preferred_contact, default_address, default_latitude, default_longitude, default_google_place_id').maybeSingle();
         if (error) throw error;
-        const avatarUrl = data?.avatar_path
-          ? (await client.storage.from('avatars').createSignedUrl(data.avatar_path, 3600)).data?.signedUrl ?? null
-          : null;
         return data ? {
           id: data.id,
           firstName: data.first_name,
@@ -838,8 +834,6 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           clinicName: data.clinic_name,
           phone: data.phone,
           email: data.email,
-          avatarPath: data.avatar_path,
-          avatarUrl,
           preferredContact: data.preferred_contact,
           defaultAddress: data.default_address,
           defaultLatitude: data.default_latitude,
@@ -855,17 +849,6 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           clinic_name: input.clinicName,
           default_address: input.defaultAddress,
         }).eq('id', userData.user.id);
-        if (error) throw error;
-      },
-      async updateAvatar(input) {
-        const { data: userData, error: userError } = await client.auth.getUser();
-        if (userError || !userData.user) throw userError ?? new Error('Unauthorized');
-        const objectKey = `${userData.user.id}/avatar`;
-        const { error: uploadError } = await client.storage.from('avatars').upload(objectKey, input.bytes, {
-          cacheControl: '3600', contentType: input.mimeType, upsert: true,
-        });
-        if (uploadError) throw uploadError;
-        const { error } = await client.from('profiles').update({ avatar_path: objectKey }).eq('id', userData.user.id);
         if (error) throw error;
       },
     },
