@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { ClientConfig } from '@tawreed/config';
 import type {
+  BundleItem,
   Category,
   CurrencyCode,
   DoctorProfile,
@@ -328,6 +329,9 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
   };
 
   const bannerPublicUrl = (objectKey: string) => client.storage.from('product-media').getPublicUrl(objectKey).data.publicUrl;
+  const mapBundleItems = (value: unknown): BundleItem[] | null => Array.isArray(value)
+    ? value.map((item) => ({ productId: String((item as { product_id: string }).product_id), quantity: Number((item as { quantity: number }).quantity) }))
+    : null;
 
   const productSelect = `
       id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
@@ -374,9 +378,9 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         return offered.length ? mapProductGroup(offered, id) : null;
     },
     async listBanners() {
-      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url').order('sort_order');
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items').order('sort_order');
       if (error) throw error;
-      return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url }));
+      return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, bundleItems: mapBundleItems(row.bundle_items) }));
     },
   };
 
@@ -702,10 +706,10 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       return data as DoctorOrderStatus;
     },
     async listBanners() {
-      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, sort_order, active, expires_at').order('sort_order');
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items, sort_order, active, expires_at').order('sort_order');
       if (error) throw error;
       return (data ?? []).map((row) => ({
-        id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url,
+        id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, bundleItems: mapBundleItems(row.bundle_items),
         sortOrder: row.sort_order, active: row.active, expiresAt: row.expires_at,
       }));
     },
