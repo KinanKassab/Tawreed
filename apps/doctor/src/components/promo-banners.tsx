@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { radius, spacing } from '@tawreed/design-tokens';
 import type { PromoBanner } from '@tawreed/domain';
 import { MotionPressable } from '@tawreed/ui';
@@ -11,9 +11,9 @@ export function PromoBanners() {
   const banners = useBanners();
   if (!banners.data?.length) return null;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <View style={styles.stack}>
       {banners.data.map((banner) => <BannerCard key={banner.id} banner={banner} />)}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -43,7 +43,7 @@ function BannerCard({ banner }: { banner: PromoBanner }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row-reverse', gap: spacing.sm },
-  card: { width: 300, height: 140, borderRadius: radius.lg, overflow: 'hidden' },
+  stack: { gap: spacing.sm },
+  card: { width: '100%', aspectRatio: 2, borderRadius: radius.lg, overflow: 'hidden' },
   image: { width: '100%', height: '100%' },
 });

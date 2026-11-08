@@ -28,7 +28,6 @@ export default function HomeScreen() {
   return (
     <AppPage><ContentFade style={styles.pageContent}>
       <FirstOrderGuide />
-      <PromoBanners />
       <Surface style={styles.welcome}>
         <AppText variant="small" color={colors.primary}>منصة توريد للمستلزمات الطبية</AppText>
         <AppText variant="h1">{ar.welcomeTitle}</AppText>
@@ -39,6 +38,8 @@ export default function HomeScreen() {
         </View></SwipeExclusion>
         <View style={styles.heroActions}><Button label="اطلب الآن" variant="accent" onPress={() => router.push('/(app)/(tabs)/catalog')} style={styles.heroButton} /><Button label="تصفّح الأقسام" variant="outline" onPress={() => router.push('/(app)/(tabs)/catalog')} style={styles.heroButton} /></View>
       </Surface>
+
+      <PromoBanners />
 
       <View style={styles.heading}>
         <MotionPressable onPress={() => router.push('/(app)/(tabs)/catalog')}><AppText variant="small" color={colors.primary}>{ar.seeAll}</AppText></MotionPressable>
