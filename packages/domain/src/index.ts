@@ -24,11 +24,17 @@ export interface Category {
   nameEn: string | null;
 }
 
+export interface BundleItem {
+  productId: string;
+  quantity: number;
+}
+
 export interface PromoBanner {
   id: string;
   titleAr: string;
   imageUrl: string | null;
   linkUrl: string | null;
+  bundleItems: BundleItem[] | null;
 }
 
 export interface OperationsPromoBanner extends PromoBanner {
