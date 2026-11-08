@@ -5,7 +5,7 @@ import {
   ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput,
   type StyleProp, type TextInputProps, type TextStyle, View, type ViewProps, type ViewStyle,
 } from 'react-native';
-import Animated, { cancelAnimation, FadeIn, FadeInDown, FadeOutDown, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeIn, FadeInDown, FadeOutDown, Layout, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { border, colors, controlHeight, layout, motion, radius, shadows, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Availability, type Product } from '@tawreed/domain';
 export { Icon, type IconName } from './icon';
@@ -216,14 +216,24 @@ export function OfflineBanner() {
   return <View accessibilityRole="alert" style={styles.offline}><AppText variant="small" color={colors.warningText}>أنت غير متصل. بعض البيانات المعروضة محفوظة وقد لا تكون محدثة.</AppText></View>;
 }
 
-export function Toast({ message = 'انضاف المنتج للسلة', actionLabel = 'عرض السلة', onAction }: { message?: string; actionLabel?: string; onAction?: () => void }) {
+export function Toast({ message = 'انضاف المنتج للسلة', actionLabel = 'عرض السلة', onAction, depth = 0 }: { message?: string; actionLabel?: string; onAction?: () => void; depth?: number }) {
   const reducedMotion = useReducedMotion();
+  const targetScale = 1 - Math.min(depth, 3) * 0.045;
+  const targetOpacity = depth === 0 ? 1 : Math.max(0.55, 1 - depth * 0.18);
+  const scale = useSharedValue(targetScale);
+  const opacity = useSharedValue(targetOpacity);
+  useEffect(() => {
+    scale.value = reducedMotion ? targetScale : withTiming(targetScale, { duration: 220 });
+    opacity.value = reducedMotion ? targetOpacity : withTiming(targetOpacity, { duration: 220 });
+  }, [targetScale, targetOpacity, reducedMotion]);
+  const stackStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: opacity.value }));
   return (
     <Animated.View
       accessibilityRole="alert"
       entering={reducedMotion ? FadeIn.duration(120) : FadeInDown.duration(220)}
       exiting={reducedMotion ? undefined : FadeOutDown.duration(180)}
-      style={styles.toast}>
+      layout={reducedMotion ? undefined : Layout.duration(220)}
+      style={[styles.toast, depth > 0 && styles.toastStacked, stackStyle]}>
       <AppText color={colors.onToast}>{message}</AppText>
       {onAction ? <MotionPressable accessibilityRole="button" onPress={onAction} style={styles.toastAction}><AppText variant="button" color={colors.accent}>{actionLabel}</AppText></MotionPressable> : null}
     </Animated.View>
@@ -295,6 +305,7 @@ const styles = StyleSheet.create({
   center: { textAlign: 'center' },
   offline: { backgroundColor: colors.warningSoft, borderBottomWidth: 1, borderBottomColor: colors.warning, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   toast: { minHeight: 52, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.toast, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  toastStacked: { marginTop: -34 },
   toastAction: { minHeight: 44, justifyContent: 'center' },
   productCard: { flex: 1, minWidth: 0, padding: spacing.sm, gap: spacing.sm, borderRadius: radius.xl, ...shadows.soft },
   productBody: { flex: 1, gap: spacing.xs },
