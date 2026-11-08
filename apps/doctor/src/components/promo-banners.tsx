@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import { radius, spacing } from '@tawreed/design-tokens';
 import type { PromoBanner } from '@tawreed/domain';
 import { MotionPressable } from '@tawreed/ui';
+import { BundleOfferModal } from '@/components/bundle-offer-modal';
 import { useBanners } from '@/hooks/use-catalog';
-import { useCart } from '@/store/cart';
 
 export function PromoBanners() {
   const banners = useBanners();
@@ -18,27 +18,26 @@ export function PromoBanners() {
 }
 
 function BannerCard({ banner }: { banner: PromoBanner }) {
-  const add = useCart((state) => state.add);
+  const [offerVisible, setOfferVisible] = useState(false);
   const hasBundle = Boolean(banner.bundleItems?.length);
   const openable = hasBundle || Boolean(banner.linkUrl);
   const onPress = () => {
-    if (banner.bundleItems?.length) {
-      banner.bundleItems.forEach((item) => add(item.productId, item.quantity));
-      router.push('/cart');
-      return;
-    }
+    if (hasBundle) { setOfferVisible(true); return; }
     if (banner.linkUrl) void Linking.openURL(banner.linkUrl);
   };
   return (
-    <MotionPressable
-      accessibilityRole={openable ? 'link' : 'image'}
-      accessibilityLabel={banner.titleAr}
-      disabled={!openable}
-      onPress={onPress}
-      style={styles.card}
-    >
-      {banner.imageUrl ? <Image source={banner.imageUrl} contentFit="cover" style={styles.image} accessibilityLabel={banner.titleAr} /> : null}
-    </MotionPressable>
+    <>
+      <MotionPressable
+        accessibilityRole={openable ? 'link' : 'image'}
+        accessibilityLabel={banner.titleAr}
+        disabled={!openable}
+        onPress={onPress}
+        style={styles.card}
+      >
+        {banner.imageUrl ? <Image source={banner.imageUrl} contentFit="cover" style={styles.image} accessibilityLabel={banner.titleAr} /> : null}
+      </MotionPressable>
+      {hasBundle ? <BundleOfferModal visible={offerVisible} bannerId={banner.id} titleAr={banner.titleAr} items={banner.bundleItems!} onClose={() => setOfferVisible(false)} /> : null}
+    </>
   );
 }
 
