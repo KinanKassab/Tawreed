@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { colors, motion, radius, spacing } from '@tawreed/design-tokens';
-import { formatMoney, formatNumber } from '@tawreed/domain';
-import { AppText, AvailabilityBadge, Button, Icon, MotionPressable, ProductDetailSkeleton, StateView, Surface } from '@tawreed/ui';
+import { formatMoney } from '@tawreed/domain';
+import { AppText, AvailabilityBadge, Button, Icon, MotionPressable, ProductDetailSkeleton, QuantityInput, StateView, Surface } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { useProduct } from '@/hooks/use-catalog';
 import { useData } from '@/providers/app-providers';
@@ -63,7 +63,7 @@ export default function ProductScreen() {
         })}</View></View> : null}
         <AppText variant="h2" color={colors.primary}>{selectedPrice ? formatMoney(selectedPrice) : requestable ? 'حسب الطلب' : 'السعر غير متوفر'}</AppText>
         {orderable ? <AppText variant="small" color={colors.successText}>التوصيل مجاني</AppText> : null}
-        {orderable ? <View style={styles.quantity}><MotionPressable accessibilityRole="button" accessibilityLabel="زيادة الكمية" onPress={() => setQuantity((value) => value + 1)} style={styles.quantityButton}><AppText variant="h3">+</AppText></MotionPressable><AppText>{formatNumber(quantity)}</AppText><MotionPressable accessibilityRole="button" accessibilityLabel="تقليل الكمية" accessibilityState={{ disabled: quantity === 1 }} disabled={quantity === 1} onPress={() => setQuantity((value) => Math.max(1, value - 1))} style={styles.quantityButton}><AppText variant="h3">−</AppText></MotionPressable></View> : null}
+        {orderable ? <QuantityInput value={quantity} onChange={setQuantity} /> : null}
         <Button label={orderable ? 'إضافة للسلة' : requestable ? 'حسب الطلب' : 'غير متاح للطلب'} variant="accent" disabled={!orderable && !requestable} onPress={() => { if (requestable) requestQuote(); else { add(selectedId, quantity); router.push('/cart'); } }} />
       </View>
     </Animated.View>
@@ -81,6 +81,5 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 280, gap: spacing.md, justifyContent: 'center' }, variants: { gap: spacing.sm }, variantOptions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
   variantOption: { minWidth: 110, minHeight: 48, justifyContent: 'center', gap: 2, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, backgroundColor: colors.surface },
   variantOptionSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
-  quantity: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.surface, maxWidth: 180 },
-  quantityButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }, sections: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xl }, section: { flex: 1, minWidth: 280, gap: spacing.md }, sectionTitle: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm },
+  sections: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xl }, section: { flex: 1, minWidth: 280, gap: spacing.md }, sectionTitle: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm },
 });

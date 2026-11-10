@@ -5,6 +5,7 @@ import { radius, spacing } from '@tawreed/design-tokens';
 import type { PromoBanner } from '@tawreed/domain';
 import { MotionPressable } from '@tawreed/ui';
 import { BundleOfferModal } from '@/components/bundle-offer-modal';
+import { isSellableOffer } from '@/hooks/use-cart-pricing';
 import { useBanners } from '@/hooks/use-catalog';
 
 export function PromoBanners() {
@@ -19,7 +20,7 @@ export function PromoBanners() {
 
 function BannerCard({ banner }: { banner: PromoBanner }) {
   const [offerVisible, setOfferVisible] = useState(false);
-  const hasBundle = Boolean(banner.bundleItems?.length);
+  const hasBundle = isSellableOffer(banner);
   const openable = hasBundle || Boolean(banner.linkUrl);
   const onPress = () => {
     if (hasBundle) { setOfferVisible(true); return; }
@@ -36,7 +37,7 @@ function BannerCard({ banner }: { banner: PromoBanner }) {
       >
         {banner.imageUrl ? <Image source={banner.imageUrl} contentFit="cover" style={styles.image} accessibilityLabel={banner.titleAr} /> : null}
       </MotionPressable>
-      {hasBundle ? <BundleOfferModal visible={offerVisible} bannerId={banner.id} titleAr={banner.titleAr} items={banner.bundleItems!} onClose={() => setOfferVisible(false)} /> : null}
+      {hasBundle ? <BundleOfferModal visible={offerVisible} bannerId={banner.id} titleAr={banner.titleAr} items={banner.bundleItems!} priceUsd={banner.bundlePriceUsd!} priceSyp={banner.bundlePriceSyp!} onClose={() => setOfferVisible(false)} /> : null}
     </>
   );
 }

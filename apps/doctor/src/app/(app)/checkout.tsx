@@ -1,15 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { breakpoints, colors, radius, spacing, typography } from '@tawreed/design-tokens';
-import { formatMoney, normalizeAppError, type Product } from '@tawreed/domain';
+import { formatMoney, normalizeAppError } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, StateView, Surface } from '@tawreed/ui';
 import { checkoutSchema, type CheckoutInput } from '@tawreed/validation';
 import { AppPage } from '@/components/app-page';
+import { useCartPricing } from '@/hooks/use-cart-pricing';
 import { useNetwork } from '@/hooks/use-network';
 import { useData, useSession } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
@@ -24,17 +25,9 @@ export default function CheckoutScreen() {
   const compact = width < breakpoints.tablet;
   const items = useCart((state) => state.items);
   const clear = useCart((state) => state.clear);
-  const ids = Object.keys(items);
   const [idempotencyKey] = useState(() => randomUUID());
   const profile = useQuery({ queryKey: ['profile', session?.user.id], queryFn: () => data!.profile.getMine(), enabled: Boolean(data && session) });
-  const productQueries = useQueries({ queries: ids.map((id) => ({ queryKey: ['product', id], queryFn: () => data!.catalog.getProduct(id), enabled: Boolean(data) })) });
-  const products = productQueries.map((query) => query.data).filter((value): value is Product => Boolean(value));
-  const loadingProducts = productQueries.some((query) => query.isLoading);
-  const failedProducts = productQueries.some((query) => query.isError);
-  const canCheckout = products.length === ids.length && products.every((product) => product.price && product.availability !== 'unavailable');
-  const currency = products[0]?.price?.currency ?? 'NEW_SYP';
-  const decimalPlaces = products[0]?.price?.decimalPlaces ?? 0;
-  const subtotal = products.reduce((sum, product) => product.price ? sum + product.price.amountMinor * (items[product.id] ?? 1) : sum, 0);
+  const { ids, products, bundles, looseLines, subtotal, currency, decimalPlaces, loading: loadingProducts, failed: failedProducts, canCheckout } = useCartPricing();
   const showToast = useToast((state) => state.show);
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError, reset } = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
@@ -82,6 +75,7 @@ export default function CheckoutScreen() {
         deliveryLongitude: profile.data?.defaultLongitude,
         deliveryGooglePlaceId: profile.data?.defaultGooglePlaceId,
         items: ids.map((productId) => ({ productId, quantity: items[productId] ?? 1 })),
+        bundleIds: bundles.map((bundle) => bundle.id),
       });
       clear();
       router.replace({ pathname: '/order-success', params: result });
@@ -114,8 +108,7 @@ export default function CheckoutScreen() {
       <Surface style={styles.invoice} accessibilityLabel="فاتورة الطلب">
         <View style={styles.invoiceHeader}><View><AppText variant="h2">فاتورة الطلب</AppText><AppText variant="caption" color={colors.textMuted}>{products.length.toLocaleString('ar-SY')} أصناف</AppText></View><Icon name="clipboard-text-outline" size={26} color={colors.primary} /></View>
         <View style={styles.divider} />
-        <View style={styles.invoiceLines}>{products.map((product) => {
-          const quantity = items[product.id] ?? 1;
+        <View style={styles.invoiceLines}>{bundles.map((bundle) => <View key={bundle.id} style={styles.invoiceLine}><View style={styles.lineCopy}><AppText variant="small" style={styles.semibold}>{bundle.label}</AppText><AppText variant="caption" color={colors.textMuted}>{bundle.items.map((item) => products.find((product) => product.id === item.productId)?.nameAr ?? '...').join('، ')}</AppText></View><AppText variant="small" style={styles.lineTotal}>{formatMoney(bundle.priceSyp)}</AppText></View>)}{looseLines.filter((line) => line.product.price).map(({ product, quantity }) => {
           const unitPrice = product.price!;
           return <View key={product.id} style={styles.invoiceLine}><View style={styles.lineCopy}><AppText variant="small" style={styles.semibold}>{product.nameAr}</AppText><AppText variant="caption" color={colors.textMuted}>{product.packageLabelAr ?? product.unitLabelAr} · {quantity.toLocaleString('ar-SY')} × {formatMoney(unitPrice)}</AppText></View><AppText variant="small" style={styles.lineTotal}>{formatMoney({ ...unitPrice, amountMinor: unitPrice.amountMinor * quantity })}</AppText></View>;
         })}</View>

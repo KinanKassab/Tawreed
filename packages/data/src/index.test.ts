@@ -123,11 +123,13 @@ describe('Supabase repository adapter contracts', () => {
       recipientName: 'طبيب الاختبار',
       recipientPhone: '+963900000000',
       items: [{ productId: 'product-1', quantity: 2 }],
+      bundleIds: [],
     });
 
     expect(mocks.rpc).toHaveBeenCalledWith('create_doctor_order', expect.objectContaining({
       p_idempotency_key: 'request-1',
       p_items: [{ product_id: 'product-1', quantity: 2 }],
+      p_bundle_ids: [],
     }));
     expect(JSON.stringify(mocks.rpc.mock.calls[0])).not.toContain('unitPrice');
     expect(result).toEqual({ orderId: 'order-1', orderNumber: 'TWD-1001' });
@@ -147,7 +149,7 @@ describe('Supabase repository adapter contracts', () => {
 
     await expect(data.orders.createOrder({
       idempotencyKey: 'request-2', displayCurrency: 'USD', deliveryAddress: 'دمشق، شارع الاختبار',
-      recipientName: 'طبيب الاختبار', recipientPhone: '+963900000000', items: [{ productId: 'product-1', quantity: 1 }],
+      recipientName: 'طبيب الاختبار', recipientPhone: '+963900000000', items: [{ productId: 'product-1', quantity: 1 }], bundleIds: [],
     })).rejects.toThrow('Order creation returned no order');
   });
 
@@ -198,5 +200,39 @@ describe('Supabase repository adapter contracts', () => {
       p_image_width: 1200,
       p_image_height: 1200,
     }));
+  });
+
+  it('searches through the ranked catalog RPC, forwards cancellation, and skips the detail query when nothing matches', async () => {
+    const result = { data: [], error: null };
+    const searchRequest = {
+      abortSignal: vi.fn(() => searchRequest),
+      then: (resolve: (value: typeof result) => unknown) => Promise.resolve(result).then(resolve),
+    };
+    mocks.rpc.mockReturnValue(searchRequest);
+    const data = createTawreedDataLayer(config);
+    const controller = new AbortController();
+
+    const products = await data.catalog.listProducts({ query: '  جوتا  ', categoryId: 'category-1', signal: controller.signal });
+
+    expect(mocks.rpc).toHaveBeenCalledWith('search_catalog_products', {
+      p_query: 'جوتا',
+      p_category_id: 'category-1',
+      p_availability: null,
+      p_limit: 120,
+    });
+    expect(searchRequest.abortSignal).toHaveBeenCalledWith(controller.signal);
+    expect(products).toEqual([]);
+  });
+
+  it('surfaces catalog search RPC errors', async () => {
+    const result = { data: null, error: new Error('search failed') };
+    const searchRequest = {
+      abortSignal: vi.fn(() => searchRequest),
+      then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) => Promise.resolve(result).then(resolve, reject),
+    };
+    mocks.rpc.mockReturnValue(searchRequest);
+    const data = createTawreedDataLayer(config);
+
+    await expect(data.catalog.listProducts({ query: 'rubber' })).rejects.toThrow('search failed');
   });
 });

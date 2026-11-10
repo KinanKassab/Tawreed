@@ -5,7 +5,7 @@ import {
   ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput,
   type StyleProp, type TextInputProps, type TextStyle, View, type ViewProps, type ViewStyle,
 } from 'react-native';
-import Animated, { cancelAnimation, FadeIn, FadeInDown, FadeOutDown, Layout, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, FadeIn, FadeInUp, FadeOutUp, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { border, colors, controlHeight, layout, motion, radius, shadows, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Availability, type Product } from '@tawreed/domain';
 export { Icon, type IconName } from './icon';
@@ -216,27 +216,41 @@ export function OfflineBanner() {
   return <View accessibilityRole="alert" style={styles.offline}><AppText variant="small" color={colors.warningText}>أنت غير متصل. بعض البيانات المعروضة محفوظة وقد لا تكون محدثة.</AppText></View>;
 }
 
-export function Toast({ message = 'انضاف المنتج للسلة', actionLabel = 'عرض السلة', onAction, depth = 0 }: { message?: string; actionLabel?: string; onAction?: () => void; depth?: number }) {
+export function Toast({ message = 'انضاف للسلة', actionLabel = 'عرض السلة', onAction }: { message?: string; actionLabel?: string; onAction?: () => void }) {
   const reducedMotion = useReducedMotion();
-  const targetScale = 1 - Math.min(depth, 3) * 0.045;
-  const targetOpacity = depth === 0 ? 1 : Math.max(0.55, 1 - depth * 0.18);
-  const scale = useSharedValue(targetScale);
-  const opacity = useSharedValue(targetOpacity);
-  useEffect(() => {
-    scale.value = reducedMotion ? targetScale : withTiming(targetScale, { duration: 220 });
-    opacity.value = reducedMotion ? targetOpacity : withTiming(targetOpacity, { duration: 220 });
-  }, [targetScale, targetOpacity, reducedMotion]);
-  const stackStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: opacity.value }));
   return (
     <Animated.View
       accessibilityRole="alert"
-      entering={reducedMotion ? FadeIn.duration(120) : FadeInDown.duration(220)}
-      exiting={reducedMotion ? undefined : FadeOutDown.duration(180)}
-      layout={reducedMotion ? undefined : Layout.duration(220)}
-      style={[styles.toast, depth > 0 && styles.toastStacked, stackStyle]}>
-      <AppText color={colors.onToast}>{message}</AppText>
-      {onAction ? <MotionPressable accessibilityRole="button" onPress={onAction} style={styles.toastAction}><AppText variant="button" color={colors.accent}>{actionLabel}</AppText></MotionPressable> : null}
+      entering={reducedMotion ? FadeIn.duration(120) : FadeInUp.duration(180)}
+      exiting={reducedMotion ? undefined : FadeOutUp.duration(140)}
+      style={styles.toast}>
+      <Icon name="check-circle-outline" size={16} color={colors.success} />
+      <AppText variant="caption" numberOfLines={1} style={styles.toastMessage}>{message}</AppText>
+      {onAction ? <MotionPressable accessibilityRole="button" hitSlop={10} onPress={onAction}><AppText variant="caption" numberOfLines={1} color={colors.primary}>{actionLabel}</AppText></MotionPressable> : null}
     </Animated.View>
+  );
+}
+
+const QUANTITY_MAX = 999;
+const toLatinDigits = (text: string) => text.replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0));
+
+/** Plus/minus stepper whose number can also be typed. An empty field is allowed while typing and restores on blur. */
+export function QuantityInput({ value, onChange, min = 1, max = QUANTITY_MAX }: { value: number; onChange: (value: number) => void; min?: number; max?: number }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  const change = (text: string) => {
+    const digits = toLatinDigits(text).replace(/\D/g, '');
+    if (!digits) { setDraft(''); return; }
+    const next = Math.min(max, Math.max(min, Number(digits)));
+    setDraft(String(next));
+    if (next !== value) onChange(next);
+  };
+  return (
+    <View style={styles.quantity}>
+      <MotionPressable accessibilityRole="button" accessibilityLabel="زيادة الكمية" accessibilityState={{ disabled: value >= max }} disabled={value >= max} onPress={() => onChange(Math.min(max, value + 1))} style={styles.quantityButton}><AppText variant="h3">+</AppText></MotionPressable>
+      <TextInput accessibilityLabel="الكمية" keyboardType="number-pad" inputMode="numeric" selectTextOnFocus value={draft} onChangeText={change} onBlur={() => setDraft(String(value))} style={styles.quantityField} />
+      <MotionPressable accessibilityRole="button" accessibilityLabel="تقليل الكمية" accessibilityState={{ disabled: value <= min }} disabled={value <= min} onPress={() => onChange(Math.max(min, value - 1))} style={styles.quantityButton}><AppText variant="h3">−</AppText></MotionPressable>
+    </View>
   );
 }
 
@@ -304,9 +318,11 @@ const styles = StyleSheet.create({
   stateButton: { minWidth: 180, marginTop: spacing.sm },
   center: { textAlign: 'center' },
   offline: { backgroundColor: colors.warningSoft, borderBottomWidth: 1, borderBottomColor: colors.warning, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  toast: { minHeight: 52, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.toast, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  toastStacked: { marginTop: -34 },
-  toastAction: { minHeight: 44, justifyContent: 'center' },
+  toast: { height: 36, maxWidth: '100%', flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.sm, ...shadows.soft },
+  toastMessage: { flexShrink: 1 },
+  quantity: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.surface },
+  quantityButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  quantityField: { width: 52, height: 44, padding: 0, textAlign: 'center', color: colors.text, fontFamily: Platform.OS === 'web' ? typography.family.web : typography.family.regular, fontSize: typography.size.body },
   productCard: { flex: 1, minWidth: 0, padding: spacing.sm, gap: spacing.sm, borderRadius: radius.xl, ...shadows.soft },
   productBody: { flex: 1, gap: spacing.xs },
   productImage: { width: '100%', aspectRatio: 1, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.imageWell },
