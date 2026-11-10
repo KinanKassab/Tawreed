@@ -35,6 +35,10 @@ export interface PromoBanner {
   imageUrl: string | null;
   linkUrl: string | null;
   bundleItems: BundleItem[] | null;
+  /** Fixed price of the whole offer, set by staff in USD. */
+  bundlePriceUsd: Money | null;
+  /** The USD price at the active rate; null until a rate exists. */
+  bundlePriceSyp: Money | null;
 }
 
 export interface OperationsPromoBanner extends PromoBanner {

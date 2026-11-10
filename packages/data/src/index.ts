@@ -45,12 +45,15 @@ export interface AuthRepository {
   signOut(): Promise<void>;
 }
 
+const SEARCH_RESULT_LIMIT = 120;
+
 export interface CatalogFilters {
   query?: string;
   categoryId?: string;
   availability?: Product['availability'][];
   limit?: number;
   offset?: number;
+  signal?: AbortSignal;
 }
 
 export interface CatalogRepository {
@@ -79,6 +82,7 @@ export interface OrdersRepository {
     deliveryLongitude?: number | null;
     deliveryGooglePlaceId?: string | null;
     items: { productId: string; quantity: number }[];
+    bundleIds: string[];
   }): Promise<{ orderId: string; orderNumber: string }>;
 }
 
@@ -153,10 +157,16 @@ export interface OperationsRepository {
   confirmOrder(orderId: string, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
   setOrderStatus(orderId: string, status: DoctorOrderStatus, doctorMessageAr?: string): Promise<DoctorOrderStatus>;
   listBanners(): Promise<OperationsPromoBanner[]>;
-  createBanner(input: { titleAr: string; linkUrl: string | null; image: ProductImageUpload }): Promise<string>;
-  updateBanner(input: { id: string; titleAr: string; linkUrl: string | null; active: boolean; expiresAt: string | null; image?: ProductImageUpload }): Promise<void>;
+  createBanner(input: { titleAr: string; linkUrl: string | null; image: ProductImageUpload; offer: BannerOfferInput | null }): Promise<string>;
+  /** Leave `offer` undefined to keep the banner's current offer; null removes it. */
+  updateBanner(input: { id: string; titleAr: string; linkUrl: string | null; active: boolean; expiresAt: string | null; image?: ProductImageUpload; offer?: BannerOfferInput | null }): Promise<void>;
   reorderBanners(ids: string[]): Promise<void>;
   deleteBanner(id: string): Promise<void>;
+}
+
+export interface BannerOfferInput {
+  items: BundleItem[];
+  priceUsdMinor: number;
 }
 
 export interface TawreedDataLayer {
@@ -332,6 +342,16 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
   const mapBundleItems = (value: unknown): BundleItem[] | null => Array.isArray(value)
     ? value.map((item) => ({ productId: String((item as { product_id: string }).product_id), quantity: Number((item as { quantity: number }).quantity) }))
     : null;
+  const bannerOffer = (row: { bundle_items: unknown; bundle_price_usd_minor: number | null; bundle_price_syp_minor: number | null }) => ({
+    bundleItems: mapBundleItems(row.bundle_items),
+    bundlePriceUsd: row.bundle_price_usd_minor === null ? null : { amountMinor: row.bundle_price_usd_minor, currency: 'USD' as const, decimalPlaces: 2 },
+    bundlePriceSyp: row.bundle_price_syp_minor === null ? null : { amountMinor: row.bundle_price_syp_minor, currency: 'NEW_SYP' as const, decimalPlaces: 0 },
+  });
+
+  const bannerOfferColumns = (offer: BannerOfferInput | null | undefined) => ({
+    bundle_items: offer ? offer.items.map((item) => ({ product_id: item.productId, quantity: item.quantity })) : null,
+    bundle_price_usd_minor: offer?.priceUsdMinor ?? null,
+  });
 
   const productSelect = `
       id, sku, name_ar, name_en, manufacturer, unit_label_ar, package_label_ar, description_ar,
@@ -348,11 +368,34 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       return (data ?? []).map((row) => ({ id: row.id, slug: row.slug, nameAr: row.name_ar, nameEn: row.name_en }));
     },
     async listProducts(filters = {}) {
+      const searchQuery = filters.query?.trim();
+      let rankedProductIds: string[] | undefined;
+      let searchRank = new Map<string, number>();
+
+      if (searchQuery) {
+        let searchRequest = client.rpc('search_catalog_products', {
+          p_query: searchQuery,
+          p_category_id: filters.categoryId ?? null,
+          p_availability: filters.availability?.length ? filters.availability : null,
+          // Ranked ids are sent back in the URL (`id=in.(...)`), so keep the
+          // most relevant matches only to stay well below proxy URL limits.
+          p_limit: SEARCH_RESULT_LIMIT,
+        });
+        if (filters.signal) searchRequest = searchRequest.abortSignal(filters.signal);
+        const { data: matches, error: searchError } = await searchRequest;
+        if (searchError) throw searchError;
+        const rankedMatches = (matches ?? []) as { product_id: string; search_rank: number }[];
+        rankedProductIds = rankedMatches.map((match) => match.product_id);
+        searchRank = new Map(rankedMatches.map((match) => [match.product_id, Number(match.search_rank)]));
+        if (!rankedProductIds.length) return [];
+      }
+
       let query = client.from('products').select(productSelect).eq('active', true).eq('product_prices.active', true).eq('product_prices.currency', 'NEW_SYP');
-      if (filters.query) query = query.ilike('search_text', `%${filters.query}%`);
+      if (rankedProductIds) query = query.in('id', rankedProductIds);
       if (filters.categoryId) query = query.eq('category_id', filters.categoryId);
       if (filters.availability?.length) query = query.in('availability', filters.availability);
-        query = query.order('name_ar').limit(1000);
+      query = query.order('name_ar').limit(1000);
+      if (filters.signal) query = query.abortSignal(filters.signal);
       const { data, error } = await query;
       if (error) throw error;
         const grouped = new Map<string, CatalogProductRow[]>();
@@ -360,7 +403,10 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           const key = row.variant_group_key ?? row.id;
           grouped.set(key, [...(grouped.get(key) ?? []), row]);
         }
-        const products = [...grouped.values()].map((rows) => mapProductGroup(rows));
+        const products = [...grouped.values()]
+          .map((rows) => ({ product: mapProductGroup(rows), rank: Math.max(...rows.map((row) => searchRank.get(row.id) ?? 0)) }))
+          .sort((a, b) => searchQuery ? b.rank - a.rank || a.product.nameAr.localeCompare(b.product.nameAr, 'ar') : a.product.nameAr.localeCompare(b.product.nameAr, 'ar'))
+          .map(({ product }) => product);
         const offset = filters.offset ?? 0;
         return products.slice(offset, offset + (filters.limit ?? 30));
     },
@@ -378,9 +424,9 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         return offered.length ? mapProductGroup(offered, id) : null;
     },
     async listBanners() {
-      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items').order('sort_order');
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items, bundle_price_usd_minor, bundle_price_syp_minor').order('sort_order');
       if (error) throw error;
-      return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, bundleItems: mapBundleItems(row.bundle_items) }));
+      return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, ...bannerOffer(row) }));
     },
   };
 
@@ -706,14 +752,14 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       return data as DoctorOrderStatus;
     },
     async listBanners() {
-      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items, sort_order, active, expires_at').order('sort_order');
+      const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items, bundle_price_usd_minor, bundle_price_syp_minor, sort_order, active, expires_at').order('sort_order');
       if (error) throw error;
       return (data ?? []).map((row) => ({
-        id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, bundleItems: mapBundleItems(row.bundle_items),
+        id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, ...bannerOffer(row),
         sortOrder: row.sort_order, active: row.active, expiresAt: row.expires_at,
       }));
     },
-    async createBanner({ titleAr, linkUrl, image }) {
+    async createBanner({ titleAr, linkUrl, image, offer }) {
       const objectKey = `banners/${crypto.randomUUID()}.${image.extension}`;
       const { error: uploadError } = await client.storage.from('product-media').upload(objectKey, image.bytes, {
         cacheControl: '31536000',
@@ -723,12 +769,12 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       if (uploadError) throw uploadError;
       const { data: lastRow } = await client.from('promo_banners').select('sort_order').order('sort_order', { ascending: false }).limit(1).maybeSingle();
       const { data, error } = await client.from('promo_banners').insert({
-        title_ar: titleAr, image_object_key: objectKey, link_url: linkUrl, sort_order: (lastRow?.sort_order ?? -1) + 1,
+        title_ar: titleAr, image_object_key: objectKey, link_url: linkUrl, sort_order: (lastRow?.sort_order ?? -1) + 1, ...bannerOfferColumns(offer),
       }).select('id').single();
       if (error) { await client.storage.from('product-media').remove([objectKey]); throw error; }
       return data.id;
     },
-    async updateBanner({ id, titleAr, linkUrl, active, expiresAt, image }) {
+    async updateBanner({ id, titleAr, linkUrl, active, expiresAt, image, offer }) {
       let objectKey: string | undefined;
       if (image) {
         objectKey = `banners/${crypto.randomUUID()}.${image.extension}`;
@@ -744,6 +790,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { error } = await client.from('promo_banners').update({
         title_ar: titleAr, link_url: linkUrl, active, expires_at: expiresAt,
         ...(objectKey ? { image_object_key: objectKey } : {}),
+        ...(offer !== undefined ? bannerOfferColumns(offer) : {}),
       }).eq('id', id);
       if (error) { if (objectKey) await client.storage.from('product-media').remove([objectKey]); throw error; }
       if (objectKey) await client.storage.from('product-media').remove([previous.image_object_key]);
@@ -913,6 +960,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           p_delivery_latitude: input.deliveryLatitude ?? null,
           p_delivery_longitude: input.deliveryLongitude ?? null,
           p_delivery_google_place_id: input.deliveryGooglePlaceId ?? null,
+          p_bundle_ids: input.bundleIds,
         });
         if (error) throw error;
         const result = Array.isArray(data) ? data[0] : data;

@@ -281,3 +281,12 @@
 - Created an Arabic Excel list with product number, product name (including option/package labels), and numeric USD price.
 - Preserved blank price cells for the 123 rows without a current explicit price; verified 290 total rows, 167 numeric prices, no spreadsheet formula errors, and reviewed the rendered layout.
 
+
+## 2026-11-09 — Fixed-price offers, category deep link, compact toasts, typed quantities
+
+- Home category tiles now select the category on the already-mounted Catalog tab, including when the same category is tapped again after clearing the filter.
+- Bundle offers sell at a fixed USD price set in Operations (`promo_banners.bundle_price_usd_minor`); SYP is derived from the active rate. `create_doctor_order` gained a `p_bundle_ids` overload that spreads the fixed price over the offer's order lines so existing order views stay correct. An offer without a price is not shown as purchasable.
+- Operations banner forms can now set the offer price and choose its products.
+- Toasts became a single 36px pill overlaying the header area. Cart and product quantities can be typed (1–999).
+- Added an Arabic `+not-found` page for unmatched routes.
+- The migration must be applied before deploying the Web client, which calls the new overload.

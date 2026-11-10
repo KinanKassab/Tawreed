@@ -2,28 +2,22 @@ import { useQueries } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Modal, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
-import { calculateSubtotal, formatMoney, type BundleItem, type Product } from '@tawreed/domain';
+import { formatMoney, type BundleItem, type Money, type Product } from '@tawreed/domain';
 import { AppText, Button, Icon, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
 import { useCart } from '@/store/cart';
 
-export function BundleOfferModal({ visible, bannerId, titleAr, items, onClose }: {
-  visible: boolean; bannerId: string; titleAr: string; items: BundleItem[]; onClose: () => void;
+export function BundleOfferModal({ visible, bannerId, titleAr, items, priceUsd, priceSyp, onClose }: {
+  visible: boolean; bannerId: string; titleAr: string; items: BundleItem[]; priceUsd: Money; priceSyp: Money; onClose: () => void;
 }) {
   const data = useData();
   const addBundle = useCart((state) => state.addBundle);
   const queries = useQueries({ queries: items.map((item) => ({ queryKey: ['product', item.productId], queryFn: () => data!.catalog.getProduct(item.productId), enabled: Boolean(data && visible) })) });
   const products = queries.map((query) => query.data).filter((product): product is Product => Boolean(product));
   const loading = queries.some((query) => query.isLoading);
-  const pricedProducts = products.filter((product): product is Product & { price: NonNullable<Product['price']> } => product.price !== null);
-  const total = calculateSubtotal(pricedProducts.map((product) => ({ quantity: items.find((item) => item.productId === product.id)?.quantity ?? 1, unitPriceMinor: product.price.amountMinor })));
-  const ready = !loading && pricedProducts.length === items.length;
-  const currency = pricedProducts[0]?.price.currency;
-  const roundedTotal = ready ? Math.floor(total / 10 ** pricedProducts[0].price.decimalPlaces) : null;
-  const offerLabel = roundedTotal !== null ? `عرض الـ${roundedTotal} ${currency === 'USD' ? 'دولار' : 'ل.س'}` : titleAr;
 
   const confirm = () => {
-    addBundle({ id: bannerId, label: offerLabel, productIds: items.map((item) => item.productId) }, items);
+    addBundle({ id: bannerId, productIds: items.map((item) => item.productId) }, items);
     onClose();
     router.push('/cart');
   };
@@ -44,7 +38,7 @@ export function BundleOfferModal({ visible, bannerId, titleAr, items, onClose }:
               </View>;
             })}
           </View>
-          {ready ? <View style={styles.totalRow}><AppText color={colors.primary} variant="h3">{formatMoney({ amountMinor: total, currency: pricedProducts[0].price.currency, decimalPlaces: pricedProducts[0].price.decimalPlaces })}</AppText><AppText color={colors.textMuted}>سعر العرض</AppText></View> : null}
+          <View style={styles.totalRow}><View style={styles.prices}><AppText color={colors.primary} variant="h3">{formatMoney(priceUsd)}</AppText><AppText variant="caption" color={colors.textMuted}>{formatMoney(priceSyp)}</AppText></View><AppText color={colors.textMuted}>سعر العرض</AppText></View>
           <View style={styles.actions}>
             <Button label="ضيف العرض للسلة" onPress={confirm} loading={loading} disabled={loading} />
             <Button label="ليس الآن" variant="quiet" onPress={onClose} />
@@ -64,5 +58,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs },
   grow: { flex: 1, textAlign: 'right' },
   totalRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.md },
+  prices: { alignItems: 'flex-start' },
   actions: { gap: spacing.xs },
 });

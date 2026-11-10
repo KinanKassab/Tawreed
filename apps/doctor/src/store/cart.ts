@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export interface CartBundle { id: string; label: string; productIds: string[] }
+export interface CartBundle { id: string; productIds: string[] }
 interface CartState {
   items: Record<string, number>;
   bundles: CartBundle[];
@@ -18,9 +18,10 @@ export const useCart = create<CartState>()(persist((set) => ({
   items: {},
   bundles: [],
   add: (productId, quantity = 1) => set((state) => ({ items: { ...state.items, [productId]: (state.items[productId] ?? 0) + quantity } })),
-  addBundle: (bundle, bundleItems) => set((state) => ({
+  // One offer per cart: a second tap must not add units that would then be charged at list price.
+  addBundle: (bundle, bundleItems) => set((state) => state.bundles.some((existing) => existing.id === bundle.id) ? state : ({
     items: bundleItems.reduce((items, item) => ({ ...items, [item.productId]: (items[item.productId] ?? 0) + item.quantity }), { ...state.items }),
-    bundles: [...state.bundles.filter((existing) => existing.id !== bundle.id), bundle],
+    bundles: [...state.bundles, bundle],
   })),
   setQuantity: (productId, quantity) => set((state) => { const items = { ...state.items }; if (quantity <= 0) delete items[productId]; else items[productId] = quantity; return { items }; }),
   remove: (productId) => set((state) => { const items = { ...state.items }; delete items[productId]; return { items }; }),

@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
-import type { OperationsPromoBanner } from '@tawreed/domain';
-import { AppText, Button, Field, Icon, StateView, Surface } from '@tawreed/ui';
+import type { BundleItem, OperationsProduct, OperationsPromoBanner } from '@tawreed/domain';
+import { AppText, Button, Field, Icon, QuantityInput, StateView, Surface } from '@tawreed/ui';
 import { useData } from '@/providers/app-providers';
 import { operationsErrorMessage } from './product-group-editor';
 import { ProductImageEditor, type ProductImageFile } from './product-image-editor';
@@ -16,6 +16,48 @@ interface BannerManagementProps {
 const toDateInput = (iso: string | null) => iso ? iso.slice(0, 10) : '';
 const fromDateInput = (value: string) => value.trim() ? new Date(`${value.trim()}T23:59:59`).toISOString() : null;
 
+interface OfferDraft { price: string; items: BundleItem[] }
+const emptyOffer: OfferDraft = { price: '', items: [] };
+const offerDraftOf = (banner: OperationsPromoBanner): OfferDraft => ({
+  price: banner.bundlePriceUsd ? String(banner.bundlePriceUsd.amountMinor / 100) : '',
+  items: banner.bundleItems ?? [],
+});
+/** null = no offer; undefined = incomplete, so saving stays blocked. */
+const offerInput = ({ price, items }: OfferDraft) => {
+  if (!price.trim() && !items.length) return null;
+  const priceUsdMinor = Math.round(Number(price) * 100);
+  return items.length && Number.isFinite(priceUsdMinor) && priceUsdMinor > 0 ? { items, priceUsdMinor } : undefined;
+};
+
+function OfferFields({ value, onChange }: { value: OfferDraft; onChange: (value: OfferDraft) => void }) {
+  const data = useData();
+  const products = useQuery({ queryKey: ['operations-offer-products'], queryFn: () => data!.operations.listProducts(), enabled: Boolean(data) });
+  const [search, setSearch] = useState('');
+  const sellable = (products.data ?? []).filter((product) => product.active && product.price);
+  const labelOf = (product: OperationsProduct) => [product.nameAr, product.variantLabelAr].filter(Boolean).join(' - ');
+  const term = search.trim();
+  const results = term ? sellable.filter((product) => labelOf(product).includes(term) && !value.items.some((item) => item.productId === product.id)).slice(0, 6) : [];
+  const setItems = (items: BundleItem[]) => onChange({ ...value, items });
+  const incomplete = offerInput(value) === undefined;
+
+  return <View style={styles.offer}>
+    <AppText variant="small" style={styles.semibold}>عرض مجمّع (اختياري)</AppText>
+    <AppText variant="caption" color={colors.muted}>عند الضغط على البانر يشتري الطبيب هذه المنتجات معاً بالسعر الثابت الذي تحدده.</AppText>
+    <Field label="سعر العرض بالدولار" keyboardType="decimal-pad" placeholder="50" value={value.price} onChangeText={(price) => onChange({ ...value, price })} />
+    <Field label="ابحث عن منتج لإضافته" value={search} onChangeText={setSearch} />
+    {results.map((product) => <Pressable key={product.id} accessibilityRole="button" onPress={() => { setItems([...value.items, { productId: product.id, quantity: 1 }]); setSearch(''); }} style={styles.result}><AppText variant="small">{labelOf(product)}</AppText></Pressable>)}
+    {value.items.map((item) => {
+      const product = sellable.find((candidate) => candidate.id === item.productId);
+      return <View key={item.productId} style={styles.offerItem}>
+        <AppText variant="small" style={styles.flex}>{product ? labelOf(product) : 'منتج غير متاح'}</AppText>
+        <QuantityInput value={item.quantity} onChange={(quantity) => setItems(value.items.map((candidate) => candidate.productId === item.productId ? { ...candidate, quantity } : candidate))} />
+        <Button label="حذف" variant="secondary" onPress={() => setItems(value.items.filter((candidate) => candidate.productId !== item.productId))} />
+      </View>;
+    })}
+    {incomplete ? <AppText variant="caption" color={colors.danger}>لإضافة عرض حدد سعراً بالدولار ومنتجاً واحداً على الأقل.</AppText> : null}
+  </View>;
+}
+
 export function BannerManagement({ phone, onFeedback }: BannerManagementProps) {
   const data = useData();
   const queryClient = useQueryClient();
@@ -23,19 +65,21 @@ export function BannerManagement({ phone, onFeedback }: BannerManagementProps) {
   const [newTitle, setNewTitle] = useState('');
   const [newLink, setNewLink] = useState('');
   const [newImage, setNewImage] = useState<ProductImageFile | null>(null);
+  const [newOffer, setNewOffer] = useState<OfferDraft>(emptyOffer);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['operations-banners'] });
 
   const create = useMutation({
     mutationFn: async () => {
       if (!data || !newImage) return;
-      await data.operations.createBanner({ titleAr: newTitle.trim(), linkUrl: newLink.trim() || null, image: newImage });
+      await data.operations.createBanner({ titleAr: newTitle.trim(), linkUrl: newLink.trim() || null, image: newImage, offer: offerInput(newOffer) ?? null });
     },
     onSuccess: async () => {
       await refresh();
       setNewTitle('');
       setNewLink('');
       setNewImage(null);
+      setNewOffer(emptyOffer);
       onFeedback('تمت إضافة البانر.');
     },
     onError: (error) => onFeedback(operationsErrorMessage(error), true),
@@ -85,7 +129,8 @@ export function BannerManagement({ phone, onFeedback }: BannerManagementProps) {
       <ProductImageEditor currentImageUrl={null} value={newImage} onChange={setNewImage} onError={(message) => onFeedback(message, true)} title="صورة البانر" description="صورة عريضة تناسب واجهة المتجر (JPG أو PNG أو WEBP حتى 5 ميغابايت)." />
       <Field label="العنوان" value={newTitle} onChangeText={setNewTitle} />
       <Field label="الرابط (اختياري)" placeholder="https://" autoCapitalize="none" value={newLink} onChangeText={setNewLink} />
-      <Button label="إضافة البانر" loading={create.isPending} disabled={!newImage || newTitle.trim().length < 1} onPress={() => create.mutate()} />
+      <OfferFields value={newOffer} onChange={setNewOffer} />
+      <Button label="إضافة البانر" loading={create.isPending} disabled={!newImage || newTitle.trim().length < 1 || offerInput(newOffer) === undefined} onPress={() => create.mutate()} />
     </Surface>
   </View>;
 }
@@ -101,13 +146,14 @@ function BannerRow({ banner, phone, canMoveUp, canMoveDown, onMoveUp, onMoveDown
   const [linkUrl, setLinkUrl] = useState(banner.linkUrl ?? '');
   const [expiresAt, setExpiresAt] = useState(toDateInput(banner.expiresAt));
   const [image, setImage] = useState<ProductImageFile | null>(null);
+  const [offer, setOffer] = useState<OfferDraft>(() => offerDraftOf(banner));
 
   const save = useMutation({
     mutationFn: async () => {
       if (!data) return;
       await data.operations.updateBanner({
         id: banner.id, titleAr: titleAr.trim(), linkUrl: linkUrl.trim() || null, active: banner.active,
-        expiresAt: fromDateInput(expiresAt), image: image ?? undefined,
+        expiresAt: fromDateInput(expiresAt), image: image ?? undefined, offer: offerInput(offer) ?? null,
       });
     },
     onSuccess: async () => { await onRefresh(); setImage(null); setEditing(false); onFeedback('تم حفظ تعديلات البانر.'); },
@@ -151,7 +197,8 @@ function BannerRow({ banner, phone, canMoveUp, canMoveDown, onMoveUp, onMoveDown
       <Field label="العنوان" value={titleAr} onChangeText={setTitleAr} />
       <Field label="الرابط (اختياري)" placeholder="https://" autoCapitalize="none" value={linkUrl} onChangeText={setLinkUrl} />
       <Field label="تاريخ الانتهاء (اختياري)" placeholder="YYYY-MM-DD" value={expiresAt} onChangeText={setExpiresAt} />
-      <Button label="حفظ التعديلات" loading={save.isPending} disabled={titleAr.trim().length < 1} onPress={() => save.mutate()} />
+      <OfferFields value={offer} onChange={setOffer} />
+      <Button label="حفظ التعديلات" loading={save.isPending} disabled={titleAr.trim().length < 1 || offerInput(offer) === undefined} onPress={() => save.mutate()} />
     </View> : null}
   </Surface>;
 }
@@ -169,5 +216,8 @@ const styles = StyleSheet.create({
   rowActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs },
   editForm: { gap: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
   addCard: { gap: spacing.sm, padding: spacing.md },
+  offer: { gap: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
+  offerItem: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
+  result: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.soft },
   semibold: { fontWeight: '600' },
 });

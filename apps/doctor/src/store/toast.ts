@@ -8,7 +8,7 @@ interface ToastState {
   hide: (id: number) => void;
 }
 
-const MAX_VISIBLE_TOASTS = 4;
+const MAX_VISIBLE_TOASTS = 1;
 let nextId = 0;
 
 export const useToast = create<ToastState>((set) => ({
