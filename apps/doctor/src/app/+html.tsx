@@ -1,7 +1,6 @@
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import { Children, isValidElement, type PropsWithChildren, type ReactNode } from 'react';
 import { colors, cssVariables, typography } from '@tawreed/design-tokens';
-import { Analytics } from '@vercel/analytics/react';
 
 const globalStyles = `${cssVariables}
 @font-face{font-family:"NotoKufiArabic";src:url('/fonts/kufi.woff2') format('woff2');font-display:swap;font-weight:100 900}
@@ -27,7 +26,11 @@ body{background:var(--color-bg-subtle);font-family:${typography.family.web};marg
 // logo on the same white), then fades to the pre-rendered header, bottom bar and skeletons. It leaves once the page has
 // hydrated (after at least 0.9s) and by CSS alone after 2.4s, so a slow network never keeps the page hidden.
 const splashScript = `(function(d){var start=Date.now();try{if(sessionStorage.getItem('tawreed-splash'))d.classList.add('tawreed-splash-seen');else sessionStorage.setItem('tawreed-splash','1');}catch(e){}window.__tawreedSplashDone=function(){setTimeout(function(){d.classList.add('tawreed-splash-done');},Math.max(0,900-(Date.now()-start)));};})(document.documentElement);`;
-const splashLogo = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="توريد"><path fill="#0E5245" d="M24,94V136A76,76 0 0 0 100,212H156A76,76 0 0 0 232,136V94A19.0,19.0 0 0 0 194,94V136A38,38 0 0 1 156,174H100A38,38 0 0 1 62,136V94A19.0,19.0 0 0 0 24,94Z"/><path fill="#F4A62A" d="M112.97,54.97L96.95,64.22A24.0,24.0 0 0 0 120.95,105.78L136.97,96.53Z"/><path fill="#F4A62A" d="M119.03,51.47L135.05,42.22A24.0,24.0 0 0 1 159.05,83.78L143.03,93.03Z"/></svg>';
+// Vercel Web Analytics. +html is only rendered at build time and never runs in the browser, so the
+// `<Analytics />` React component cannot load from here; Vercel's plain-HTML snippet can. The script is
+// served by Vercel deployments only and tracks client-side route changes on its own.
+const analyticsQueue = 'window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};';
+const splashLogo ='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="توريد"><path fill="#0E5245" d="M24,94V136A76,76 0 0 0 100,212H156A76,76 0 0 0 232,136V94A19.0,19.0 0 0 0 194,94V136A38,38 0 0 1 156,174H100A38,38 0 0 1 62,136V94A19.0,19.0 0 0 0 24,94Z"/><path fill="#F4A62A" d="M112.97,54.97L96.95,64.22A24.0,24.0 0 0 0 120.95,105.78L136.97,96.53Z"/><path fill="#F4A62A" d="M119.03,51.47L135.05,42.22A24.0,24.0 0 0 1 159.05,83.78L143.03,93.03Z"/></svg>';
 
 // With cached or fast-arriving bundles the browser runs every deferred script straight after parsing, before its
 // first paint, so the pre-rendered page would stay blank until ~3MB of JS has run. Start the bundles (in order; the
@@ -74,13 +77,14 @@ export default function Root({ children }: PropsWithChildren) {
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
         <script dangerouslySetInnerHTML={{ __html: splashScript }} />
+        <script dangerouslySetInnerHTML={{ __html: analyticsQueue }} />
+        <script defer src="/_vercel/insights/script.js" />
         {headNodes}
       </head>
       <body {...bodyAttributes}>
         {children}
         <div id="tawreed-splash" dangerouslySetInnerHTML={{ __html: splashLogo }} />
         {deferUntilPainted(bodyNodes)}
-        <Analytics />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){var local=location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.hostname==='[::1]';if(local){navigator.serviceWorker.getRegistrations().then(function(registrations){registrations.forEach(function(registration){registration.unregister();});}).catch(function(){});return;}navigator.serviceWorker.register('/service-worker.js').catch(function(){});});}` }} />
       </body>
     </html>

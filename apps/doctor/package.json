@@ -19,7 +19,6 @@
     "@tawreed/types": "workspace:*",
     "@tawreed/ui": "workspace:*",
     "@tawreed/validation": "workspace:*",
-    "@vercel/analytics": "^2.0.1",
     "expo": "58.0.21",
     "expo-auth-session": "58.0.16",
     "expo-constants": "58.0.14",
