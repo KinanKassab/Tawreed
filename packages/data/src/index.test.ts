@@ -235,4 +235,20 @@ describe('Supabase repository adapter contracts', () => {
 
     await expect(data.catalog.listProducts({ query: 'rubber' })).rejects.toThrow('search failed');
   });
+
+  it('sends a product request with only the product name and search text', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
+    const data = createTawreedDataLayer(config);
+
+    await data.catalog.requestProduct({ productName: '  سماعة طبية ', searchQuery: ' سماعه ' });
+
+    expect(mocks.rpc).toHaveBeenCalledWith('request_catalog_product', { p_product_name: 'سماعة طبية', p_search_query: 'سماعه' });
+  });
+
+  it('surfaces product request errors', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: new Error('PRODUCT_NAME_INVALID') });
+    const data = createTawreedDataLayer(config);
+
+    await expect(data.catalog.requestProduct({ productName: 'x' })).rejects.toThrow('PRODUCT_NAME_INVALID');
+  });
 });

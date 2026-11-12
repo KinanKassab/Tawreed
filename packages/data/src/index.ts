@@ -61,6 +61,8 @@ export interface CatalogRepository {
   listProducts(filters?: CatalogFilters): Promise<Product[]>;
   getProduct(id: string): Promise<Product | null>;
   listBanners(): Promise<PromoBanner[]>;
+  /** Asks the team to stock a product. Anonymous: only the product name and the search text are stored. */
+  requestProduct(input: { productName: string; searchQuery?: string }): Promise<void>;
 }
 
 export interface ProfileRepository {
@@ -427,6 +429,13 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       const { data, error } = await client.from('promo_banners').select('id, title_ar, image_object_key, link_url, bundle_items, bundle_price_usd_minor, bundle_price_syp_minor').order('sort_order');
       if (error) throw error;
       return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, ...bannerOffer(row) }));
+    },
+    async requestProduct({ productName, searchQuery }) {
+      const { error } = await client.rpc('request_catalog_product', {
+        p_product_name: productName.trim(),
+        p_search_query: searchQuery?.trim() || null,
+      });
+      if (error) throw error;
     },
   };
 
