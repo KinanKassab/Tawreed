@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
 import type { BundleItem, OperationsProduct, OperationsPromoBanner } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, QuantityInput, StateView, Surface } from '@tawreed/ui';
+import { useProductSearch } from '@/lib/use-product-search';
 import { useData } from '@/providers/app-providers';
 import { operationsErrorMessage } from './product-group-editor';
 import { ProductImageEditor, type ProductImageFile } from './product-image-editor';
@@ -35,8 +36,13 @@ function OfferFields({ value, onChange }: { value: OfferDraft; onChange: (value:
   const [search, setSearch] = useState('');
   const sellable = (products.data ?? []).filter((product) => product.active && product.price);
   const labelOf = (product: OperationsProduct) => [product.nameAr, product.variantLabelAr].filter(Boolean).join(' - ');
-  const term = search.trim();
-  const results = term ? sellable.filter((product) => labelOf(product).includes(term) && !value.items.some((item) => item.productId === product.id)).slice(0, 6) : [];
+  const productSearch = useProductSearch(search);
+  const results = productSearch.active
+    ? sellable
+      .filter((product) => productSearch.matches(product) && !value.items.some((item) => item.productId === product.id))
+      .sort((a, b) => productSearch.rankOf(b) - productSearch.rankOf(a))
+      .slice(0, 6)
+    : [];
   const setItems = (items: BundleItem[]) => onChange({ ...value, items });
   const incomplete = offerInput(value) === undefined;
 

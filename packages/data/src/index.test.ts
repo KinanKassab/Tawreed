@@ -236,6 +236,23 @@ describe('Supabase repository adapter contracts', () => {
     await expect(data.catalog.listProducts({ query: 'rubber' })).rejects.toThrow('search failed');
   });
 
+  it('ranks Operations products through the same search RPC, archived products included', async () => {
+    const result = { data: [{ product_id: 'p-1', search_rank: 90 }, { product_id: 'p-2', search_rank: 30 }], error: null };
+    const searchRequest = {
+      abortSignal: vi.fn(() => searchRequest),
+      then: (resolve: (value: typeof result) => unknown) => Promise.resolve(result).then(resolve),
+    };
+    mocks.rpc.mockReturnValue(searchRequest);
+    const data = createTawreedDataLayer(config);
+    const controller = new AbortController();
+
+    const ranks = await data.operations.searchProductRanks(' تبطن ', controller.signal);
+
+    expect(mocks.rpc).toHaveBeenCalledWith('search_catalog_products', { p_query: 'تبطن', p_limit: 1000, p_include_inactive: true });
+    expect(searchRequest.abortSignal).toHaveBeenCalledWith(controller.signal);
+    expect([...ranks]).toEqual([['p-1', 90], ['p-2', 30]]);
+  });
+
   it('sends a product request with only the product name and search text', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null });
     const data = createTawreedDataLayer(config);

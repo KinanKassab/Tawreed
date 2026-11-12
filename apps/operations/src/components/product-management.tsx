@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, groupOperationsProducts, normalizeAppError, pickDisplayedOption, type Availability, type OperationsProduct, type OperationsProductGroup } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, StateView, Surface } from '@tawreed/ui';
+import { useProductSearch } from '@/lib/use-product-search';
 import { useData } from '@/providers/app-providers';
 import { CategoryPicker, operationsErrorMessage, ProductGroupEditor, UnitPicker } from './product-group-editor';
 import { ProductImageEditor, type ProductImageFile } from './product-image-editor';
@@ -104,10 +105,14 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   const watchedCost = useWatch({ control: form.control, name: 'cost' });
   const profit = watchedSelling !== '' && watchedCost !== '' ? Number(watchedSelling) - Number(watchedCost) : null;
   const groups = useMemo(() => groupOperationsProducts(products), [products]);
+  const productSearch = useProductSearch(search);
   const filteredGroups = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase('ar');
-    return groups.filter((group) => groupMatches(group, filter) && (!categoryFilter || group.options.some((option) => option.category?.id === categoryFilter)) && (!needle || group.options.some((option) => `${option.nameAr} ${option.sku} ${option.variantLabelAr ?? ''}`.toLocaleLowerCase('ar').includes(needle))));
-  }, [categoryFilter, filter, groups, search]);
+    const matching = groups.filter((group) => groupMatches(group, filter) && (!categoryFilter || group.options.some((option) => option.category?.id === categoryFilter)) && group.options.some(productSearch.matches));
+    if (!productSearch.active) return matching;
+    // Best match first; groups with equal relevance keep their usual order.
+    const groupRank = (group: OperationsProductGroup) => Math.max(...group.options.map(productSearch.rankOf));
+    return matching.map((group, index) => ({ group, index, rank: groupRank(group) })).sort((a, b) => b.rank - a.rank || a.index - b.index).map(({ group }) => group);
+  }, [categoryFilter, filter, groups, productSearch]);
   const visibleGroups = filteredGroups.slice(0, visibleCount);
   const openGroup = groups.find((group) => group.key === openGroupKey) ?? null;
   const create = useMutation({
@@ -197,7 +202,7 @@ export function ProductManagement({ products, loading, compact, phone, search, o
   if (loading) return <StateView loading title="جاري تحميل المنتجات" message="لحظات قليلة." />;
   return <View style={styles.page}>
     <View style={styles.toolbar}>
-      <View style={styles.search}><Field label="بحث بالاسم أو SKU أو الخيار" placeholder="ابحث ضمن المنتجات" value={search} onChangeText={(value) => { setVisibleCount(40); onSearch(value); }} /></View>
+      <View style={styles.search}><Field label="بحث بالاسم أو SKU أو الخيار" placeholder="يتحمّل الأخطاء الإملائية والمرادفات" value={search} onChangeText={(value) => { setVisibleCount(40); onSearch(value); }} /></View>
       <Button label="+ منتج جديد" onPress={() => setCreating(true)} />
       <View style={styles.legend}>
         <StockLegend color={colors.successText} label="متوفر" />

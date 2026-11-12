@@ -53,11 +53,17 @@ $function$;
 comment on function public.catalog_fuzzy_words_match(text, text) is
   'Word-by-word typo match for catalog search: every query word must match a word of the text within its edit-distance budget.';
 
-create or replace function public.search_catalog_products(
+-- p_include_inactive lets Operations search archived products too. The function runs as the caller, so the products
+-- RLS still decides what is visible: visitors and doctors only ever see active rows, whatever they pass.
+-- The old 4-argument version is dropped so PostgREST never has two candidates for the same named call.
+drop function public.search_catalog_products(text, uuid, public.product_availability[], integer);
+
+create function public.search_catalog_products(
   p_query text,
   p_category_id uuid default null,
   p_availability public.product_availability[] default null,
-  p_limit integer default 1000
+  p_limit integer default 1000,
+  p_include_inactive boolean default false
 )
 returns table(product_id uuid, search_rank double precision)
 language sql
@@ -121,7 +127,7 @@ as $function$
     from public.products product
     cross join input
     cross join expanded_terms term
-    where product.active
+    where (product.active or coalesce(p_include_inactive, false))
       and (p_category_id is null or product.category_id = p_category_id)
       and (p_availability is null or product.availability = any(p_availability))
   ),
@@ -148,6 +154,12 @@ as $function$
   order by ranked.rank desc, ranked.id
   limit least(greatest(coalesce(p_limit, 1000), 1), 1000)
 $function$;
+
+comment on function public.search_catalog_products(text, uuid, public.product_availability[], integer, boolean) is
+  'Ranks catalog rows using normalized exact/prefix matches, simple full-text search, synonyms, trigram similarity and per-word edit distance. Runs as the caller, so products RLS applies.';
+
+revoke execute on function public.search_catalog_products(text, uuid, public.product_availability[], integer, boolean) from public;
+grant execute on function public.search_catalog_products(text, uuid, public.product_availability[], integer, boolean) to anon, authenticated;
 
 -- The search runs as the caller (security invoker), so its helpers stay executable by visitors, as before.
 revoke execute on function public.catalog_typo_budget(text) from public;
