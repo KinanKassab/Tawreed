@@ -13,6 +13,13 @@ import { ProductManagement } from '@/components/product-management';
 import { useProductSearch } from '@/lib/use-product-search';
 import { useData, useSession } from '@/providers/app-providers';
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('network timeout')), ms);
+    promise.then((value) => { clearTimeout(timer); resolve(value); }, (error) => { clearTimeout(timer); reject(error); });
+  });
+}
+
 type Section = 'overview' | 'orders' | 'catalog' | 'banners' | 'inventory' | 'settings';
 const sections: { id: Section; label: string; icon: IconName }[] = [
   { id: 'overview', label: 'نظرة عامة', icon: 'view-dashboard-outline' },
@@ -40,7 +47,11 @@ export default function DashboardScreen() {
   const [productSearch, setProductSearch] = useState('');
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
-  const context = useQuery({ queryKey: ['operations-context', session?.user.id], queryFn: () => data!.operations.getMyContext(), enabled: Boolean(data && session) });
+  const context = useQuery({
+    queryKey: ['operations-context', session?.user.id],
+    queryFn: () => withTimeout(data!.operations.getMyContext(), 15_000),
+    enabled: Boolean(data && session),
+  });
   const orders = useQuery({
     queryKey: ['operations-orders'],
     queryFn: () => data!.operations.listOrders(),
@@ -53,8 +64,8 @@ export default function DashboardScreen() {
   const exchangeRate = useQuery({ queryKey: ['operations-exchange-rate'], queryFn: () => data!.operations.getActiveExchangeRate(), enabled: Boolean(data && context.data) });
 
   useEffect(() => {
-    if (!context.isLoading && !context.data && session) data?.auth.signOut().finally(() => router.replace('/login'));
-  }, [context.data, context.isLoading, data, session]);
+    if (context.isSuccess && !context.data && session) data?.auth.signOut().finally(() => router.replace('/login'));
+  }, [context.data, context.isSuccess, data, session]);
 
   const inventoryForm = useForm<InventoryInput>({ resolver: zodResolver(inventorySchema), defaultValues: { delta: '', notes: '' } });
   const rateForm = useForm<RateInput>({ resolver: zodResolver(rateSchema), defaultValues: { rate: '' } });
@@ -98,12 +109,15 @@ export default function DashboardScreen() {
     return rows.filter(smartSearch.matches).map((product, index) => ({ product, index, rank: smartSearch.rankOf(product) })).sort((a, b) => b.rank - a.rank || a.index - b.index).map(({ product }) => product);
   }, [smartSearch, products.data]);
 
-  if (!data || context.isLoading || !context.data) return <StateView loading title="جاري التحقق" message="نتحقق من صلاحيات حساب الفريق." />;
+  const signOut = () => data?.auth.signOut().finally(() => router.replace('/login'));
+
+  if (!data) return <StateView title="إعداد الاتصال غير مكتمل" message="أضف إعدادات Supabase الخاصة بلوحة العمليات." />;
+  if (context.isError) return <StateView title="تعذر التحقق من الصلاحيات" message={normalizeAppError(context.error).messageAr} actionLabel="إعادة المحاولة" onAction={() => context.refetch()} secondaryActionLabel="تسجيل الخروج" onSecondaryAction={signOut} />;
+  if (context.isLoading || !context.data) return <StateView loading title="جاري التحقق" message="نتحقق من صلاحيات حساب الفريق." />;
 
   const nextStatus = (status: DoctorOrderStatus): DoctorOrderStatus | undefined => ['preparing', 'ready_for_delivery'].includes(status) ? 'out_for_delivery' : status === 'out_for_delivery' ? 'delivered' : undefined;
   const nextLabel = (status: DoctorOrderStatus) => ['preparing', 'ready_for_delivery'].includes(status) ? 'بدء التوصيل' : status === 'out_for_delivery' ? 'تأكيد أنه وصل' : '';
 
-  const signOut = () => data.auth.signOut().finally(() => router.replace('/login'));
   const activeSection = sections.find((item) => item.id === section)!;
   const nav = sections.map((item) => <Pressable key={item.id} accessibilityRole="tab" accessibilityLabel={item.label} accessibilityState={{ selected: section === item.id }} onPress={() => setSection(item.id)} style={({ pressed }) => [styles.navItem, compact && styles.navItemCompact, section === item.id && styles.navItemActive, pressed && styles.pressed]}><Icon name={item.icon} size={compact ? 22 : 21} color={section === item.id ? colors.deep : colors.mint} /><AppText numberOfLines={1} variant={compact ? 'caption' : 'small'} color={section === item.id ? colors.deep : colors.white}>{compact && item.id === 'catalog' ? 'الكتالوج' : item.label}</AppText></Pressable>);
 
