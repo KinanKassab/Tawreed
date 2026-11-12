@@ -61,6 +61,8 @@ export interface CatalogRepository {
   listProducts(filters?: CatalogFilters): Promise<Product[]>;
   getProduct(id: string): Promise<Product | null>;
   listBanners(): Promise<PromoBanner[]>;
+  /** Asks the team to stock a product. Anonymous: only the product name and the search text are stored. */
+  requestProduct(input: { productName: string; searchQuery?: string }): Promise<void>;
 }
 
 export interface ProfileRepository {
@@ -107,6 +109,8 @@ export interface OperationsRepository {
   listOrders(): Promise<OperationsOrder[]>;
   getOrderById(id: string): Promise<OperationsOrderDetail | null>;
   listProducts(query?: string): Promise<OperationsProduct[]>;
+  /** Smart catalog search (typos, synonyms, SKUs), archived products included. Maps product id to relevance. */
+  searchProductRanks(query: string, signal?: AbortSignal): Promise<Map<string, number>>;
   getActiveExchangeRate(): Promise<OperationsExchangeRate | null>;
   setProductPrice(input: { productId: string; amountMinor: number; currency: CurrencyCode; decimalPlaces: number }): Promise<void>;
   setExchangeRate(input: { baseCurrency: CurrencyCode; quoteCurrency: CurrencyCode; rate: number }): Promise<void>;
@@ -428,6 +432,13 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       if (error) throw error;
       return (data ?? []).map((row) => ({ id: row.id, titleAr: row.title_ar, imageUrl: bannerPublicUrl(row.image_object_key), linkUrl: row.link_url, ...bannerOffer(row) }));
     },
+    async requestProduct({ productName, searchQuery }) {
+      const { error } = await client.rpc('request_catalog_product', {
+        p_product_name: productName.trim(),
+        p_search_query: searchQuery?.trim() || null,
+      });
+      if (error) throw error;
+    },
   };
 
   const uploadProductImage = async (productId: string, image: ProductImageUpload) => {
@@ -492,6 +503,13 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         deliveryNotes: row.delivery_notes,
         items: row.order_items.map((item) => ({ id: item.id, productId: item.product_id, sku: item.sku_snapshot, nameAr: item.name_ar_snapshot, unitLabelAr: item.unit_label_ar_snapshot, packageLabelAr: item.package_label_ar_snapshot, quantity: item.quantity, unitPrice: { amountMinor: item.unit_price_minor, currency: item.currency, decimalPlaces: item.currency_decimal_places }, lineTotal: { amountMinor: item.line_total_minor, currency: item.currency, decimalPlaces: item.currency_decimal_places } })),
       } as OperationsOrderDetail;
+    },
+    async searchProductRanks(queryText, signal) {
+      let request = client.rpc('search_catalog_products', { p_query: queryText.trim(), p_limit: 1000, p_include_inactive: true });
+      if (signal) request = request.abortSignal(signal);
+      const { data, error } = await request;
+      if (error) throw error;
+      return new Map(((data ?? []) as { product_id: string; search_rank: number }[]).map((match) => [match.product_id, Number(match.search_rank)]));
     },
     async listProducts(queryText) {
       const select = `

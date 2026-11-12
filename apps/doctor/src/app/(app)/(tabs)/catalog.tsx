@@ -6,6 +6,7 @@ import { formatNumber } from '@tawreed/domain';
 import { AppText, Button, ContentFade, Icon, MotionPressable, StateView } from '@tawreed/ui';
 import { AppPage } from '@/components/app-page';
 import { CatalogGrid, CatalogGridSkeleton } from '@/components/catalog-grid';
+import { ProductRequestDialog } from '@/components/product-request-dialog';
 import { SwipeExclusion } from '@/components/swipe-tab-navigator';
 import { useCategories, useInfiniteProducts } from '@/hooks/use-catalog';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -19,6 +20,7 @@ export default function CatalogScreen() {
   const [query, setQuery] = useState(params.query ?? '');
   const [categoryId, setCategoryId] = useState(params.categoryId || undefined);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
   const debouncedQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
 
   // The tab stays mounted, so selections and searches arriving from Home must update local state.
@@ -103,11 +105,14 @@ export default function CatalogScreen() {
       ) : (
         <StateView
           title={debouncedQuery ? 'ما لقينا منتج مطابق' : ar.emptyProducts}
-          message={debouncedQuery ? `جرّب اسماً آخر، مرادفاً، أو رقم SKU بدل «${debouncedQuery}».` : ar.emptyProductsMessage}
-          actionLabel={debouncedQuery ? 'مسح البحث' : undefined}
-          onAction={debouncedQuery ? () => setQuery('') : undefined}
+          message={debouncedQuery ? `جرّب اسماً آخر، مرادفاً، أو رقم SKU بدل «${debouncedQuery}». وإذا مو عنا، اطلب نضيفه.` : ar.emptyProductsMessage}
+          actionLabel={debouncedQuery ? 'اطلب إضافة هالمنتج' : undefined}
+          onAction={debouncedQuery ? () => setRequestOpen(true) : undefined}
+          secondaryActionLabel={debouncedQuery ? 'مسح البحث' : undefined}
+          onSecondaryAction={debouncedQuery ? () => setQuery('') : undefined}
         />
       )}
+      <ProductRequestDialog visible={requestOpen} searchQuery={debouncedQuery} onClose={() => setRequestOpen(false)} />
     </AppPage>
   );
 }

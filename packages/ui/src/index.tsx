@@ -144,8 +144,8 @@ export function ScreenContainer({ children, style }: { children: ReactNode; styl
   return <View style={[styles.screen, style]}>{children}</View>;
 }
 
-export function StateView({ title, message, actionLabel, onAction, loading = false }: {
-  title: string; message: string; actionLabel?: string; onAction?: () => void; loading?: boolean;
+export function StateView({ title, message, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, loading = false }: {
+  title: string; message: string; actionLabel?: string; onAction?: () => void; secondaryActionLabel?: string; onSecondaryAction?: () => void; loading?: boolean;
 }) {
   return (
     <Surface style={styles.state}>
@@ -153,6 +153,7 @@ export function StateView({ title, message, actionLabel, onAction, loading = fal
       <AppText variant="h2" style={styles.center}>{title}</AppText>
       <AppText color={colors.textMuted} style={styles.center}>{message}</AppText>
       {actionLabel && onAction ? <Button label={actionLabel} onPress={onAction} style={styles.stateButton} /> : null}
+      {secondaryActionLabel && onSecondaryAction ? <Button label={secondaryActionLabel} variant="quiet" onPress={onSecondaryAction} style={styles.stateSecondaryButton} /> : null}
     </Surface>
   );
 }
@@ -316,6 +317,7 @@ const styles = StyleSheet.create({
   screen: { width: '100%', maxWidth: layout.contentMax, alignSelf: 'center', paddingHorizontal: layout.mobileGutter, gap: spacing.xl },
   state: { minHeight: 260, justifyContent: 'center', alignItems: 'center', gap: spacing.md },
   stateButton: { minWidth: 180, marginTop: spacing.sm },
+  stateSecondaryButton: { minWidth: 180 },
   center: { textAlign: 'center' },
   offline: { backgroundColor: colors.warningSoft, borderBottomWidth: 1, borderBottomColor: colors.warning, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   toast: { height: 36, maxWidth: '100%', flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: spacing.sm, ...shadows.soft },

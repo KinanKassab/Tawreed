@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(18);
+select plan(21);
 
 select is(public.normalize_catalog_search('  أَقْمَاع، ورقية  '), 'اقماع ورقيه', 'Arabic letters, diacritics, punctuation, and spacing normalize');
 select is(public.normalize_catalog_search('Rubber-Dam'), 'rubber dam', 'Latin case and punctuation normalize');
@@ -12,8 +12,8 @@ select has_index('public', 'products', 'products_search_normalized_trgm_idx', 't
 select has_index('public', 'products', 'products_search_fts_idx', 'full-text search index exists');
 select has_index('public', 'products', 'products_name_ar_normalized_trgm_idx', 'Arabic name trigram index exists');
 select has_index('public', 'products', 'products_name_en_normalized_trgm_idx', 'English name trigram index exists');
-select has_function('public', 'search_catalog_products', array['text', 'uuid', 'product_availability[]', 'integer'], 'catalog search RPC exists');
-select ok(has_function_privilege('anon', 'public.search_catalog_products(text,uuid,public.product_availability[],integer)', 'EXECUTE'), 'visitors can execute catalog search');
+select has_function('public', 'search_catalog_products', array['text', 'uuid', 'product_availability[]', 'integer', 'boolean'], 'catalog search RPC exists');
+select ok(has_function_privilege('anon', 'public.search_catalog_products(text,uuid,public.product_availability[],integer,boolean)', 'EXECUTE'), 'visitors can execute catalog search');
 select ok(has_function_privilege('anon', 'public.normalize_catalog_search(text)', 'EXECUTE'), 'catalog RPC helper is executable by visitors');
 
 insert into public.products (id, sku, name_ar, name_en, category_id, unit_label_ar, description_ar, availability, active)
@@ -28,6 +28,9 @@ select ok(exists(select 1 from public.search_catalog_products('بنج') where pr
 select ok(exists(select 1 from public.search_catalog_products('rubber da') where product_id = '91000000-0000-0000-0000-000000000002'), 'English prefix finds a product');
 select ok(exists(select 1 from public.search_catalog_products('حاجر مطاطي') where product_id = '91000000-0000-0000-0000-000000000002'), 'trigram matching tolerates a typo');
 select ok(not exists(select 1 from public.search_catalog_products('بنج') where product_id = '91000000-0000-0000-0000-000000000003'), 'RLS excludes inactive products');
+select ok(exists(select 1 from public.search_catalog_products('حاجر') where product_id = '91000000-0000-0000-0000-000000000002'), 'a one-letter typo in a short word still matches');
+select ok(exists(select 1 from public.search_catalog_products('anesthet') where product_id = '91000000-0000-0000-0000-000000000001'), 'an unfinished English synonym reaches the Arabic product');
+select ok(not exists(select 1 from public.search_catalog_products('بنج', p_include_inactive => true) where product_id = '91000000-0000-0000-0000-000000000003'), 'visitors cannot reach inactive products even when asking for them');
 
 select * from finish();
 rollback;

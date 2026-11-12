@@ -10,6 +10,7 @@ import { formatMoney, getOrderStatusLabel, normalizeAppError, type DoctorOrderSt
 import { AppText, Button, Field, Icon, type IconName, StateView, Surface } from '@tawreed/ui';
 import { BannerManagement } from '@/components/banner-management';
 import { ProductManagement } from '@/components/product-management';
+import { useProductSearch } from '@/lib/use-product-search';
 import { useData, useSession } from '@/providers/app-providers';
 
 type Section = 'overview' | 'orders' | 'catalog' | 'banners' | 'inventory' | 'settings';
@@ -90,11 +91,12 @@ export default function DashboardScreen() {
       lowStock: productRows.filter((product) => product.onHand - product.reserved <= product.lowStockThreshold).length,
     };
   }, [orders.data, products.data]);
+  const smartSearch = useProductSearch(productSearch);
   const filteredProducts = useMemo(() => {
-    const needle = productSearch.trim().toLocaleLowerCase('ar');
-    if (!needle) return products.data ?? [];
-    return (products.data ?? []).filter((product) => `${product.nameAr} ${product.sku} ${product.variantLabelAr ?? ''}`.toLocaleLowerCase('ar').includes(needle));
-  }, [productSearch, products.data]);
+    const rows = products.data ?? [];
+    if (!smartSearch.active) return rows;
+    return rows.filter(smartSearch.matches).map((product, index) => ({ product, index, rank: smartSearch.rankOf(product) })).sort((a, b) => b.rank - a.rank || a.index - b.index).map(({ product }) => product);
+  }, [smartSearch, products.data]);
 
   if (!data || context.isLoading || !context.data) return <StateView loading title="جاري التحقق" message="نتحقق من صلاحيات حساب الفريق." />;
 
