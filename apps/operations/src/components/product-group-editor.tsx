@@ -152,7 +152,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
 
           <Section title="الخيارات (النوع / العبوة / الحجم)" hint="كل خيار له سعره وتكلفته ومخزونه وصوره. للمنتج الذي يُسعّر بعد التواصل، اترك السعر فارغاً وفعّل «حسب الطلب».">
             {grouped ? group.options.map((option, index) => <View key={option.id} style={[styles.optionRow, !option.active && styles.optionArchived, compact && styles.optionRowCompact]}>
-              <Thumb url={data.media.resolve(option.media)} />
+              <Thumb url={data.media.resolve(option.media)} label={labelOf(option)} />
               <View style={styles.optionLabel}>
                 <Field label="اسم الخيار" value={labelOf(option)} onChangeText={(value) => setLabelDrafts((current) => ({ ...current, [option.id]: value }))} />
                 <AppText variant="caption" color={colors.muted}>{option.sku}{option.active ? '' : ' · مؤرشف'}</AppText>
@@ -178,7 +178,7 @@ export function ProductGroupEditor({ group, categories, phone, compact, onClose,
                 {group.options.length > 1 ? <Button label="فصل كمنتج مستقل" variant="text" onPress={() => perform(() => operations.setProductOption({ productId: option.id, groupKey: null, labelAr: null }), 'تم فصل الخيار كمنتج مستقل.')} /> : null}
               </View>
             </View>) : <View style={styles.optionRow}>
-              <Thumb url={data.media.resolve(lead.media)} />
+              <Thumb url={data.media.resolve(lead.media)} label={lead.sku} />
               <View style={styles.flex}><AppText>{lead.sku}</AppText><AppText variant="caption" color={colors.muted}>{lead.price ? formatMoney(lead.price) : lead.priceOnRequest ? 'حسب الطلب' : 'بدون سعر'} · متاح {(lead.onHand - lead.reserved).toLocaleString('ar-SY')}</AppText></View>
               <View style={styles.optionActions}><Button label={lead.priceOnRequest ? 'إلغاء حسب الطلب' : 'حسب الطلب'} variant={lead.priceOnRequest ? 'primary' : 'secondary'} disabled={Boolean(lead.price) && !lead.priceOnRequest} onPress={() => perform(() => operations.setProductPriceOnRequest(lead.id, !lead.priceOnRequest), lead.priceOnRequest ? 'تم إلغاء التسعير حسب الطلب.' : 'سيظهر المنتج للطبيب بسعر حسب الطلب.')} /><Button label={lead.active ? 'أرشفة' : 'استعادة'} variant="secondary" onPress={() => perform(() => operations.setProductActive(lead.id, !lead.active), lead.active ? 'تمت أرشفة المنتج.' : 'تمت استعادة المنتج.')} /></View>
             </View>}
@@ -242,8 +242,8 @@ export function CategoryPicker({ categories, value, onChange }: { categories: Ca
 function Section({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
   return <View style={styles.section}><View><AppText variant="h3">{title}</AppText><AppText variant="caption" color={colors.muted}>{hint}</AppText></View>{children}</View>;
 }
-function Thumb({ url }: { url: string | null }) {
-  return url ? <Image source={{ uri: url }} style={styles.thumb} resizeMode="contain" /> : <View style={styles.thumb}><Icon name="image-outline" size={22} color={colors.muted} /></View>;
+function Thumb({ url, label }: { url: string | null; label: string }) {
+  return url ? <Image source={{ uri: url }} style={styles.thumb} resizeMode="contain" accessibilityLabel={label} /> : <View style={styles.thumb}><Icon name="image-outline" size={22} color={colors.muted} /></View>;
 }
 function Metric({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) {
   return <View style={[styles.metric, warn && styles.metricWarn]}><AppText variant="caption" color={colors.muted}>{label}</AppText><AppText variant="small" color={warn ? colors.warningText : colors.ink}>{value}</AppText></View>;

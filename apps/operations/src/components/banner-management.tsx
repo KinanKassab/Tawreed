@@ -179,7 +179,7 @@ function BannerRow({ banner, phone, canMoveUp, canMoveDown, onMoveUp, onMoveDown
 
   return <Surface style={phone ? [styles.row, styles.rowCompact] : styles.row}>
     <View style={styles.rowHeader}>
-      {banner.imageUrl ? <Image source={{ uri: banner.imageUrl }} style={styles.thumb} resizeMode="cover" /> : <View style={styles.thumbPlaceholder}><Icon name="image-outline" size={22} color={colors.muted} /></View>}
+      {banner.imageUrl ? <Image source={{ uri: banner.imageUrl }} style={styles.thumb} resizeMode="cover" accessibilityLabel={banner.titleAr} /> : <View style={styles.thumbPlaceholder}><Icon name="image-outline" size={22} color={colors.muted} /></View>}
       <View style={styles.flex}>
         <AppText variant="small" style={styles.semibold}>{banner.titleAr}</AppText>
         <AppText variant="caption" color={colors.muted} numberOfLines={1}>{banner.linkUrl ?? 'بدون رابط'}</AppText>

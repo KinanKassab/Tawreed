@@ -326,7 +326,7 @@ function ProductGroupRow({ group, compact, imageUrl, onManage, onEdit, onPreview
   const status = missing || (hasRequestPrice ? 'حسب الطلب' : 'جاهز');
   const optionsText = group.variantGroupKey ? group.options.map((option) => option.variantLabelAr ?? option.sku).join('، ') : 'بدون خيارات';
   const title = <View style={styles.productName}><AppText variant={compact ? 'body' : 'small'} style={styles.semibold} numberOfLines={2}>{lead.nameAr}</AppText><AppText variant="caption" color={colors.muted}>{lead.category?.nameAr ?? 'بدون فئة'} · {lead.unitLabelAr} · {group.options.length > 1 ? `${group.options.length.toLocaleString('ar-SY')} خيارات` : lead.sku}</AppText></View>;
-  const thumbnail = imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" /> : <View style={styles.thumbnailPlaceholder}><Icon name="image-outline" size={24} color={colors.muted} /></View>;
+  const thumbnail = imageUrl ? <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="contain" accessibilityLabel={lead.nameAr} /> : <View style={styles.thumbnailPlaceholder}><Icon name="image-outline" size={24} color={colors.muted} /></View>;
   if (compact) return <Surface style={styles.mobileCard}>
     <View style={styles.mobileTitle}>{thumbnail}{title}<StockBadge {...stock} /></View>
     <AppText variant="small" color={colors.muted} numberOfLines={2}>{optionsText}</AppText>
