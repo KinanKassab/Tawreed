@@ -37,7 +37,7 @@ type RateInput = z.infer<typeof rateSchema>;
 
 export default function DashboardScreen() {
   const data = useData();
-  const { session } = useSession();
+  const { session, loading: sessionLoading } = useSession();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const compact = width < 1024;
@@ -62,6 +62,10 @@ export default function DashboardScreen() {
   const products = useQuery({ queryKey: ['operations-products'], queryFn: () => data!.operations.listProducts(), enabled: Boolean(data && context.data) });
   const orderDetail = useQuery({ queryKey: ['operations-order-detail', expandedOrderId], queryFn: () => data!.operations.getOrderById(expandedOrderId!), enabled: Boolean(data && expandedOrderId) });
   const exchangeRate = useQuery({ queryKey: ['operations-exchange-rate'], queryFn: () => data!.operations.getActiveExchangeRate(), enabled: Boolean(data && context.data) });
+
+  useEffect(() => {
+    if (!sessionLoading && !session) router.replace('/login');
+  }, [sessionLoading, session]);
 
   useEffect(() => {
     if (context.isSuccess && !context.data && session) data?.auth.signOut().finally(() => router.replace('/login'));
@@ -112,6 +116,7 @@ export default function DashboardScreen() {
   const signOut = () => data?.auth.signOut().finally(() => router.replace('/login'));
 
   if (!data) return <StateView title="إعداد الاتصال غير مكتمل" message="أضف إعدادات Supabase الخاصة بلوحة العمليات." />;
+  if (sessionLoading || !session) return <StateView loading title="جاري التحميل" message="نتحقق من جلسة العمل الآمنة." />;
   if (context.isError) return <StateView title="تعذر التحقق من الصلاحيات" message={normalizeAppError(context.error).messageAr} actionLabel="إعادة المحاولة" onAction={() => context.refetch()} secondaryActionLabel="تسجيل الخروج" onSecondaryAction={signOut} />;
   if (context.isLoading || !context.data) return <StateView loading title="جاري التحقق" message="نتحقق من صلاحيات حساب الفريق." />;
 
