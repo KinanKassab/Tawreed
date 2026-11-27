@@ -1,3 +1,4 @@
+export * from './rewards';
 export type Availability = 'available' | 'limited' | 'unavailable';
 export type CurrencyCode = 'USD' | 'NEW_SYP';
 
@@ -108,6 +109,7 @@ export interface OrderSummary {
 }
 
 export interface OrderDetail extends OrderSummary {
+  discount?: Money;
   deliveryAddress: string;
   recipientName: string;
   recipientPhone: string;
@@ -156,6 +158,7 @@ export interface OperationsOrder {
 }
 
 export interface OperationsOrderDetail extends OperationsOrder {
+  discount?: Money;
   deliveryNotes: string | null;
   items: {
     id: string;
@@ -303,6 +306,19 @@ export function calculateSubtotal(lines: readonly { quantity: number; unitPriceM
 export function normalizeAppError(error: unknown): AppError {
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String(error.message).toLowerCase();
+    const rewardErrors: Record<string, string> = {
+      coupon_invalid: 'الكود غير صالح أو متوقف أو انتهت صلاحيته.',
+      coupon_self: 'لا يمكنك استخدام كودك الشخصي.',
+      coupon_limit: 'استهلكت عدد الاستخدامات المتاحة لهذا الكود.',
+      points_invalid: 'راجع عدد النقاط ورصيدك وسقف الخصم المسموح.',
+      rewards_exclusive: 'اختر كود الخصم أو استخدام النقاط لهذا الطلب.',
+      rewards_no_eligible_items: 'منتجات عروض الباقات غير مشمولة بالخصم الإضافي.',
+      rewards_price_changed: 'تغيّرت أسعار الطلب. راجع الفاتورة وحاول مجدداً.',
+      rewards_request_changed: 'سبق إرسال هذا الطلب ببيانات مختلفة. راجع طلباتك قبل المحاولة.',
+      payment_not_delivered: 'يجب تأكيد وصول الطلب قبل تأكيد تحصيل قيمته.',
+    };
+    const rewardError = Object.entries(rewardErrors).find(([key]) => message.includes(key));
+    if (rewardError) return { kind: 'validation', messageAr: rewardError[1], cause: error };
     if (message.includes('invalid login credentials')) {
       return { kind: 'unauthorized', messageAr: 'البريد أو كلمة السر غير صحيحة.', cause: error };
     }

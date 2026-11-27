@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '@tawreed/design-tokens';
 import type { BundleItem, OperationsProduct, OperationsPromoBanner } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, QuantityInput, StateView, Surface } from '@tawreed/ui';
+import { operationsRadius, operationsTheme } from '@/lib/operations-theme';
 import { useProductSearch } from '@/lib/use-product-search';
 import { useData } from '@/providers/app-providers';
 import { operationsErrorMessage } from './product-group-editor';
@@ -211,19 +212,19 @@ function BannerRow({ banner, phone, canMoveUp, canMoveDown, onMoveUp, onMoveDown
 
 const styles = StyleSheet.create({
   page: { gap: spacing.md },
-  row: { gap: spacing.sm }, rowCompact: { gap: spacing.sm },
+  row: { gap: spacing.md, borderColor: operationsTheme.line, borderRadius: operationsRadius.card }, rowCompact: { gap: spacing.sm },
   rowHeader: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm },
-  thumb: { width: 72, height: 44, borderRadius: radius.sm, backgroundColor: colors.soft },
-  thumbPlaceholder: { width: 72, height: 44, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
+  thumb: { width: 88, height: 56, borderRadius: operationsRadius.control, backgroundColor: operationsTheme.canvas },
+  thumbPlaceholder: { width: 88, height: 56, borderRadius: operationsRadius.control, backgroundColor: operationsTheme.canvas, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, minWidth: 0, gap: 2 },
   badges: { alignItems: 'flex-end', gap: 2 },
   badge: { minHeight: 28, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.pill },
-  badgeActive: { backgroundColor: colors.successSurface }, badgeInactive: { backgroundColor: colors.soft },
+  badgeActive: { backgroundColor: operationsTheme.primarySoft }, badgeInactive: { backgroundColor: operationsTheme.canvas },
   rowActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs },
-  editForm: { gap: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
-  addCard: { gap: spacing.sm, padding: spacing.md },
-  offer: { gap: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
+  editForm: { gap: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: operationsTheme.line },
+  addCard: { gap: spacing.md, padding: spacing.lg, borderColor: operationsTheme.line, borderRadius: operationsRadius.card },
+  offer: { gap: spacing.sm, padding: spacing.md, borderWidth: 1, borderColor: operationsTheme.line, borderRadius: operationsRadius.card, backgroundColor: operationsTheme.field },
   offerItem: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
-  result: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.soft },
+  result: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: operationsRadius.control, backgroundColor: operationsTheme.primarySoft },
   semibold: { fontWeight: '600' },
 });

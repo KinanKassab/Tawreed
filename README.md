@@ -114,6 +114,16 @@ Authentication uses email and password only. Phone numbers collected during regi
 
 ## Builds and deployment
 
+### Coupons, referral points, and staff tracking
+
+Apply `20261122094717_coupons_and_referral_rewards.sql` before releasing the updated clients. Doctor Account links to `/rewards`; Operations has a **الكوبونات والنقاط** section with buyer/code-owner snapshots, order timestamps in Riyadh time, purchased products and quantities, discounts, earned/spent points, filters, and pagination. Buyer purchase details are staff-only; referral owners see their own points history.
+
+Each user receives a readable referral code in `XXXX-XXXX-XXXX` format. Each buyer can use each friend's code twice, including outstanding orders. Cancelled orders release the use and restore reserved points exactly once. Referral points equal 10% of net USD merchandise dollars, including fractional points; each point redeems for 0.1% off eligible merchandise. Bundle quantities receive no extra discount. Codes and points cannot be combined. New installations default to a 1% friend discount and a 30% points discount cap, editable by Admin/Owner. Campaign codes support a percentage or fixed USD discount. Operations must confirm payment collection after delivery before earned points become spendable.
+
+This version handles cancellations. A post-delivery partial/full refund workflow and corresponding reward reversals are not included; do not treat cancellation as a refund operation.
+
+With migrated local Supabase running, `pnpm test:rewards` runs transactional database checks and rolls back its fixtures (requires PostgreSQL `psql`; override its path with `TAWREED_TEST_PSQL`). After both Web exports, `pnpm test:rewards-web` exercises real checkout, staff tracking/search/mobile, delivery/collection, points redemption, and concurrent requests using disposable local accounts/products/orders. It cleans up the fixtures and stores screenshots in ignored `.tawreed-local/rewards-preview`. These commands refuse hosted databases/services.
+
 Web export:
 
 ```powershell

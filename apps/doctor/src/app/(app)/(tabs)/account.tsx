@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import type { z } from 'zod';
@@ -40,6 +40,7 @@ export default function AccountScreen() {
 
   return <AppPage><ContentFade style={styles.page}>
     <AppText variant="h1">حسابي</AppText>
+    <Surface style={styles.card}><AppText variant="h2">كودي ونقاطي</AppText><AppText color={colors.textMuted}>شارك كودك، اجمع نقاط من طلبات رفقاتك، واستخدمها كخصم على مشترياتك.</AppText><Button label="عرض كودي ونقاطي" variant="outline" onPress={() => router.push('/rewards' as Href)} /></Surface>
 
     <SwipeExclusion><Surface style={styles.card}>
       <View style={styles.sectionTitle}><Icon name="map-marker-outline" size={22} color={colors.primary} /><AppText variant="h2">بيانات التوصيل</AppText></View>
