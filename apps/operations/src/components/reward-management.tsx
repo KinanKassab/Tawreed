@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '@tawreed/design-tokens';
+import { colors, radius, spacing } from '@tawreed/design-tokens';
 import { formatMoney, normalizeAppError, type DoctorOrderStatus, type RewardCoupon, type RewardTrackingFilters, type StaffRank } from '@tawreed/domain';
 import { AppText, Button, Field, StateView, Surface } from '@tawreed/ui';
-import { operationsRadius, operationsTheme } from '@/lib/operations-theme';
 import { useData } from '@/providers/app-providers';
 
 const states = { pending: 'معلّقة', available: 'مكتملة', cancelled: 'ملغاة' };
@@ -92,9 +91,9 @@ function RewardConfiguration() {
   </Surface>;
 }
 const styles = StyleSheet.create({
-  stack: { gap: spacing.md }, panel: { gap: spacing.md, borderColor: operationsTheme.line, borderRadius: operationsRadius.card },
+  stack: { gap: spacing.md }, panel: { gap: spacing.md, borderColor: colors.line, borderRadius: radius.md },
   row: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
   rowBetween: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   grow: { flexGrow: 1, flexBasis: 220, minWidth: 0, gap: spacing.xs }, metric: { flexGrow: 1, flexBasis: 140, gap: spacing.xs },
-  highlight: { backgroundColor: operationsTheme.primarySoft, borderRadius: operationsRadius.control, padding: spacing.md, gap: spacing.sm },
+  highlight: { backgroundColor: colors.pale, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
 });
