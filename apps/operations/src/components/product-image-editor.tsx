@@ -1,8 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { colors, radius, spacing } from '@tawreed/design-tokens';
+import { colors, spacing } from '@tawreed/design-tokens';
 import { AppText, Button, Icon, Surface } from '@tawreed/ui';
+import { operationsRadius, operationsTheme } from '@/lib/operations-theme';
 
 export interface ProductImageFile {
   bytes: ArrayBuffer;
@@ -82,11 +83,11 @@ export function ProductImageEditor({ currentImageUrl, value, onChange, onError, 
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md, padding: spacing.md },
+  card: { gap: spacing.md, padding: spacing.md, borderColor: operationsTheme.line, borderRadius: operationsRadius.card },
   heading: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm },
-  icon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pale },
+  icon: { width: 44, height: 44, borderRadius: operationsRadius.control, alignItems: 'center', justifyContent: 'center', backgroundColor: operationsTheme.primarySoft },
   copy: { flex: 1, gap: 2 },
-  preview: { width: 144, height: 144, borderRadius: radius.md, alignSelf: 'center', backgroundColor: colors.soft },
-  empty: { height: 144, borderRadius: radius.md, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  preview: { width: 144, height: 144, borderRadius: operationsRadius.card, alignSelf: 'center', backgroundColor: operationsTheme.canvas },
+  empty: { height: 144, borderRadius: operationsRadius.card, backgroundColor: operationsTheme.canvas, borderWidth: 1, borderColor: operationsTheme.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   center: { textAlign: 'center' },
 });

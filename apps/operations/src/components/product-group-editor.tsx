@@ -4,6 +4,7 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-nat
 import { colors, radius, spacing, typography } from '@tawreed/design-tokens';
 import { formatMoney, getAvailabilityLabel, type Category, type OperationsProduct, type OperationsProductGroup } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, Surface } from '@tawreed/ui';
+import { operationsRadius, operationsTheme } from '@/lib/operations-theme';
 import { useData } from '@/providers/app-providers';
 import { ProductImageEditor, type ProductImageFile } from './product-image-editor';
 
@@ -250,25 +251,25 @@ function Metric({ label, value, warn = false }: { label: string; value: string; 
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: colors.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, overlayPhone: { padding: 0, justifyContent: 'flex-end' },
-  modal: { width: '100%', maxWidth: 1180, maxHeight: '94%', gap: spacing.md, padding: spacing.lg }, modalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md },
+  overlay: { flex: 1, backgroundColor: operationsTheme.overlay, padding: spacing.md, alignItems: 'center', justifyContent: 'center' }, overlayPhone: { padding: 0, justifyContent: 'flex-end' },
+  modal: { width: '100%', maxWidth: 1180, maxHeight: '94%', gap: spacing.md, padding: spacing.lg, borderRadius: operationsRadius.modal }, modalPhone: { maxHeight: '100%', height: '100%', borderRadius: 0, padding: spacing.md },
   header: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, flex: { flex: 1, minWidth: 0 },
-  iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft },
-  content: { gap: spacing.xl, paddingBottom: spacing.lg }, section: { gap: spacing.md }, fieldGroup: { gap: spacing.xs },
+  iconButton: { width: 48, height: 48, borderRadius: operationsRadius.control, alignItems: 'center', justifyContent: 'center', backgroundColor: operationsTheme.canvas },
+  content: { gap: spacing.xl, paddingBottom: spacing.lg }, section: { gap: spacing.md, borderTopWidth: 1, borderTopColor: operationsTheme.line, paddingTop: spacing.lg }, fieldGroup: { gap: spacing.xs },
   inlineRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
-  optionRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, padding: spacing.sm, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.white },
-  optionRowCompact: { alignItems: 'stretch' }, optionArchived: { opacity: 0.6, backgroundColor: colors.soft },
+  optionRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: operationsTheme.line, borderRadius: operationsRadius.card, backgroundColor: operationsTheme.white },
+  optionRowCompact: { alignItems: 'stretch' }, optionArchived: { opacity: 0.6, backgroundColor: operationsTheme.canvas },
   optionLabel: { width: 220, maxWidth: '100%', gap: 2 }, optionMetrics: { flex: 1, minWidth: 260, flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs },
   optionActions: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs, maxWidth: '100%' },
-  metric: { minWidth: 84, backgroundColor: colors.soft, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 }, metricWarn: { backgroundColor: colors.warningSurface },
-  thumb: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
-  addOption: { gap: spacing.sm, padding: spacing.md, backgroundColor: colors.pale },
+  metric: { minWidth: 84, backgroundColor: operationsTheme.canvas, borderRadius: operationsRadius.control, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }, metricWarn: { backgroundColor: operationsTheme.warningSoft },
+  thumb: { width: 56, height: 56, borderRadius: operationsRadius.control, backgroundColor: operationsTheme.canvas, alignItems: 'center', justifyContent: 'center' },
+  addOption: { gap: spacing.sm, padding: spacing.md, backgroundColor: operationsTheme.primarySoft, borderRadius: operationsRadius.card },
   chips: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
-  chipSelected: { backgroundColor: colors.deep, borderColor: colors.deep },
+  chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: operationsTheme.line, backgroundColor: operationsTheme.white },
+  chipSelected: { backgroundColor: operationsTheme.sidebar, borderColor: operationsTheme.sidebar },
   gallery: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: spacing.sm },
-  galleryItem: { width: 176, gap: spacing.xs, padding: spacing.sm, alignItems: 'center' }, galleryImage: { width: 150, height: 150, borderRadius: radius.sm, backgroundColor: colors.soft },
-  galleryEmpty: { width: 176, height: 150, borderRadius: radius.md, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
-  primaryBadge: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.successText },
+  galleryItem: { width: 176, gap: spacing.xs, padding: spacing.sm, alignItems: 'center', borderColor: operationsTheme.line, borderRadius: operationsRadius.card }, galleryImage: { width: 150, height: 150, borderRadius: operationsRadius.control, backgroundColor: operationsTheme.canvas },
+  galleryEmpty: { width: 176, height: 150, borderRadius: operationsRadius.card, backgroundColor: operationsTheme.canvas, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  primaryBadge: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: operationsTheme.primaryDark },
   semibold: { fontFamily: typography.family.semibold, fontWeight: '600' },
 });
