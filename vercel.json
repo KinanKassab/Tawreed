@@ -18,7 +18,21 @@
     }
   ],
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        { "type": "query", "key": "utm_source", "value": "campus" },
+        { "type": "query", "key": "utm_medium", "value": "print" },
+        { "type": "query", "key": "utm_campaign", "value": "dental_students" }
+      ],
+      "destination": "/contact/poster/dental-a5",
+      "permanent": false
+    }
+  ],
   "rewrites": [
+    { "source": "/contact", "destination": "/contact/index" },
+    { "source": "/contact/poster/dental-a5", "destination": "/contact/index" },
     { "source": "/product/:id", "destination": "/product/%5Bid%5D" },
     { "source": "/order/:id", "destination": "/order/%5Bid%5D" },
     { "source": "/(.*)", "destination": "/+not-found" }
