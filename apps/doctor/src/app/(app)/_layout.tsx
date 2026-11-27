@@ -9,6 +9,14 @@ import { WhatsAppButton } from '@/components/whatsapp-button';
 import { useData, useSession } from '@/providers/app-providers';
 import { ar } from '@/locales/ar';
 import { swipeTransition } from '@/lib/main-navigation';
+import { useMarkPageHydrated } from '@/hooks/use-hydration';
+
+// Protected routes are pre-rendered as this session skeleton. Signal when that
+// skeleton hydrates so persisted cart/query restoration can finish on a direct link.
+function SessionLoading() {
+  useMarkPageHydrated();
+  return <StateView loading title={ar.loading} message={ar.loadingMessage} />;
+}
 
 export default function AppLayout() {
   const data = useData();
@@ -17,7 +25,7 @@ export default function AppLayout() {
   const publicPage = pathname === '/' || pathname === '/catalog' || pathname === '/cart' || pathname.startsWith('/product/');
   if (!data) return <StateView title={ar.configurationTitle} message={ar.configurationMessage} />;
   // Public pages render straight away (and at static build time) instead of waiting for the stored session.
-  if (loading && !publicPage) return <StateView loading title={ar.loading} message={ar.loadingMessage} />;
+  if (loading && !publicPage) return <SessionLoading />;
   if (!session && !publicPage) return <Redirect href={{ pathname: '/(auth)/login', params: { returnTo: pathname } }} />;
   return <View style={styles.shell}><View style={styles.content}><SwipeTabNavigator><Stack screenOptions={() => ({ headerShown: false, animation: swipeTransition.active ? 'none' : 'slide_from_left' })} /></SwipeTabNavigator></View><ToastHost /><InstallPrompt /><MobileBottomNav /><WhatsAppButton /></View>;
 }

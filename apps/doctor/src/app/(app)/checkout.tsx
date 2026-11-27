@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -26,8 +26,16 @@ export default function CheckoutScreen() {
   const items = useCart((state) => state.items);
   const clear = useCart((state) => state.clear);
   const [idempotencyKey] = useState(() => randomUUID());
+  const queryClient = useQueryClient();
+  const [codeDraft, setCodeDraft] = useState('');
+  const [code, setCode] = useState('');
+  const [pointsDraft, setPointsDraft] = useState('');
+  const [points, setPoints] = useState(0);
   const profile = useQuery({ queryKey: ['profile', session?.user.id], queryFn: () => data!.profile.getMine(), enabled: Boolean(data && session) });
   const { ids, products, bundles, looseLines, subtotal, currency, decimalPlaces, loading: loadingProducts, failed: failedProducts, canCheckout } = useCartPricing();
+  const rewardCart = { items: ids.map((productId) => ({ productId, quantity: items[productId] ?? 1 })), bundleIds: bundles.map((bundle) => bundle.id), displayCurrency: currency, code, points };
+  const wallet = useQuery({ queryKey: ['reward-wallet', session?.user.id], queryFn: () => data!.rewards.wallet(), enabled: Boolean(data && session && online) });
+  const quote = useQuery({ queryKey: ['reward-quote', session?.user.id, rewardCart], queryFn: () => data!.rewards.quote(rewardCart), enabled: Boolean(data && session && online && !loadingProducts && canCheckout && ids.length), retry: false, staleTime: 0 });
   const showToast = useToast((state) => state.show);
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError, reset } = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
@@ -63,10 +71,15 @@ export default function CheckoutScreen() {
       setError('root', { message: 'تغيّر سعر أو توفر أحد المنتجات. ارجع إلى السلة وراجع الطلب.' });
       return;
     }
+    if (!quote.data || quote.isError || quote.isFetching) {
+      setError('root', { message: 'انتظر تحديث الفاتورة أو راجع الكود والنقاط.' });
+      return;
+    }
     try {
-      const result = await data.orders.createOrder({
+      const result = await data.rewards.placeOrder({
+        ...rewardCart,
+        expectedQuote: quote.data,
         idempotencyKey,
-        displayCurrency: 'NEW_SYP',
         deliveryAddress: values.deliveryAddress,
         recipientName: values.recipientName,
         recipientPhone: values.recipientPhone,
@@ -77,10 +90,13 @@ export default function CheckoutScreen() {
         items: ids.map((productId) => ({ productId, quantity: items[productId] ?? 1 })),
         bundleIds: bundles.map((bundle) => bundle.id),
       });
+      void queryClient.invalidateQueries({ queryKey: ['reward-wallet'] });
+      void queryClient.invalidateQueries({ queryKey: ['orders'] });
       clear();
       router.replace({ pathname: '/order-success', params: result });
       showToast('تم إرسال طلبك بنجاح', { actionLabel: 'عرض التفاصيل', onAction: () => router.push({ pathname: '/order/[id]', params: { id: result.orderId } }) });
     } catch (error) {
+      void quote.refetch();
       const authError = /SESSION_INVALID|ACCOUNT_UNAVAILABLE|AUTH_REQUIRED/.test(error instanceof Error ? error.message : '');
       setError('root', { message: authError ? 'انتهت الجلسة أو لم يعد الحساب متاحاً. سجّل الدخول من جديد.' : normalizeAppError(error).messageAr });
       if (authError) {
@@ -113,10 +129,29 @@ export default function CheckoutScreen() {
           return <View key={product.id} style={styles.invoiceLine}><View style={styles.lineCopy}><AppText variant="small" style={styles.semibold}>{product.nameAr}</AppText><AppText variant="caption" color={colors.textMuted}>{product.packageLabelAr ?? product.unitLabelAr} · {quantity.toLocaleString('ar-SY')} × {formatMoney(unitPrice)}</AppText></View><AppText variant="small" style={styles.lineTotal}>{formatMoney({ ...unitPrice, amountMinor: unitPrice.amountMinor * quantity })}</AppText></View>;
         })}</View>
         <View style={styles.divider} />
-        <View style={styles.totalRow}><AppText variant="h2">{formatMoney({ amountMinor: subtotal, currency, decimalPlaces })}</AppText><View><AppText variant="small" color={colors.textMuted}>الإجمالي</AppText><AppText variant="caption" color={colors.successText}>توصيل مجاني والدفع عند الاستلام</AppText></View></View>
+        <View style={styles.invoiceLines}>
+          <AppText variant="h3">كود خصم أو نقاط</AppText>
+          <Field label="كود صديقك أو كوبون خصم" value={codeDraft} onChangeText={setCodeDraft} autoCapitalize="characters" editable={!isSubmitting} />
+          <Button label="تطبيق الكود" variant="outline" disabled={!codeDraft.trim() || isSubmitting} onPress={() => { setCode(codeDraft.trim().toUpperCase()); setPoints(0); }} />
+          {code ? <View><AppText variant="small">الكود المختار: {code}</AppText><Button label="إزالة الكود" variant="text" disabled={isSubmitting} onPress={() => { setCode(''); setCodeDraft(''); }} /></View> : null}
+          <AppText variant="small" color={colors.textMuted}>{wallet.data ? `رصيدك ${wallet.data.available.toLocaleString('ar-SY')} نقطة. كل نقطة = 0.1% خصم، بسقف ${wallet.data.maxPointsDiscountPercent}% للطلب.` : 'جاري تحميل رصيد النقاط…'}</AppText>
+          {wallet.isError ? <Button label="إعادة تحميل رصيد النقاط" variant="text" onPress={() => wallet.refetch()} /> : null}
+          <Field label="نقاط بدك تصرفها (اختياري)" value={pointsDraft} onChangeText={setPointsDraft} keyboardType="decimal-pad" editable={!isSubmitting} />
+          <Button label="تطبيق النقاط" variant="outline" disabled={isSubmitting || !pointsDraft.trim() || !Number.isFinite(Number(pointsDraft)) || Number(pointsDraft) <= 0 || !wallet.data} onPress={() => { setPoints(Number(pointsDraft)); setCode(''); }} />
+          {points > 0 ? <View><AppText variant="small">النقاط المختارة: {points} · الخصم {points / 10}%</AppText><Button label="إلغاء استخدام النقاط" variant="text" disabled={isSubmitting} onPress={() => { setPoints(0); setPointsDraft(''); }} /></View> : null}
+          <AppText variant="caption" color={colors.textMuted}>كود واحد أو نقاط لكل طلب. الباقات غير مشمولة بالخصم الإضافي.</AppText>
+          {quote.isFetching ? <AppText accessibilityRole="status" color={colors.textMuted}>جاري تحديث الفاتورة…</AppText> : quote.isError ? <View accessibilityRole="alert"><AppText color={colors.error}>{normalizeAppError(quote.error).messageAr}</AppText><Button label="تحديث الفاتورة" variant="text" onPress={() => quote.refetch()} /></View> : quote.data ? <View style={styles.invoiceLines}>
+            <AppText>قيمة المنتجات: {formatMoney(quote.data.subtotal)}</AppText>
+            <AppText color={colors.successText}>الخصم: {formatMoney(quote.data.discount)}</AppText>
+            {quote.data.delivery.amountMinor > 0 ? <AppText>التوصيل: {formatMoney(quote.data.delivery)}</AppText> : null}
+            {quote.data.tax.amountMinor > 0 ? <AppText>الضريبة: {formatMoney(quote.data.tax)}</AppText> : null}
+            {quote.data.usesRemaining !== null ? <AppText variant="caption">متاح {quote.data.usesRemaining} استخدام لهذا الكود قبل هالطلب.</AppText> : null}
+          </View> : null}
+        </View>
+        <View style={styles.totalRow}><AppText variant="h2">{formatMoney(quote.data?.total ?? { amountMinor: subtotal, currency, decimalPlaces })}</AppText><View><AppText variant="small" color={colors.textMuted}>الإجمالي</AppText><AppText variant="caption" color={colors.successText}>الدفع عند الاستلام</AppText></View></View>
         {!canCheckout ? <View accessibilityRole="alert" style={styles.warning}><AppText variant="small" color={colors.warningText}>تغيّر سعر أو توفر أحد المنتجات. ارجع إلى السلة وراجعه.</AppText></View> : null}
         {errors.root?.message ? <View accessibilityRole="alert" style={styles.error}><AppText variant="small" color={colors.error}>{errors.root.message}</AppText></View> : null}
-        <Button label="إرسال الطلب" variant="accent" onPress={submit} loading={isSubmitting} disabled={!online || !canCheckout} />
+        <Button label="إرسال الطلب" variant="accent" onPress={submit} loading={isSubmitting} disabled={!online || !canCheckout || !quote.data || quote.isError || quote.isFetching} />
         <AppText variant="caption" color={colors.textMuted} style={styles.center}>بإرسال الطلب أنت تؤكد صحة الفاتورة ومعلومات التوصيل.</AppText>
       </Surface>
     </View>

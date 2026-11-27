@@ -53,6 +53,7 @@ export default function OrderDetailScreen() {
         <Surface style={styles.section}>
           <AppText variant="h2">المنتجات</AppText>
           {order.data.items.map((item) => <View key={item.id} style={styles.row}><AppText>{formatMoney(item.lineTotal)}</AppText><View><AppText>{item.nameAr}</AppText><AppText variant="caption" color={colors.textMuted}>{item.packageLabelAr ?? item.unitLabelAr} · {formatNumber(item.quantity)} × {formatMoney(item.unitPrice)}</AppText></View></View>)}
+          {order.data.discount && order.data.discount.amountMinor > 0 ? <View style={styles.total}><AppText color={colors.successText}>{formatMoney(order.data.discount)}</AppText><AppText>خصم الكود أو النقاط</AppText></View> : null}
           <View style={styles.total}><AppText variant="h3" color={colors.primary}>{formatMoney(order.data.total)}</AppText><AppText variant="h3">الإجمالي</AppText></View>
         </Surface>
       </View>

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createRewardsRepository, type RewardsRepository } from './rewards';
 import { AppState, Platform } from 'react-native';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { ClientConfig } from '@tawreed/config';
@@ -174,6 +175,7 @@ export interface BannerOfferInput {
 }
 
 export interface TawreedDataLayer {
+  rewards: RewardsRepository;
   client: SupabaseClient;
   auth: AuthRepository;
   catalog: CatalogRepository;
@@ -479,14 +481,14 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
     },
     async getOrderById(id) {
       const { data, error } = await client.from('orders').select(`
-        id, order_number, status, created_at, total_minor, currency, currency_decimal_places,
+        id, order_number, status, created_at, total_minor, discount_minor, currency, currency_decimal_places,
         delivery_address_snapshot, recipient_name_snapshot, recipient_phone_snapshot, delivery_notes,
         order_items(id, product_id, sku_snapshot, name_ar_snapshot, unit_label_ar_snapshot, package_label_ar_snapshot, quantity, unit_price_minor, line_total_minor, currency, currency_decimal_places)
       `).eq('id', id).maybeSingle();
       if (error) throw error;
       if (!data) return null;
       const row = data as unknown as {
-        id: string; order_number: string; status: OperationsOrder['status']; created_at: string; total_minor: number; currency: CurrencyCode; currency_decimal_places: number;
+        id: string; order_number: string; status: OperationsOrder['status']; created_at: string; total_minor: number; discount_minor: number; currency: CurrencyCode; currency_decimal_places: number;
         delivery_address_snapshot: string; recipient_name_snapshot: string; recipient_phone_snapshot: string; delivery_notes: string | null;
         order_items: { id: string; product_id: string | null; sku_snapshot: string; name_ar_snapshot: string; unit_label_ar_snapshot: string; package_label_ar_snapshot: string | null; quantity: number; unit_price_minor: number; line_total_minor: number; currency: CurrencyCode; currency_decimal_places: number }[];
       };
@@ -498,6 +500,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         itemCount: row.order_items.reduce((sum, item) => sum + item.quantity, 0),
         total: { amountMinor: row.total_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
         deliveryAddress: row.delivery_address_snapshot,
+        discount: { amountMinor: row.discount_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
         recipientName: row.recipient_name_snapshot,
         recipientPhone: row.recipient_phone_snapshot,
         deliveryNotes: row.delivery_notes,
@@ -827,6 +830,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
   };
 
   return {
+    rewards: createRewardsRepository(client),
     client,
     media,
     catalog,
@@ -936,7 +940,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
       },
       async getMineById(id) {
         const { data, error } = await client.from('orders').select(`
-          id, order_number, status, created_at, total_minor, currency, currency_decimal_places,
+          id, order_number, status, created_at, total_minor, discount_minor, currency, currency_decimal_places,
           delivery_address_snapshot, recipient_name_snapshot, recipient_phone_snapshot, delivery_notes,
           order_items(id, product_id, sku_snapshot, name_ar_snapshot, unit_label_ar_snapshot, package_label_ar_snapshot, quantity, unit_price_minor, line_total_minor, currency, currency_decimal_places),
           order_status_history(id, status, doctor_message_ar, created_at)
@@ -944,7 +948,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
         if (error) throw error;
         if (!data) return null;
         const row = data as unknown as {
-          id: string; order_number: string; status: OrderSummary['status']; created_at: string; total_minor: number; currency: CurrencyCode; currency_decimal_places: number;
+          id: string; order_number: string; status: OrderSummary['status']; created_at: string; total_minor: number; discount_minor: number; currency: CurrencyCode; currency_decimal_places: number;
           delivery_address_snapshot: string; recipient_name_snapshot: string; recipient_phone_snapshot: string; delivery_notes: string | null;
           order_items: { id: string; product_id: string | null; sku_snapshot: string; name_ar_snapshot: string; unit_label_ar_snapshot: string; package_label_ar_snapshot: string | null; quantity: number; unit_price_minor: number; line_total_minor: number; currency: CurrencyCode; currency_decimal_places: number }[];
           order_status_history: { id: string; status: OrderSummary['status']; doctor_message_ar: string | null; created_at: string }[];
@@ -957,6 +961,7 @@ export function createTawreedDataLayer(config: ClientConfig): TawreedDataLayer {
           itemCount: row.order_items.reduce((sum, item) => sum + item.quantity, 0),
           total: { amountMinor: row.total_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
           deliveryAddress: row.delivery_address_snapshot,
+          discount: { amountMinor: row.discount_minor, currency: row.currency, decimalPlaces: row.currency_decimal_places },
           recipientName: row.recipient_name_snapshot,
           recipientPhone: row.recipient_phone_snapshot,
           deliveryNotes: row.delivery_notes,

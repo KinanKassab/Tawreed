@@ -9,14 +9,16 @@ import { breakpoints, colors, layout, radius, spacing, typography } from '@tawre
 import { formatMoney, getOrderStatusLabel, normalizeAppError, type DoctorOrderStatus, type OperationsProduct } from '@tawreed/domain';
 import { AppText, Button, Field, Icon, type IconName, StateView, Surface } from '@tawreed/ui';
 import { BannerManagement } from '@/components/banner-management';
+import { RewardManagement } from '@/components/reward-management';
 import { ProductManagement } from '@/components/product-management';
 import { useProductSearch } from '@/lib/use-product-search';
 import { useData, useSession } from '@/providers/app-providers';
 
-type Section = 'overview' | 'orders' | 'catalog' | 'banners' | 'inventory' | 'settings';
+type Section = 'overview' | 'orders' | 'catalog' | 'banners' | 'inventory' | 'settings' | 'rewards';
 const sections: { id: Section; label: string; icon: IconName }[] = [
   { id: 'overview', label: 'نظرة عامة', icon: 'view-dashboard-outline' },
   { id: 'orders', label: 'الطلبات', icon: 'clipboard-text-outline' },
+  { id: 'rewards', label: 'الكوبونات والنقاط', icon: 'currency-usd' },
   { id: 'catalog', label: 'الكتالوج والأسعار', icon: 'package-variant-closed' },
   { id: 'banners', label: 'بانرات العروض', icon: 'image-outline' },
   { id: 'inventory', label: 'المخزون', icon: 'warehouse' },
@@ -134,6 +136,7 @@ export default function DashboardScreen() {
   {section === 'inventory' ? <View style={[styles.split, compact && styles.splitCompact]}><View style={styles.listPane}><Field label="بحث بالاسم أو SKU" value={productSearch} onChangeText={setProductSearch} />{filteredProducts.map((product) => <ProductRow key={product.id} product={product} selected={selectedProduct?.id === product.id} onPress={() => setSelectedProduct(product)} showStock />)}</View><Surface style={styles.editor}>{selectedProduct ? <><AppText variant="h3">{selectedProduct.nameAr}</AppText><View style={styles.stockSummary}><Meta label="الموجود" value={selectedProduct.onHand.toLocaleString('ar-SY')} /><Meta label="المحجوز" value={selectedProduct.reserved.toLocaleString('ar-SY')} /><Meta label="المتاح" value={(selectedProduct.onHand - selectedProduct.reserved).toLocaleString('ar-SY')} /></View><Controller control={inventoryForm.control} name="delta" render={({ field }) => <Field label="كمية التعديل (+ أو -)" keyboardType="numbers-and-punctuation" value={field.value} onChangeText={field.onChange} error={inventoryForm.formState.errors.delta?.message} />} /><Controller control={inventoryForm.control} name="notes" render={({ field }) => <Field label="سبب التعديل" value={field.value} onChangeText={field.onChange} error={inventoryForm.formState.errors.notes?.message} />} /><Button label="تسجيل حركة المخزون" onPress={inventoryForm.handleSubmit((values) => inventoryMutation.mutate(values))} loading={inventoryMutation.isPending} /></> : <AppText color={colors.muted}>اختر منتجاً لتعديل مخزونه.</AppText>}</Surface></View> : null}
 
   {section === 'settings' ? <Surface style={styles.settingsCard}><AppText variant="h3">سعر الصرف التشغيلي</AppText><AppText color={colors.muted}>يُستخدم السعر الجديد للطلبات اللاحقة فقط؛ الطلبات السابقة تحتفظ بنسختها المالية.</AppText><Controller control={rateForm.control} name="rate" render={({ field }) => <Field label="كل 1 USD يساوي" keyboardType="decimal-pad" value={field.value} onChangeText={field.onChange} error={rateForm.formState.errors.rate?.message} />} /><AppText variant="small" color={colors.muted}>ليرة سورية جديدة</AppText><Button label="حفظ سعر الصرف" onPress={rateForm.handleSubmit((values) => rateMutation.mutate(values))} loading={rateMutation.isPending} /></Surface> : null}
+    {section === 'rewards' ? <RewardManagement rank={context.data.rank} /> : null}
     </ScrollView>
     {compact ? <View accessibilityRole="tablist" style={styles.bottomNav}>{nav}</View> : null}
   </View>;

@@ -42,7 +42,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(data));
   const clearPrivateQueries = useCallback(() => {
-    queryClient.removeQueries({ predicate: (query) => ['orders', 'profile'].includes(String(query.queryKey[0])) });
+    queryClient.removeQueries({ predicate: (query) => ['orders', 'profile', 'reward-wallet', 'reward-quote'].includes(String(query.queryKey[0])) });
   }, []);
   const revalidateSession = useCallback(async () => {
     if (!data) return false;
